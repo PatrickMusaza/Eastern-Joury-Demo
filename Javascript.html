@@ -69,9 +69,9 @@
     window.addEventListener("load", functionInit, true);
 
     // Initialize on page load
-    window.addEventListener('load', () => {
-        generateBillNo(); // Generate and display Bill No
-    });
+window.addEventListener('load', () => {
+    generateBillNo(); // Generate and display Bill No
+});
 
     // LOAD CLIENT BILL DATA
     function loadClientBillData() {
@@ -142,21 +142,29 @@
 
     // HANDLE FORM SUBMISSION
     function handleClientBillSubmit(formObject) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function () {
-                $('#spinnerModal').modal('hide'); // Hide spinner after submission
-                alert('Client Bill submitted successfully!');
-                document.getElementById("ClientBillForm").reset(); // Reset form
-                generateBillNo(); // Generate new Bill No
-                loadClientBillData(); // Reload data
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error submitting form:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .processClientBill(formObject);
+    $('#spinnerModal').modal('show'); // Show spinner
+    google.script.run
+        .withSuccessHandler(() => {
+            $('#spinnerModal').modal('hide'); // Hide spinner after submission
+            alert('Client Bill submitted successfully!');
+            document.getElementById("ClientBillForm").reset(); // Reset form
+            generateBillNo(); // Generate new Bill No
+            clearItemList(); // Clear the item list and reset counter
+            loadClientBillData(); // Reload data
+        })
+        .withFailureHandler((error) => {
+            console.error("Error submitting form:", error); // Debugging line
+            $('#spinnerModal').modal('hide'); // Hide spinner on error
+        })
+        .processClientBill(formObject);
     }
+    
+// CLEAR ITEM LIST AND RESET COUNTER
+function clearItemList() {
+    const itemList = document.getElementById('itemList');
+    itemList.innerHTML = ''; // Clear all items from the list
+    itemCounter = 1; // Reset the item counter
+}
 
     // FETCH TYPE DATA FROM ABBREVIATIONS SHEET
     function fetchTypeData() {
@@ -171,33 +179,33 @@
     }
 
     // Populate Type dropdown
-    function populateTypeDropdown(data) {
-        const typeDropdown = document.getElementById('type');
-        typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
-        data.forEach((row) => {
-            const option = document.createElement('option');
-            option.value = row[1]; // Value from Column B
-            option.text = row[0]; // Label from Column A
-            typeDropdown.appendChild(option);
-        });
+function populateTypeDropdown(data) {
+    const typeDropdown = document.getElementById('type');
+    typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
+    data.forEach((row) => {
+        const option = document.createElement('option');
+        option.value = row[1]; // Value from Column B
+        option.text = row[0]; // Label from Column A
+        typeDropdown.appendChild(option);
+    });
+}
+
+let itemCounter = 1; // Counter for item numbers
+
+function addItem() {
+    const typeDropdown = document.getElementById('type');
+    const type = typeDropdown.value; // Selected value (from Column B)
+    const itemWeight = document.getElementById('itemWeight').value;
+
+    if (!type || !itemWeight) {
+        alert('Please fill in both Type and Item Weight.');
+        return;
     }
 
-    let itemCounter = 1; // Counter for item numbers
-
-    function addItem() {
-        const typeDropdown = document.getElementById('type');
-        const type = typeDropdown.value; // Selected value (from Column B)
-        const itemWeight = document.getElementById('itemWeight').value;
-
-        if (!type || !itemWeight) {
-            alert('Please fill in both Type and Item Weight.');
-            return;
-        }
-
-        const itemList = document.getElementById('itemList');
-        const itemRow = document.createElement('div');
-        itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
-        itemRow.innerHTML = `
+    const itemList = document.getElementById('itemList');
+    const itemRow = document.createElement('div');
+    itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
+    itemRow.innerHTML = `
         <div class="col-sm-3">${itemCounter}</div>
         <div class="col-sm-3">${typeDropdown.options[typeDropdown.selectedIndex].text}</div> <!-- Display label from Column A -->
         <div class="col-sm-3">${itemWeight}</div>
@@ -205,69 +213,69 @@
             <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
         </div>
     `;
-        itemList.appendChild(itemRow);
+    itemList.appendChild(itemRow);
 
-        // Save item to Google Sheets
-        const billNo = document.getElementById('billNo').value;
-        google.script.run
-            .withSuccessHandler(() => {
-                console.log("Item saved successfully.");
-            })
-            .withFailureHandler((error) => {
-                console.error("Error saving item:", error); // Debugging line
-            })
-            .saveItem({
-                number: itemCounter,
-                type: type, // Value from Column B
-                weight: itemWeight,
-                bill: billNo
-            });
+    // Save item to Google Sheets
+    const billNo = document.getElementById('billNo').value;
+    google.script.run
+        .withSuccessHandler(() => {
+            console.log("Item saved successfully.");
+        })
+        .withFailureHandler((error) => {
+            console.error("Error saving item:", error); // Debugging line
+        })
+        .saveItem({
+            number: itemCounter,
+            type: type, // Value from Column B
+            weight: itemWeight,
+            bill: billNo
+        });
 
-        // Increment counter and clear fields
-        itemCounter++;
-        typeDropdown.value = ''; // Reset dropdown
-        document.getElementById('itemWeight').value = ''; // Clear weight field
-    }
+    // Increment counter and clear fields
+    itemCounter++;
+    typeDropdown.value = ''; // Reset dropdown
+    document.getElementById('itemWeight').value = ''; // Clear weight field
+}
 
-    // Remove Item from the list
-    function removeItem(button) {
-        const itemRow = button.parentElement.parentElement;
-        const itemNumber = itemRow.querySelector('div:first-child').textContent; // Get the item number
-        itemRow.remove(); // Remove the row from the UI
+// Remove Item from the list
+function removeItem(button) {
+    const itemRow = button.parentElement.parentElement;
+    const itemNumber = itemRow.querySelector('div:first-child').textContent; // Get the item number
+    itemRow.remove(); // Remove the row from the UI
 
-        // Delete the item from Google Sheets
-        google.script.run
-            .withSuccessHandler(() => {
-                console.log("Item removed successfully.");
-            })
-            .withFailureHandler((error) => {
-                console.error("Error removing item:", error); // Debugging line
-            })
-            .deleteItem(itemNumber); // Call Google Apps Script function to delete the item
-    }
+    // Delete the item from Google Sheets
+    google.script.run
+        .withSuccessHandler(() => {
+            console.log("Item removed successfully.");
+        })
+        .withFailureHandler((error) => {
+            console.error("Error removing item:", error); // Debugging line
+        })
+        .deleteItem(itemNumber); // Call Google Apps Script function to delete the item
+}
 
     // GENERATE AND DISPLAY BILL NO
     function generateBillNo() {
-        google.script.run
-            .withSuccessHandler((lastBillNo) => {
-                const billNoField = document.getElementById('billNo');
-                const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
-                billNoField.value = nextBillNo; // Set the value of the Bill No field
-            })
-            .withFailureHandler((error) => {
-                console.error("Error generating Bill No:", error); // Debugging line
-                const billNoField = document.getElementById('billNo');
-                billNoField.value = 'EJ001'; // Default if no data or error
-            })
-            .getLastBillNo(); // Call Google Apps Script function
+    google.script.run
+        .withSuccessHandler((lastBillNo) => {
+            const billNoField = document.getElementById('billNo');
+            const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
+            billNoField.value = nextBillNo; // Set the value of the Bill No field
+        })
+        .withFailureHandler((error) => {
+            console.error("Error generating Bill No:", error); // Debugging line
+            const billNoField = document.getElementById('billNo');
+            billNoField.value = 'EJ001'; // Default if no data or error
+        })
+        .getLastBillNo(); // Call Google Apps Script function
     }
 
     // HELPER FUNCTION TO INCREMENT BILL NO
     function incrementBillNo(billNo) {
-        if (!billNo) return 'EJ001'; // Default if no Bill No exists
-        const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
-        const number = parseInt(billNo.slice(2)); // Extract number
-        return `${prefix}${String(number + 1).padStart(3, '0')}`; // Increment and return
+    if (!billNo) return 'EJ001'; // Default if no Bill No exists
+    const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
+    const number = parseInt(billNo.slice(2)); // Extract number
+    return `${prefix}${String(number + 1).padStart(3, '0')}`; // Increment and return
     }
 
     // SEARCH CLIENT BILL RECORDS
