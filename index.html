@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Client Bill Management</title>
+    <?!= include('JavaScript'); ?>
+    <?!= include('CSS'); ?>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navbar-like Tabs -->
+        <div class="row mb-4">
+            <div class="col">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="clientBillBtn" href="#" aria-current="page">CLIENT BILL</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="expensesBtn" href="#">EXPENSES</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="abbreviationsBtn" href="#">ABBREVIATIONS</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab Content Sections -->
+        <div id="clientBillContent" class="tab-content">
+            <!-- Client Bill Form and Table -->
+            <div class="row">
+                <!-- Client Bill Form (Left) -->
+                <div class="col-lg-5">
+                    <?!= include('FormClientBill'); ?>
+                </div>
+
+                <!-- Spacing Between Form and Table -->
+                <div class="col-lg-1"></div>
+
+                <!-- Client Bill Database Table (Right) -->
+                <div class="col-lg-6">
+                    <?!= include('ClientBillTable'); ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Content -->
+        <div id="expensesContent" class="tab-content" style="display: none;">
+            <p>Expenses content goes here.</p>
+        </div>
+
+        <!-- Reports Content -->
+        <div id="reportsContent" class="tab-content" style="display: none;">
+            <p>Reports content goes here.</p>
+        </div>
+
+        <!-- Abbreviations Content -->
+        <div id="abbreviationsContent" class="tab-content" style="display: none;">
+            <p>Abbreviations content goes here.</p>
+        </div>
+    </div>
+    <?!= include('SpinnerModal'); ?>
+</body>
+
+</html>

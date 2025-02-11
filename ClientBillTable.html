@@ -1,0 +1,33 @@
+<p class="h4 mb-4 text-center">Client Bill Database</p>
+
+<!-- Search Form -->
+<form id="searchClientBillForm" class="form-inline mb-4" onsubmit="handleClientBillSearch(this)">
+    <div class="input-group">
+        <input type="text" class="form-control form-control-sm" id="searchClientBillText" name="searchClientBillText"
+            placeholder="Search by Bill No, Shipper Name, Telephone No, Container No" required>
+        <button type="submit" class="btn btn-sm btn-primary">Search</button>
+    </div>
+</form>
+
+<!-- Client Bill Table -->
+<div class="table-responsive">
+    <table class="table table-striped-custom">
+        <thead>
+            <tr>
+                <th>Bill No</th>
+                <th>Shipper Name</th>
+                <th>Telephone Number</th>
+                <th>Container No</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="clientBillTable">
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Load More Button -->
+<div class="text-center mt-3">
+    <button type="button" class="btn btn-success btn-sm" onclick="loadAllRecords()">Load All Records</button>
+</div>

@@ -1,0 +1,287 @@
+<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+    crossorigin="anonymous"></script>
+<script>
+    // Function to handle tab switching
+    function switchTab(event, tabId) {
+        event.preventDefault(); // Prevent default link behavior
+
+        // Remove active class from all tabs
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+
+        // Add active class to the clicked tab
+        event.target.classList.add('active');
+
+        // Hide all content sections
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.style.display = 'none';
+        });
+
+        // Show the selected content section
+        document.getElementById(tabId).style.display = 'block';
+    }
+
+    // Add event listeners to tabs
+    document.getElementById('clientBillBtn').addEventListener('click', (event) => {
+        switchTab(event, 'clientBillContent');
+    });
+
+    document.getElementById('expensesBtn').addEventListener('click', (event) => {
+        switchTab(event, 'expensesContent');
+    });
+
+    document.getElementById('reportsBtn').addEventListener('click', (event) => {
+        switchTab(event, 'reportsContent');
+    });
+
+    document.getElementById('abbreviationsBtn').addEventListener('click', (event) => {
+        switchTab(event, 'abbreviationsContent');
+    });
+
+    // Initialize the first tab as active
+    window.addEventListener('load', () => {
+        document.getElementById('clientBillBtn').click(); // Simulate click on the first tab
+    });
+</script>
+<script>
+    // Prevent forms from submitting.
+    function preventFormSubmit() {
+        var forms = document.querySelectorAll('form');
+        for (var i = 0; i < forms.length; i++) {
+            forms[i].addEventListener('submit', function (event) {
+                event.preventDefault();
+            });
+        }
+    }
+
+    // INITIALIZE FUNCTIONS ONLOAD
+    function functionInit() {
+        $('#spinnerModal').modal('show'); // Show spinner on load
+        preventFormSubmit();
+        generateBillNo(); // Generate and display Bill No
+        fetchTypeData(); // Fetch Type data for dropdown
+        loadClientBillData(); // Load client bill data
+    }
+
+    window.addEventListener("load", functionInit, true);
+
+    // Initialize on page load
+    window.addEventListener('load', () => {
+        generateBillNo(); // Generate and display Bill No
+    });
+
+    // LOAD CLIENT BILL DATA
+    function loadClientBillData() {
+        console.log("Loading client bill data..."); // Debugging line
+        google.script.run
+            .withSuccessHandler(function (data) {
+                console.log("Data received:", data); // Debugging line
+                createClientBillTable(data);
+                $('#spinnerModal').modal('hide'); // Hide spinner after data is loaded
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error loading data:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getClientBillData();
+    }
+
+    // CREATE THE CLIENT BILL TABLE
+    function createClientBillTable(dataArray) {
+        const tableBody = document.getElementById('clientBillTable');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (dataArray && dataArray.length) {
+            dataArray.slice(0, 20).forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row[0]}</td>
+                    <td>${row[1]}</td>
+                    <td>${row[2]}</td>
+                    <td>${row[3]}</td>
+                    <td>
+                        <div class="actions-dropdown">
+                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                &#8942; <!-- Three vertical dots -->
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Edit</a></li>
+                                <li><a class="dropdown-item" href="#">Receipt</a></li>
+                                <li><a class="dropdown-item" href="#">Manifest</a></li>
+                                <li><a class="dropdown-item" href="#">House Way</a></li>
+                                <li><a class="dropdown-item" href="#">Loading List</a></li>
+                                <li><a class="dropdown-item" href="#">Preview</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
+        }
+    }
+
+    // LOAD ALL RECORDS
+    function loadAllRecords() {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                createClientBillTable(data);
+                $('#spinnerModal').modal('hide'); // Hide spinner after data is loaded
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error loading all records:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getAllClientBillRecords();
+    }
+
+    // HANDLE FORM SUBMISSION
+    function handleClientBillSubmit(formObject) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function () {
+                $('#spinnerModal').modal('hide'); // Hide spinner after submission
+                alert('Client Bill submitted successfully!');
+                document.getElementById("ClientBillForm").reset(); // Reset form
+                generateBillNo(); // Generate new Bill No
+                loadClientBillData(); // Reload data
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error submitting form:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .processClientBill(formObject);
+    }
+
+    // FETCH TYPE DATA FROM ABBREVIATIONS SHEET
+    function fetchTypeData() {
+        google.script.run
+            .withSuccessHandler(function (data) {
+                populateTypeDropdown(data);
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error fetching type data:", error); // Debugging line
+            })
+            .getAbbreviations();
+    }
+
+    // Populate Type dropdown
+    function populateTypeDropdown(data) {
+        const typeDropdown = document.getElementById('type');
+        typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
+        data.forEach((row) => {
+            const option = document.createElement('option');
+            option.value = row[1]; // Value from Column B
+            option.text = row[0]; // Label from Column A
+            typeDropdown.appendChild(option);
+        });
+    }
+
+    let itemCounter = 1; // Counter for item numbers
+
+    function addItem() {
+        const typeDropdown = document.getElementById('type');
+        const type = typeDropdown.value; // Selected value (from Column B)
+        const itemWeight = document.getElementById('itemWeight').value;
+
+        if (!type || !itemWeight) {
+            alert('Please fill in both Type and Item Weight.');
+            return;
+        }
+
+        const itemList = document.getElementById('itemList');
+        const itemRow = document.createElement('div');
+        itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
+        itemRow.innerHTML = `
+        <div class="col-sm-3">${itemCounter}</div>
+        <div class="col-sm-3">${typeDropdown.options[typeDropdown.selectedIndex].text}</div> <!-- Display label from Column A -->
+        <div class="col-sm-3">${itemWeight}</div>
+        <div class="col-sm-3">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
+        </div>
+    `;
+        itemList.appendChild(itemRow);
+
+        // Save item to Google Sheets
+        const billNo = document.getElementById('billNo').value;
+        google.script.run
+            .withSuccessHandler(() => {
+                console.log("Item saved successfully.");
+            })
+            .withFailureHandler((error) => {
+                console.error("Error saving item:", error); // Debugging line
+            })
+            .saveItem({
+                number: itemCounter,
+                type: type, // Value from Column B
+                weight: itemWeight,
+                bill: billNo
+            });
+
+        // Increment counter and clear fields
+        itemCounter++;
+        typeDropdown.value = ''; // Reset dropdown
+        document.getElementById('itemWeight').value = ''; // Clear weight field
+    }
+
+    // Remove Item from the list
+    function removeItem(button) {
+        const itemRow = button.parentElement.parentElement;
+        const itemNumber = itemRow.querySelector('div:first-child').textContent; // Get the item number
+        itemRow.remove(); // Remove the row from the UI
+
+        // Delete the item from Google Sheets
+        google.script.run
+            .withSuccessHandler(() => {
+                console.log("Item removed successfully.");
+            })
+            .withFailureHandler((error) => {
+                console.error("Error removing item:", error); // Debugging line
+            })
+            .deleteItem(itemNumber); // Call Google Apps Script function to delete the item
+    }
+
+    // GENERATE AND DISPLAY BILL NO
+    function generateBillNo() {
+        google.script.run
+            .withSuccessHandler((lastBillNo) => {
+                const billNoField = document.getElementById('billNo');
+                const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
+                billNoField.value = nextBillNo; // Set the value of the Bill No field
+            })
+            .withFailureHandler((error) => {
+                console.error("Error generating Bill No:", error); // Debugging line
+                const billNoField = document.getElementById('billNo');
+                billNoField.value = 'EJ001'; // Default if no data or error
+            })
+            .getLastBillNo(); // Call Google Apps Script function
+    }
+
+    // HELPER FUNCTION TO INCREMENT BILL NO
+    function incrementBillNo(billNo) {
+        if (!billNo) return 'EJ001'; // Default if no Bill No exists
+        const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
+        const number = parseInt(billNo.slice(2)); // Extract number
+        return `${prefix}${String(number + 1).padStart(3, '0')}`; // Increment and return
+    }
+
+    // SEARCH CLIENT BILL RECORDS
+    function handleClientBillSearch(formObject) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                createClientBillTable(data);
+                $('#spinnerModal').modal('hide'); // Hide spinner after search
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error searching records:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .searchClientBill(formObject);
+    }
+</script>

@@ -1,0 +1,85 @@
+<form id="ClientBillForm" onsubmit="handleClientBillSubmit(this)">
+    <p class="h4 mb-4 text-center">Client Bill Form</p>
+    <div class="mb-3 row">
+        <label for="billNo" class="col-sm-4 col-form-label">Bill No:</label>
+        <div class="col-sm-8">
+            <input type="text" id="billNo" name="billNo" class="form-control" readonly>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="shipperName" class="col-sm-4 col-form-label">Shipper Name:</label>
+        <div class="col-sm-8">
+            <input type="text" id="shipperName" name="shipperName" class="form-control" required>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="telephoneNo" class="col-sm-4 col-form-label">Telephone No:</label>
+        <div class="col-sm-8">
+            <input type="tel" id="telephoneNo" name="telephoneNo" class="form-control" required>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="receiverName1" class="col-sm-4 col-form-label">Receiver Name 1:</label>
+        <div class="col-sm-8">
+            <input type="text" id="receiverName1" name="receiverName1" class="form-control" required>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="phoneNo1" class="col-sm-4 col-form-label">Phone No 1:</label>
+        <div class="col-sm-8">
+            <input type="tel" id="phoneNo1" name="phoneNo1" class="form-control" required>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="receiverName2" class="col-sm-4 col-form-label">Receiver Name 2:</label>
+        <div class="col-sm-8">
+            <input type="text" id="receiverName2" name="receiverName2" class="form-control">
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="phoneNo2" class="col-sm-4 col-form-label">Phone No 2:</label>
+        <div class="col-sm-8">
+            <input type="tel" id="phoneNo2" name="phoneNo2" class="form-control">
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="containerNo" class="col-sm-4 col-form-label">Container No:</label>
+        <div class="col-sm-8">
+            <input type="text" id="containerNo" name="containerNo" class="form-control" required>
+        </div>
+    </div>
+
+    <!-- Item Management Section -->
+    <div class="mb-3">
+        <p class="h5 mb-3">Item Management</p>
+        <div id="itemList">
+            <!-- Item rows will be dynamically added here -->
+        </div>
+        <div class="row">
+            <div class="col-sm-4">
+                <label for="type" class="col-form-label">Type:</label>
+            </div>
+            <div class="col-sm-6">
+                <select id="type" name="type" class="form-select">
+                    <option value="">--Select Type--</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-success" onclick="addItem()">Add</button>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-sm-4">
+                <label for="itemWeight" class="col-form-label">Item Weight:</label>
+            </div>
+            <div class="col-sm-6">
+                <input type="number" id="itemWeight" name="itemWeight" class="form-control" step="1">
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+</form>
