@@ -91,38 +91,46 @@ window.addEventListener('load', () => {
 
     // CREATE THE CLIENT BILL TABLE
     function createClientBillTable(dataArray) {
-        const tableBody = document.getElementById('clientBillTable');
-        tableBody.innerHTML = ''; // Clear existing rows
+    const tableBody = document.getElementById('clientBillTable');
+    tableBody.innerHTML = ''; // Clear existing rows
 
-        if (dataArray && dataArray.length) {
-            dataArray.slice(0, 20).forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row[0]}</td>
-                    <td>${row[1]}</td>
-                    <td>${row[2]}</td>
-                    <td>${row[3]}</td>
-                    <td>
-                        <div class="actions-dropdown">
-                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                &#8942; <!-- Three vertical dots -->
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Edit</a></li>
-                                <li><a class="dropdown-item" href="#">Receipt</a></li>
-                                <li><a class="dropdown-item" href="#">Manifest</a></li>
-                                <li><a class="dropdown-item" href="#">House Way</a></li>
-                                <li><a class="dropdown-item" href="#">Loading List</a></li>
-                                <li><a class="dropdown-item" href="#">Preview</a></li>
-                            </ul>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        } else {
+    if (dataArray && dataArray.length) {
+        dataArray.forEach((row, index) => {
+            // Skip empty rows
+            if (row.every(cell => cell === '')) return;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row[0]}</td>
+                <td>${row[1]}</td>
+                <td>${row[2]}</td>
+                <td>${row[3]}</td>
+                <td>
+                    <div class="actions-dropdown">
+                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            &#8942; <!-- Three vertical dots -->
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Edit</a></li>
+                            <li><a class="dropdown-item" href="#">Receipt</a></li>
+                            <li><a class="dropdown-item" href="#">Manifest</a></li>
+                            <li><a class="dropdown-item" href="#">House Way</a></li>
+                            <li><a class="dropdown-item" href="#">Loading List</a></li>
+                            <li><a class="dropdown-item" href="#">Preview</a></li>
+                        </ul>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // If no valid rows were added, show "No data found"
+        if (tableBody.children.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
         }
+    } else {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
+    }
     }
 
     // LOAD ALL RECORDS
