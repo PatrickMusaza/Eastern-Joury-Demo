@@ -237,19 +237,37 @@
     // HANDLE FORM SUBMISSION
     function handleClientBillSubmit(formObject) {
         $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(() => {
-                $('#spinnerModal').modal('hide');
-                document.getElementById("ClientBillForm").reset(); // Reset form
-                generateBillNo(); // Generate new Bill No
-                clearItemList(); // Clear the item list and reset counter
-                loadClientBillData(); // Reload data
-            })
-            .withFailureHandler((error) => {
-                console.error("Error submitting form:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .processClientBill(formObject);
+        if (formObject.recId) {
+            // Update existing record
+            google.script.run
+                .withSuccessHandler(function () {
+                    $('#spinnerModal').modal('hide'); // Hide spinner
+                    document.getElementById("ClientBillForm").reset(); // Reset form
+                    generateBillNo(); // Generate new Bill No
+                    clearItemList(); // Clear the item list and reset counter
+                    loadClientBillData(); // Reload data
+                })
+                .withFailureHandler(function (error) {
+                    console.error("Error updating record:", error); // Debugging line
+                    $('#spinnerModal').modal('hide'); // Hide spinner on error
+                })
+                .updateClientBill(formObject); // Call Google Apps Script function
+        } else {
+            // Create new record
+            google.script.run
+                .withSuccessHandler(function () {
+                    $('#spinnerModal').modal('hide'); // Hide spinner
+                    document.getElementById("ClientBillForm").reset(); // Reset form
+                    generateBillNo(); // Generate new Bill No
+                    clearItemList(); // Clear the item list and reset counter
+                    loadClientBillData(); // Reload data
+                })
+                .withFailureHandler(function (error) {
+                    console.error("Error creating record:", error); // Debugging line
+                    $('#spinnerModal').modal('hide'); // Hide spinner on error
+                })
+                .processClientBill(formObject); // Call Google Apps Script function
+        }
     }
 
     // CLEAR ITEM LIST AND RESET COUNTER

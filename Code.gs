@@ -7,7 +7,6 @@
 const SPREADSHEET_ID = "1hoiskygCvco34k1pLNllvBXR9MBdf9aEjs07YGHnJ2I"; // Replace with your Google Sheets ID
 const CLIENT_BILL_SHEET = "ClientBill"; // Name of the sheet for Client Bill data
 const CLIENT_BILL_RANGE = "ClientBill!A2:I"; // Range for Client Bill data (adjust columns as needed)
-const CLIENT_BILL_SHEET_ID = "186407197"; // Sheet ID for Client Bill
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
@@ -35,8 +34,6 @@ function processClientBill(formObject) {
         formObject.receiverName2,
         formObject.phoneNo2,
         formObject.containerNo,
-        formObject.type,
-        formObject.itemWeight,
         new Date().toLocaleString(),
       ],
     ];
@@ -56,8 +53,6 @@ function processClientBill(formObject) {
         formObject.receiverName2,
         formObject.phoneNo2,
         formObject.containerNo,
-        formObject.type,
-        formObject.itemWeight,
         new Date().toLocaleString(),
       ],
     ];
@@ -171,6 +166,28 @@ function getClientBillData() {
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = sheet.getRange(CLIENT_BILL_RANGE).getValues();
   return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
+
+// UPDATE CLIENT BILL RECORD
+function updateClientBill(formObject) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const rowIndex = data.findIndex((row) => row[0] === formObject.recId); // Find the row with the matching recId
+  if (rowIndex !== -1) {
+    const values = [
+      formObject.recId,
+      formObject.billNo,
+      formObject.shipperName,
+      formObject.telephoneNo,
+      formObject.receiverName1,
+      formObject.phoneNo1,
+      formObject.receiverName2,
+      formObject.phoneNo2,
+      formObject.containerNo,
+    ];
+    sheet.getRange(rowIndex + 2, 1, 1, values.length).setValues([values]); // Update the row
+  }
 }
 
 // GET CLIENT BILL RECORD BY ID
