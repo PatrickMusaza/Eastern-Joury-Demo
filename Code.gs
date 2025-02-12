@@ -39,7 +39,6 @@ function processClientBill(formObject) {
     ];
     const updateRange = getClientBillRangeById(formObject.recId);
     updateClientBillRecord(values, updateRange);
-    clearItemsForBill(formObject.billNo); // Clear items for the current Bill No
   } else {
     // Create new record
     const values = [
@@ -57,9 +56,15 @@ function processClientBill(formObject) {
       ],
     ];
     createClientBillRecord(values);
-    clearItemsForBill(formObject.billNo); // Clear items for the current Bill No
   }
   return getClientBillData();
+}
+
+// GET ITEMS FOR A SPECIFIC BILL NO
+function getItemsForBill(billNo) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  return data.filter((row) => row[3] === billNo); // Filter rows with matching Bill No
 }
 
 // GET NEXT BILL NO
@@ -266,16 +271,16 @@ function getAbbreviations() {
 }
 
 // DELETE ITEM FROM ITEM SHEET
-function deleteItem(itemNumber) {
-  const sheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
-  const data = sheet.getRange("A2:D").getValues(); // Assuming columns: Number, Type, Weight, Bill
-  const rowIndex = data.findIndex((row) => row[0] == itemNumber); // Find the row with the matching item number
+function deleteItem(billNo, itemNumber) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  const rowIndex = data.findIndex(
+    (row) => row[3] === billNo && row[0] == itemNumber
+  ); // Find the row with matching Bill No and item number
   if (rowIndex !== -1) {
     sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
   }
 }
-
 // INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
