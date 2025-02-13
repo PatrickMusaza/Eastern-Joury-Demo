@@ -1,90 +1,42 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>Eastern Joury Est</title>
-    <?!= include('JavaScript'); ?>
-    <?!= include('CSS'); ?>
-</head>
-
-<body>
-    <div class="container">
-        <!-- Navbar-like Tabs -->
-        <div class="row mb-4">
-            <div class="col">
-                <ul class="nav nav-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="clientBillBtn" href="#" onclick="loadClientBillPage()"
-                            aria-current="page">CLIENT BILL</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="expensesBtn" href="#">EXPENSES</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="abbreviationsBtn" href="#"
-                            onclick="loadAbbreviationsPage()">ABBREVIATIONS</a>
-                    </li>
-                </ul>
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Client Bill Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-
-        <!-- Tab Content Sections -->
-        <div id="clientBillContent" class="tab-content">
-            <!-- Client Bill Form and Table -->
-            <div class="row">
-                <!-- Client Bill Form (Left) -->
-                <div class="col-lg-5">
-                    <?!= include('FormClientBill'); ?>
-                </div>
-
-                <!-- Spacing Between Form and Table -->
-                <div class="col-lg-1"></div>
-
-                <!-- Client Bill Database Table (Right) -->
-                <div class="col-lg-6">
-                    <?!= include('ClientBillTable'); ?>
-                </div>
-
-                <!-- Preview Changes -->
-                <div>
-                  <?!= include('Preview'); ?>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Bill No:</strong> <span id="previewBillNo"></span></p>
+                        <p><strong>Shipper Name:</strong> <span id="previewShipperName"></span></p>
+                        <p><strong>Telephone No:</strong> <span id="previewTelephoneNo"></span></p>
+                        <p><strong>Receiver Name 1:</strong> <span id="previewReceiverName1"></span></p>
+                        <p><strong>Phone No 1:</strong> <span id="previewPhoneNo1"></span></p>
+                        <p><strong>Receiver Name 2:</strong> <span id="previewReceiverName2"></span></p>
+                        <p><strong>Phone No 2:</strong> <span id="previewPhoneNo2"></span></p>
+                        <p><strong>Container No:</strong> <span id="previewContainerNo"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Items</h6>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Weight</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewItems">
+                                <!-- Items will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Expenses Content -->
-        <div id="expensesContent" class="tab-content" style="display: none;">
-            <p>Expenses content goes here.</p>
-        </div>
-
-        <!-- Reports Content -->
-        <div id="reportsContent" class="tab-content" style="display: none;">
-            <p>Reports content goes here.</p>
-        </div>
-
-        <!-- Abbreviations Content -->
-        <div id="abbreviationsContent" class="tab-content" style="display: none;">
-            <!-- Abbreviation Form and Table -->
-            <div class="row">
-                <!-- Abbreviation Form (Left) -->
-                <div class="col-lg-3">
-                    <?!= include('AbbreviationForm'); ?>
-                </div>
-
-                <!-- Spacing Between Form and Table -->
-                <div class="col-lg-2"></div>
-
-                <!-- Abbreviation Database Table (Right) -->
-                <div class="col-lg-7">
-                    <?!= include('AbbreviationTable'); ?>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
-    <?!= include('SpinnerModal'); ?>
-</body>
-
-</html>
+</div>
