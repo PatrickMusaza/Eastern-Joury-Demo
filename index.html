@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Client Bill Management</title>
+    <title>Eastern Joury Est</title>
     <?!= include('JavaScript'); ?>
     <?!= include('CSS'); ?>
 </head>
@@ -14,7 +14,8 @@
             <div class="col">
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
-                        <a class="nav-link active" id="clientBillBtn" href="#" aria-current="page">CLIENT BILL</a>
+                        <a class="nav-link active" id="clientBillBtn" href="#" onclick="loadClientBillPage()"
+                            aria-current="page">CLIENT BILL</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="expensesBtn" href="#">EXPENSES</a>
@@ -23,7 +24,8 @@
                         <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="abbreviationsBtn" href="#">ABBREVIATIONS</a>
+                        <a class="nav-link" id="abbreviationsBtn" href="#"
+                            onclick="loadAbbreviationsPage()">ABBREVIATIONS</a>
                     </li>
                 </ul>
             </div>
@@ -60,7 +62,21 @@
 
         <!-- Abbreviations Content -->
         <div id="abbreviationsContent" class="tab-content" style="display: none;">
-            <p>Abbreviations content goes here.</p>
+            <!-- Abbreviation Form and Table -->
+            <div class="row">
+                <!-- Abbreviation Form (Left) -->
+                <div class="col-lg-3">
+                    <?!= include('AbbreviationForm'); ?>
+                </div>
+
+                <!-- Spacing Between Form and Table -->
+                <div class="col-lg-2"></div>
+
+                <!-- Abbreviation Database Table (Right) -->
+                <div class="col-lg-7">
+                    <?!= include('AbbreviationTable'); ?>
+                </div>
+            </div>
         </div>
     </div>
     <?!= include('SpinnerModal'); ?>

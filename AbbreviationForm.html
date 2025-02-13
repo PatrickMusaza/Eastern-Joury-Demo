@@ -1,0 +1,19 @@
+<!-- Abbreviations Form -->
+<form id="AbbreviationsForm" onsubmit="handleAbbreviationSubmit(event)">
+    <p class="h4 mb-4 text-center">Abbreviations</p>
+    <div class="mb-3 row">
+        <label for="abbreviationName" class="col-sm-4 col-form-label">Name:</label>
+        <div class="col-sm-8">
+            <input type="text" id="abbreviationName" name="abbreviationName" class="form-control" required>
+        </div>
+    </div>
+    <div class="mb-3 row">
+        <label for="abbreviationValue" class="col-sm-4 col-form-label">Abbreviation:</label>
+        <div class="col-sm-8">
+            <input type="text" id="abbreviationValue" name="abbreviationValue" class="form-control" required>
+        </div>
+    </div>
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+</form>

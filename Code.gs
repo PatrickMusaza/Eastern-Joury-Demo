@@ -270,6 +270,56 @@ function deleteItem(billNo, itemNumber) {
     sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
   }
 }
+
+// GET FIRST 20 CLIENT BILL RECORDS
+function getFirstTwentyRecords() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const filteredData = data.filter((row) => row.some((cell) => cell !== "")); // Filter out empty rows
+  return filteredData.slice(0, 20); // Return only the first 20 records
+}
+
+//ABBREVIATIONS
+
+// SAVE ABBREVIATION
+function saveAbbreviation(formObject) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const values = [[formObject.name, formObject.value]];
+  sheet.appendRow(values[0]); // Append new row
+}
+
+// GET ABBREVIATIONS
+function getAbbreviations() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  return data.filter((row) => row[0] && row[1]); // Filter out empty rows
+}
+
+// GET ABBREVIATION BY NAME
+function getAbbreviationByName(name) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const abbreviation = data.find((row) => row[0] === name); // Find the abbreviation with the matching name
+  return abbreviation ? [abbreviation] : null; // Return the abbreviation as an array
+}
+
+// DELETE ABBREVIATION
+function deleteAbbreviation(name) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const rowIndex = data.findIndex((row) => row[0] === name); // Find the row with the matching name
+  if (rowIndex !== -1) {
+    sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
+  }
+}
+
+/*-------------------GENERAL-------------------------*/
+
 // INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();

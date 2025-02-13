@@ -73,6 +73,27 @@
         generateBillNo(); // Generate and display Bill No
     });
 
+    // LOAD ClientBill PAGE
+    function loadClientBillPage() {
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabContents.forEach((content) => {
+            content.style.display = "none";
+        });
+
+        // Show the Abbreviations tab content
+        document.getElementById("clientBillContent").style.display = "block";
+
+        // Deactivate all nav links
+        const navLinks = document.querySelectorAll(".nav-link");
+        navLinks.forEach((link) => {
+            link.classList.remove("active");
+        });
+
+        // Activate the Abbreviations nav link
+        document.getElementById("clientBillBtn").classList.add("active");
+    }
+
     // LOAD CLIENT BILL DATA
     function loadClientBillData() {
         console.log("Loading client bill data..."); // Debugging line
@@ -86,7 +107,7 @@
                 console.error("Error loading data:", error); // Debugging line
                 $('#spinnerModal').modal('hide'); // Hide spinner on error
             })
-            .getClientBillData();
+            .getFirstTwentyRecords();
     }
 
     // CREATE THE CLIENT BILL TABLE
@@ -429,5 +450,153 @@
             })
             .searchClientBill(searchText); // Call Google Apps Script function
     }
+
+
+
+
+
+    // ABBREVIATIONS
+
+
+
+    // LOAD ABBREVIATIONS PAGE
+    function loadAbbreviationsPage() {
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabContents.forEach((content) => {
+            content.style.display = "none";
+        });
+
+        // Show the Abbreviations tab content
+        document.getElementById("abbreviationsContent").style.display = "block";
+
+        // Deactivate all nav links
+        const navLinks = document.querySelectorAll(".nav-link");
+        navLinks.forEach((link) => {
+            link.classList.remove("active");
+        });
+
+        // Activate the Abbreviations nav link
+        document.getElementById("abbreviationsBtn").classList.add("active");
+    }
+
+    // HANDLE ABBREVIATION FORM SUBMISSION
+    function handleAbbreviationSubmit(event) {
+        event.preventDefault(); // Prevent form submission
+        const formObject = {
+            name: document.getElementById('abbreviationName').value,
+            value: document.getElementById('abbreviationValue').value
+        };
+
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function () {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                alert('Abbreviation saved successfully!');
+                document.getElementById("AbbreviationsForm").reset(); // Reset form
+                loadAbbreviations(); // Reload data
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error saving abbreviation:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .saveAbbreviation(formObject); // Call Google Apps Script function
+    }
+
+    // LOAD ABBREVIATIONS
+    function loadAbbreviations() {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                createAbbreviationsTable(data); // Render abbreviations table
+                $('#spinnerModal').modal('hide'); // Hide spinner
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error loading abbreviations:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getAbbreviations(); // Call Google Apps Script function
+    }
+
+    // CREATE THE ABBREVIATIONS TABLE
+    function createAbbreviationsTable(dataArray) {
+        const tableBody = document.getElementById('abbreviationsTable');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (dataArray && dataArray.length) {
+            dataArray.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${row[0]}</td> <!-- Name -->
+                <td>${row[1]}</td> <!-- Abbreviation -->
+                <td>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="editAbbreviation('${row[0]}')">Edit</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteAbbreviation('${row[0]}')">Delete</button>
+                </td>
+            `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data found</td></tr>';
+        }
+    }
+
+    // EDIT ABBREVIATION
+    function editAbbreviation(name) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                populateAbbreviationForm(data); // Populate the form with the abbreviation data
+                $('#spinnerModal').modal('hide'); // Hide spinner
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error fetching abbreviation:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getAbbreviationByName(name); // Call Google Apps Script function
+    }
+
+    // POPULATE ABBREVIATION FORM
+    function populateAbbreviationForm(data) {
+        document.getElementById('abbreviationName').value = data[0][0]; // Set Name
+        document.getElementById('abbreviationValue').value = data[0][1]; // Set Abbreviation
+    }
+
+    // DELETE ABBREVIATION
+    function deleteAbbreviation(name) {
+        if (confirm("Are you sure you want to delete this abbreviation?")) {
+            $('#spinnerModal').modal('show'); // Show spinner
+            google.script.run
+                .withSuccessHandler(function () {
+                    $('#spinnerModal').modal('hide'); // Hide spinner
+                    alert('Abbreviation deleted successfully!');
+                    loadAbbreviations(); // Reload data
+                })
+                .withFailureHandler(function (error) {
+                    console.error("Error deleting abbreviation:", error); // Debugging line
+                    $('#spinnerModal').modal('hide'); // Hide spinner on error
+                })
+                .deleteAbbreviation(name); // Call Google Apps Script function
+        }
+    }
+
+    // INITIALIZE ON PAGE LOAD
+    document.addEventListener('DOMContentLoaded', function () {
+        loadAbbreviations(); // Load abbreviations when the page loads
+    });
+
+    // SWITCH TO ABBREVIATIONS PAGE
+    document.getElementById('abbreviationsBtn').addEventListener('click', function (event) {
+        event.preventDefault(); // Prevent default link behavior
+        google.script.run.withSuccessHandler(function (html) {
+            document.body.innerHTML = html; // Load the Abbreviations page
+        }).include('Abbreviations'); // Include the Abbreviations.html file
+    });
+
+
+
+
+
+
 
 </script>
