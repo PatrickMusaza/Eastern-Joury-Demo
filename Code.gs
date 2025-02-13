@@ -232,25 +232,14 @@ function generateUniqueId() {
 }
 
 // SEARCH CLIENT BILL RECORDS
-function searchClientBill(formObject) {
-  let result = [];
-  try {
-    if (formObject.searchText) {
-      const data = readClientBillRecords(CLIENT_BILL_RANGE);
-      const searchText = formObject.searchText.toLowerCase();
-      for (let i = 0; i < data.length; i++) {
-        for (let j = 0; j < data[i].length; j++) {
-          if (data[i][j].toString().toLowerCase().includes(searchText)) {
-            result.push(data[i]);
-            break;
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.log("Failed with error: " + err.message);
-  }
-  return result;
+function searchClientBill(searchText) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  return data.filter(
+    (row) =>
+      row.some((cell) => cell.toString().toLowerCase().includes(searchText)) // Filter rows that match the search text
+  );
 }
 
 // GET RECORD BY ID

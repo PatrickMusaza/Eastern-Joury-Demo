@@ -416,19 +416,18 @@
         return `${prefix}${String(number + 1).padStart(3, '0')}`; // Increment and return
     }
 
-    // SEARCH CLIENT BILL RECORDS
-    function handleClientBillSearch(formObject) {
-        $('#spinnerModal').modal('show'); // Show spinner
+    // HANDLE SEARCH
+    function handleClientBillSearch(event) {
+        event.preventDefault(); // Prevent form submission
+        const searchText = document.getElementById('searchText').value.toLowerCase();
         google.script.run
             .withSuccessHandler(function (data) {
-                createClientBillTable(data);
-                $('#spinnerModal').modal('hide'); // Hide spinner after search
+                createClientBillTable(data); // Render filtered records
             })
             .withFailureHandler(function (error) {
                 console.error("Error searching records:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
             })
-            .searchClientBill(formObject);
+            .searchClientBill(searchText); // Call Google Apps Script function
     }
 
 </script>

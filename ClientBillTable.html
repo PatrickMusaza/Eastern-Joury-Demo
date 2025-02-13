@@ -1,10 +1,10 @@
 <p class="h4 mb-4 text-center">Client Bill Database</p>
 
 <!-- Search Form -->
-<form id="searchClientBillForm" class="form-inline mb-4" onsubmit="handleClientBillSearch(this)">
+<form id="searchClientBillForm" class="form-inline mb-4" onsubmit="handleClientBillSearch(event)">
     <div class="input-group">
-        <input type="text" class="form-control form-control-sm" id="searchClientBillText" name="searchClientBillText"
-            placeholder="Search by Bill No, Shipper Name, Telephone No, Container No" required>
+        <input type="text" class="form-control form-control-sm" id="searchText"
+            placeholder="Search by Bill No, Shipper Name, Telephone No, Container No">
         <button type="submit" class="btn btn-sm btn-primary">Search</button>
     </div>
 </form>
