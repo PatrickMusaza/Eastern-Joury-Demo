@@ -284,10 +284,17 @@ function getFirstTwentyRecords() {
 
 // SAVE ABBREVIATION
 function saveAbbreviation(formObject) {
-  const sheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
-  const values = [[formObject.name, formObject.value]];
-  sheet.appendRow(values[0]); // Append new row
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const rowIndex = data.findIndex(row => row[0] === formObject.name); // Find the row with the matching name
+
+  if (rowIndex !== -1) {
+    // Update existing abbreviation
+    sheet.getRange(rowIndex + 2, 1, 1, 2).setValues([[formObject.name, formObject.value]]);
+  } else {
+    // Create new abbreviation
+    sheet.appendRow([formObject.name, formObject.value]);
+  }
 }
 
 // GET ABBREVIATIONS
