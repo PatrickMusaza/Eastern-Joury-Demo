@@ -137,7 +137,7 @@
                             <li><a class="dropdown-item" href="#">Manifest</a></li>
                             <li><a class="dropdown-item" href="#">House Way</a></li>
                             <li><a class="dropdown-item" href="#">Loading List</a></li>
-                            <li><a class="dropdown-item" href="#">Preview</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
                         </ul>
                     </div>
                 </td>
@@ -195,7 +195,7 @@
                             <li><a class="dropdown-item" href="#">Manifest</a></li>
                             <li><a class="dropdown-item" href="#">House Way</a></li>
                             <li><a class="dropdown-item" href="#">Loading List</a></li>
-                            <li><a class="dropdown-item" href="#">Preview</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
                         </ul>
                     </div>
                 </td>
@@ -451,6 +451,46 @@
             .searchClientBill(searchText); // Call Google Apps Script function
     }
 
+    // PREVIEW RECORD
+    function previewRecord(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                populatePreviewModal(data); // Populate the preview modal with the record data
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                $('#previewModal').modal('show'); // Show the preview modal
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error fetching record:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getRecordById(recId); // Call Google Apps Script function
+    }
+
+    // POPULATE PREVIEW MODAL
+    function populatePreviewModal(data) {
+        // Populate client bill details
+        document.getElementById('previewBillNo').textContent = data.clientBill[1];
+        document.getElementById('previewShipperName').textContent = data.clientBill[2];
+        document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
+        document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
+        document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
+        document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
+        document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
+        document.getElementById('previewContainerNo').textContent = data.clientBill[8];
+
+        // Populate items
+        const itemsTableBody = document.getElementById('previewItems');
+        itemsTableBody.innerHTML = ''; // Clear existing items
+        data.items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td>${item[1]}</td> <!-- Type -->
+            <td>${item[2]}</td> <!-- Weight -->
+        `;
+            itemsTableBody.appendChild(tr);
+        });
+    }
 
 
 

@@ -280,6 +280,25 @@ function getFirstTwentyRecords() {
   return filteredData.slice(0, 20); // Return only the first 20 records
 }
 
+// GET RECORD BY ID (WITH ITEMS)
+function getRecordById(recId) {
+  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Item');
+
+  // Fetch client bill details
+  const clientBillData = clientBillSheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const clientBill = clientBillData.find(row => row[0] === recId); // Find the record with the matching recId
+
+  // Fetch associated items
+  const itemData = itemSheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  const items = itemData.filter(row => row[3] === clientBill[1]); // Filter items with matching Bill No
+
+  return {
+    clientBill: clientBill,
+    items: items
+  };
+}
+
 //ABBREVIATIONS
 
 // SAVE ABBREVIATION
