@@ -47,6 +47,12 @@
         /* Blue underline for active tab */
     }
 
+    #itemListContainer {
+        max-height: 200px;
+        overflow-y: auto;
+        /* Adds scrollable behavior */
+    }
+
     /* Remove Bootstrap's default input focus outline */
     .form-control:focus,
     .form-select:focus {
@@ -56,6 +62,10 @@
     }
 
     /* Table styling */
+    .table {
+        border-radius: 15px;
+    }
+
     .table-striped-custom tbody tr:nth-child(odd) {
         background-color: white;
     }

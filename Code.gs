@@ -243,7 +243,7 @@ function searchClientBill(searchText) {
 }
 
 // GET RECORD BY ID
-function getRecordById(recId) {
+function getRecordByIds(recId) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
@@ -342,6 +342,54 @@ function deleteAbbreviation(name) {
   if (rowIndex !== -1) {
     sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
   }
+}
+
+//HOUSE WAY BILL
+
+// GENERATE HOUSE WAY BILL
+function generateHouseWayBill(recId) {
+  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  const record = data.find(row => row[0] === recId); // Find the record with the matching recId
+
+  if (!record) {
+    throw new Error("Record not found");
+  }
+
+  // Template ID (replace with your Google Docs template ID)
+  const templateId = '1YflqixKBH--hayUdudZn4PYagFwRxWrzqhuWMkoJDZ8';
+
+  // Create a copy of the template
+  const templateDoc = DriveApp.getFileById(templateId);
+  const newDoc = templateDoc.makeCopy(`House_Way_Bill_${record[1]}`, DriveApp.getRootFolder());
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders with actual values
+  body.replaceText('{{BillNo}}', record[1]);
+  body.replaceText('{{ShipperName}}', record[2]);
+  body.replaceText('{{ShipperTel}}', record[3]);
+  body.replaceText('{{ReceiverName1}}', record[4]);
+  body.replaceText('{{PhoneNo1}}', record[5]);
+  body.replaceText('{{ReceiverName2}}', record[6]);
+  body.replaceText('{{PhoneNo2}}', record[7]);
+  body.replaceText('{{ContainerNo}}', record[8]);
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const pdfFile = DriveApp.createFile(pdfBlob);
+
+  // Get the PDF download URL
+  const pdfUrl = pdfFile.getUrl();
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  return pdfUrl;
 }
 
 /*-------------------GENERAL-------------------------*/

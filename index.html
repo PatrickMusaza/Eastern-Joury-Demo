@@ -27,6 +27,10 @@
                         <a class="nav-link" id="abbreviationsBtn" href="#"
                             onclick="loadAbbreviationsPage()">ABBREVIATIONS</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="containerBtn" href="#"
+                            onclick="loadContainerPage()">CONTAINER #</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -83,6 +87,12 @@
                 </div>
             </div>
         </div>
+
+        <!-- Container Content -->
+        <div id="containerContent" class="tab-content" style="display: none;">
+          <?!= include('ContainerUpdate'); ?>
+        </div>
+
     </div>
     <?!= include('SpinnerModal'); ?>
 </body>
