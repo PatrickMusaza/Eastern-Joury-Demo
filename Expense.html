@@ -1,0 +1,71 @@
+<div class="container mt-5">
+    <div class="row">
+        <!-- Form Section (Left) -->
+        <div class="col-md-4">
+            <h3 class="mb-4">Add/Update Expense</h3>
+            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)">
+                <!-- Container No -->
+                <div class="mb-3">
+                    <label for="formContainerNo" class="form-label">Container No</label>
+                    <select class="form-select" id="formContainerNo" required>
+                        <!-- Options will be dynamically populated -->
+                    </select>
+                </div>
+
+                <!-- Expense Amounts -->
+                <div class="mb-3">
+                    <label for="formOfficeTransport" class="form-label">Office Transport (SAR)</label>
+                    <input type="number" class="form-control" id="formOfficeTransport" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formContainerTransportOffice" class="form-label">Container Transport Office (SAR)</label>
+                    <input type="number" class="form-control" id="formContainerTransportOffice" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formContainerLoadingLabour" class="form-label">Container Loading Labour (SAR)</label>
+                    <input type="number" class="form-control" id="formContainerLoadingLabour" min="0" required>
+                </div>
+                <!-- Add more expense fields here -->
+                <div class="mb-3">
+                    <label for="formDate" class="form-label">Date</label>
+                    <input type="date" class="form-control" id="formDate" required>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary">Save Expense</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table Section (Right) -->
+        <div class="col-md-8">
+            <!-- Search Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Expense Records</h3>
+                <div class="input-group w-50">
+                    <input type="text" class="form-control" id="searchExpense" placeholder="Search by Container No">
+                    <button class="btn btn-primary" type="button" onclick="handleSearchExpenses()">Search</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="table table-striped-custom">
+                    <thead>
+                        <tr>
+                            <th>Expense ID</th>
+                            <th>Container No</th>
+                            <th>Total Expenses</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTable">
+                        <!-- Rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

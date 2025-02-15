@@ -18,7 +18,7 @@
                             aria-current="page">CLIENT BILL</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="expensesBtn" href="#">EXPENSES</a>
+                        <a class="nav-link" id="expensesBtn" href="#" onclick="loadExpensesPage()">EXPENSES</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
@@ -28,8 +28,7 @@
                             onclick="loadAbbreviationsPage()">ABBREVIATIONS</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="containerBtn" href="#"
-                            onclick="loadContainerPage()">CONTAINER #</a>
+                        <a class="nav-link" id="containerBtn" href="#" onclick="loadContainerPage()">CONTAINER #</a>
                     </li>
                 </ul>
             </div>
@@ -54,14 +53,14 @@
 
                 <!-- Preview Changes -->
                 <div>
-                  <?!= include('Preview'); ?>
+                    <?!= include('Preview'); ?>
                 </div>
             </div>
         </div>
 
         <!-- Expenses Content -->
         <div id="expensesContent" class="tab-content" style="display: none;">
-            <p>Expenses content goes here.</p>
+            <?!= include('Expense'); ?>
         </div>
 
         <!-- Reports Content -->
@@ -90,7 +89,7 @@
 
         <!-- Container Content -->
         <div id="containerContent" class="tab-content" style="display: none;">
-          <?!= include('ContainerUpdate'); ?>
+            <?!= include('ContainerUpdate'); ?>
         </div>
 
     </div>

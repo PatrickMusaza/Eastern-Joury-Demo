@@ -436,6 +436,33 @@ function updateContainer(originalContainer, newContainer) {
   }
 }
 
+//EXPENSES
+
+function getAllData() {
+  const expensesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
+  const containersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Containers'); // Replace with your sheet name
+
+  const expensesData = expensesSheet.getDataRange().getValues();
+  const containersData = containersSheet.getDataRange().getValues();
+
+  return {
+    expenses: expensesData.slice(1), // Skip header row
+    containers: containersData.map(row => row[0]) // Assuming container numbers are in the first column
+  };
+}
+
+function saveExpense(expenseData) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
+  sheet.appendRow([
+    Utilities.getUuid(), // Generate a unique ID for the expense
+    expenseData.containerNo,
+    expenseData.officeTransport,
+    expenseData.containerTransportOffice,
+    expenseData.containerLoadingLabour,
+    // Add more expense fields here
+    expenseData.date
+  ]);
+}
 
 
 

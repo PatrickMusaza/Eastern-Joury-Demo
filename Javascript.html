@@ -63,6 +63,8 @@
     const abbreviationsPerPage = 5; // Number of records per page
     let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
     let allContainerData = [];
+    let allExpensesData = [];
+    let allContainers = [];
 
 
     // Prevent forms from submitting.
@@ -84,6 +86,7 @@
         loadClientBillData(); // Load client bill data
         loadAbbreviations(); //load abbreviation data
         loadContainerData();
+        loadExpensesData();
     }
 
     window.addEventListener("load", functionInit, true);
@@ -864,6 +867,175 @@
         );
         createContainerTable(filteredData); // Render the filtered data
     }
+
+
+
+    //EXPENSES
+
+
+
+    // LOAD Expense PAGE
+    function loadExpensesPage() {
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabContents.forEach((content) => {
+            content.style.display = "none";
+        });
+
+        // Show the Abbreviations tab content
+        document.getElementById("expensesContent").style.display = "block";
+
+        // Deactivate all nav links
+        const navLinks = document.querySelectorAll(".nav-link");
+        navLinks.forEach((link) => {
+            link.classList.remove("active");
+        });
+
+        // Activate the Abbreviations nav link
+        document.getElementById("expensesBtn").classList.add("active");
+    }
+
+    // LOAD DATA
+    function loadData() {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                allExpensesData = data.expenses; // Store all expenses
+                allContainers = data.containers; // Store all containers
+                populateContainerDropdown(); // Populate container dropdown
+                createExpenseTable(allExpensesData); // Render the expense table
+                $('#spinnerModal').modal('hide'); // Hide spinner
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error loading data:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getAllData(); // Call Google Apps Script function
+    }
+
+    // POPULATE CONTAINER DROPDOWN
+    function populateContainerDropdown() {
+        const containerDropdown = document.getElementById('formContainerNo');
+        containerDropdown.innerHTML = '<option value="" disabled selected>Select Container</option>';
+
+        // Filter out EJ001, EJ002, EJ003
+        const filteredContainers = allContainers.filter(container =>
+            !['EJ001', 'EJ002', 'EJ003'].includes(container)
+        );
+
+        // Populate Dropdown
+        filteredContainers.forEach(container => {
+            const option = document.createElement('option');
+            option.value = container;
+            option.text = container;
+            containerDropdown.appendChild(option);
+        });
+    }
+
+    // CREATE THE EXPENSE TABLE
+    function createExpenseTable(dataArray) {
+        const tableBody = document.getElementById('expenseTable');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (dataArray && dataArray.length) {
+            dataArray.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${row[0]}</td> <!-- Expense ID -->
+                <td>${row[1]}</td> <!-- Container No -->
+                <td>${row[2]}</td> <!-- Office Transport -->
+                <td>${row[3]}</td> <!-- Container Transport Office -->
+                <td>${row[4]}</td> <!-- Container Loading Labour -->
+                <!-- Add more expense type columns here -->
+                <td>${row[26]}</td> <!-- Date -->
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editExpense('${row[0]}')">Edit</button>
+                    <button class="btn btn-sm btn-info" onclick="previewExpense('${row[0]}')">Preview</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteExpense('${row[0]}')">Delete</button>
+                </td>
+            `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="28" class="text-center">No data found</td></tr>';
+        }
+    }
+
+    // HANDLE SEARCH EXPENSES
+    function handleSearchExpenses() {
+        const searchText = document.getElementById('searchExpense').value.toLowerCase();
+        const filteredData = allExpensesData.filter(row =>
+            row[1].toLowerCase().includes(searchText) // Container No
+        );
+        createExpenseTable(filteredData); // Render the filtered data
+    }
+
+    // HANDLE EXPENSE SUBMIT
+    function handleExpenseSubmit(event) {
+        event.preventDefault(); // Prevent form submission
+
+        const expenseData = {
+            containerNo: document.getElementById('formContainerNo').value,
+            officeTransport: document.getElementById('formOfficeTransport').value,
+            containerTransportOffice: document.getElementById('formContainerTransportOffice').value,
+            containerLoadingLabour: document.getElementById('formContainerLoadingLabour').value,
+            // Add more expense fields here
+            date: document.getElementById('formDate').value
+        };
+
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function () {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                alert('Expense saved successfully!');
+                loadData(); // Reload data
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error saving expense:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .saveExpense(expenseData); // Call Google Apps Script function
+    }
+
+    // EDIT EXPENSE
+    function editExpense(expenseId) {
+        const expense = allExpensesData.find(row => row[0] === expenseId); // Assuming expenseId is at index 0
+        if (expense) {
+            document.getElementById('formContainerNo').value = expense[1];
+            document.getElementById('formOfficeTransport').value = expense[2];
+            document.getElementById('formContainerTransportOffice').value = expense[3];
+            document.getElementById('formContainerLoadingLabour').value = expense[4];
+            // Populate more expense fields here
+            document.getElementById('formDate').value = expense[26];
+        }
+    }
+
+    // PREVIEW EXPENSE
+    function previewExpense(expenseId) {
+        const expense = allExpensesData.find(row => row[0] === expenseId); // Assuming expenseId is at index 0
+        if (expense) {
+            alert(`Expense ID: ${expense[0]}\nContainer No: ${expense[1]}\nOffice Transport: ${expense[2]} SAR\nContainer Transport Office: ${expense[3]} SAR\nContainer Loading Labour: ${expense[4]} SAR\nDate: ${expense[26]}`);
+        }
+    }
+
+    // DELETE EXPENSE
+    function deleteExpense(expenseId) {
+        if (confirm("Are you sure you want to delete this expense?")) {
+            $('#spinnerModal').modal('show'); // Show spinner
+            google.script.run
+                .withSuccessHandler(function () {
+                    $('#spinnerModal').modal('hide'); // Hide spinner
+                    alert('Expense deleted successfully!');
+                    loadData(); // Reload data
+                })
+                .withFailureHandler(function (error) {
+                    console.error("Error deleting expense:", error); // Debugging line
+                    $('#spinnerModal').modal('hide'); // Hide spinner on error
+                })
+                .deleteExpense(expenseId); // Call Google Apps Script function
+        }
+    }
+
 
 
     //PAGINATION
