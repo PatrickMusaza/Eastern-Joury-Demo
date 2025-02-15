@@ -283,14 +283,6 @@ function getRecordByIds(recId) {
   return record ? [record] : null; // Return the record as an array (to match the expected format)
 }
 
-// GET ABBREVIATIONS FOR DROPDOWN
-function getAbbreviations() {
-  const sheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
-  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues();
-  return data.filter((row) => row[0] && row[1]); // Filter out rows where Column A or B is empty
-}
-
 // DELETE ITEM FROM ITEM SHEET
 function deleteItem(billNo, itemNumber) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");

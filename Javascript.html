@@ -51,6 +51,19 @@
     });
 </script>
 <script>
+
+    // CONSTANTS
+    let currentPage = 1;
+    const recordsPerPage = 20;
+    let allData = []; // This will store all records fetched from the server
+    let itemCounter = 1; // Counter for item numbers
+    const RATE_PER_KG = 3.9; // Fixed rate per KG
+    const BILL_CHARGE = 100; // Fixed bill charge
+    let currentAbbreviationPage = 1;
+    const abbreviationsPerPage = 5; // Number of records per page
+    let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
+
+
     // Prevent forms from submitting.
     function preventFormSubmit() {
         var forms = document.querySelectorAll('form');
@@ -105,23 +118,28 @@
         google.script.run
             .withSuccessHandler(function (data) {
                 console.log("Data received:", data); // Debugging line
-                createClientBillTable(data);
+                allData = data; // Store all records
+                createClientBillTable(allData); // Render the first page of records
+                updatePaginationControls(allData.length); // Update pagination controls
                 $('#spinnerModal').modal('hide'); // Hide spinner after data is loaded
             })
             .withFailureHandler(function (error) {
                 console.error("Error loading data:", error); // Debugging line
                 $('#spinnerModal').modal('hide'); // Hide spinner on error
             })
-            .getFirstTwentyRecords();
+            .getAllClientBillRecords(); // Call Google Apps Script function
     }
 
-    // CREATE THE CLIENT BILL TABLE
     function createClientBillTable(dataArray) {
         const tableBody = document.getElementById('clientBillTable');
         tableBody.innerHTML = ''; // Clear existing rows
 
         if (dataArray && dataArray.length) {
-            dataArray.forEach((row, index) => {
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+            const paginatedData = dataArray.slice(startIndex, endIndex);
+
+            paginatedData.forEach((row, index) => {
                 // Skip empty rows
                 if (row.every(cell => cell === '')) return;
 
@@ -159,6 +177,7 @@
         }
     }
 
+
     // EDIT RECORD
     function editRecord(recId) {
         $('#spinnerModal').modal('show'); // Show spinner
@@ -175,63 +194,65 @@
     }
 
     // POPULATE FORM WITH RECORD DATA
-function populateForm(data) {
-    // Basic details
-    document.getElementById('recId').value = data[0][0]; // Set recId (hidden field)
-    document.getElementById('billNo').value = data[0][1]; // Set Bill No
-    document.getElementById('shipperName').value = data[0][2]; // Set Shipper Name
-    document.getElementById('telephoneNo').value = data[0][3]; // Set Shipper Tel
-    document.getElementById('receiverName1').value = data[0][4]; // Set Receiver Name 1
-    document.getElementById('phoneNo1').value = data[0][5]; // Set Phone No 1
-    document.getElementById('receiverName2').value = data[0][6]; // Set Receiver Name 2
-    document.getElementById('phoneNo2').value = data[0][7]; // Set Phone No 2
-    document.getElementById('containerNo').value = data[0][8]; // Set Container No
+    function populateForm(data) {
+        // Basic details
+        document.getElementById('recId').value = data[0][0]; // Set recId (hidden field)
+        document.getElementById('billNo').value = data[0][1]; // Set Bill No
+        document.getElementById('shipperName').value = data[0][2]; // Set Shipper Name
+        document.getElementById('telephoneNo').value = data[0][3]; // Set Shipper Tel
+        document.getElementById('receiverName1').value = data[0][4]; // Set Receiver Name 1
+        document.getElementById('phoneNo1').value = data[0][5]; // Set Phone No 1
+        document.getElementById('receiverName2').value = data[0][6]; // Set Receiver Name 2
+        document.getElementById('phoneNo2').value = data[0][7]; // Set Phone No 2
+        document.getElementById('containerNo').value = data[0][8]; // Set Container No
 
-    // Populate additional fields
-    document.getElementById('totalPieces').value = data[0][9]; // Set Total Pieces
-    document.getElementById('actualWeight').value = data[0][10]; // Set Actual Weight
-    document.getElementById('discountWeight').value = data[0][11]; // Set Discount Weight
-    document.getElementById('chargeableWeight').value = data[0][12]; // Set Chargeable Weight
-    document.getElementById('ratePerKg').value = data[0][13]; // Set Rate Per KG
-    document.getElementById('billCharge').value = data[0][14]; // Set Bill Charge
-    document.getElementById('discountCharge').value = data[0][15]; // Set Discount Charge
-    document.getElementById('totalCharges').value = data[0][16]; // Set Total Charges
-    document.getElementById('paidAmount').value = data[0][17]; // Set Paid Amount
-    document.getElementById('outstandingBalance').value = data[0][18]; // Set Outstanding Balance
+        // Populate additional fields
+        document.getElementById('totalPieces').value = data[0][9]; // Set Total Pieces
+        document.getElementById('actualWeight').value = data[0][10]; // Set Actual Weight
+        document.getElementById('discountWeight').value = data[0][11]; // Set Discount Weight
+        document.getElementById('chargeableWeight').value = data[0][12]; // Set Chargeable Weight
+        document.getElementById('ratePerKg').value = data[0][13]; // Set Rate Per KG
+        document.getElementById('billCharge').value = data[0][14]; // Set Bill Charge
+        document.getElementById('discountCharge').value = data[0][15]; // Set Discount Charge
+        document.getElementById('totalCharges').value = data[0][16]; // Set Total Charges
+        document.getElementById('paidAmount').value = data[0][17]; // Set Paid Amount
+        document.getElementById('outstandingBalance').value = data[0][18]; // Set Outstanding Balance
 
-    // Fetch and display items for the current Bill No
-    const billNo = data[0][1]; // Get the Bill No
-    document.getElementById('itemListContainer').style.display = 'block';
-    google.script.run
-        .withSuccessHandler(function (items) {
-            const itemList = document.getElementById('itemList');
-            itemList.innerHTML = ''; // Clear existing items
-            items.forEach((item, index) => {
-                const itemRow = document.createElement('div');
-                itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
-                itemRow.innerHTML = `
-                    <div class="col-sm-3">${index + 1}</div>
-                    <div class="col-sm-3">${item[1]}</div> <!-- Type -->
-                    <div class="col-sm-3">${item[2]}</div> <!-- Weight -->
-                    <div class="col-sm-3">
+        // Fetch and display items for the current Bill No
+        const billNo = data[0][1]; // Get the Bill No
+        document.getElementById('itemListContainer').style.display = 'block';
+        google.script.run
+            .withSuccessHandler(function (items) {
+                const itemList = document.getElementById('itemList'); // Table body
+                itemList.innerHTML = ''; // Clear existing rows
+
+                items.forEach((item, index) => {
+                    const row = document.createElement('tr'); // Create table row
+                    row.innerHTML = `
+                    <td>${index + 1}</td> <!-- Item Number -->
+                    <td>${item[1]}</td> <!-- Type -->
+                    <td>${item[2]} KG</td> <!-- Weight -->
+                    <td>
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
-                    </div>
+                    </td>
                 `;
-                itemList.appendChild(itemRow);
-            });
-        })
-        .withFailureHandler(function (error) {
-            console.error("Error fetching items:", error); // Debugging line
-        })
-        .getItemsForBill(billNo); // Call Google Apps Script function
-}
+                    itemList.appendChild(row); // Append row to table body
+                });
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error fetching items:", error); // Debugging line
+            })
+            .getItemsForBill(billNo); // Call Google Apps Script function
+    }
 
     // LOAD ALL RECORDS
     function loadAllRecords() {
         $('#spinnerModal').modal('show'); // Show spinner
         google.script.run
             .withSuccessHandler(function (data) {
-                createClientBillTable(data); // Render all records
+                allData = data; // Store all records
+                createClientBillTable(allData); // Render the first page of records
+                updatePaginationControls(allData.length); // Update pagination controls
                 $('#spinnerModal').modal('hide'); // Hide spinner
             })
             .withFailureHandler(function (error) {
@@ -310,10 +331,6 @@ function populateForm(data) {
             typeDropdown.appendChild(option);
         });
     }
-
-    let itemCounter = 1; // Counter for item numbers
-    const RATE_PER_KG = 3.9; // Fixed rate per KG
-    const BILL_CHARGE = 100; // Fixed bill charge
 
     function addItem() {
         const typeDropdown = document.getElementById('type');
@@ -509,6 +526,15 @@ function populateForm(data) {
         google.script.run
             .withSuccessHandler(function (data) {
                 createClientBillTable(data); // Render filtered records
+                const filteredData = allData.filter(row =>
+                    row[1].toLowerCase().includes(searchText) ||
+                    row[2].toLowerCase().includes(searchText) ||
+                    row[3].toLowerCase().includes(searchText) ||
+                    row[8].toLowerCase().includes(searchText)
+                );
+                currentPage = 1; // Reset to the first page when searching
+                createClientBillTable(filteredData); // Render the filtered data
+                updatePaginationControls(filteredData.length); // Update pagination controls
             })
             .withFailureHandler(function (error) {
                 console.error("Error searching records:", error); // Debugging line
@@ -533,43 +559,43 @@ function populateForm(data) {
     }
 
     // POPULATE PREVIEW MODAL
-   function populatePreviewModal(data) {
-    // Populate client bill details
-    document.getElementById('previewBillNo').textContent = data.clientBill[1];
-    document.getElementById('previewShipperName').textContent = data.clientBill[2];
-    document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
-    document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
-    document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
-    document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
-    document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
-    document.getElementById('previewContainerNo').textContent = data.clientBill[8];
+    function populatePreviewModal(data) {
+        // Populate client bill details
+        document.getElementById('previewBillNo').textContent = data.clientBill[1];
+        document.getElementById('previewShipperName').textContent = data.clientBill[2];
+        document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
+        document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
+        document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
+        document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
+        document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
+        document.getElementById('previewContainerNo').textContent = data.clientBill[8];
 
-    // Populate charge details
-    document.getElementById('previewTotalPieces').textContent = data.clientBill[9];
-    document.getElementById('previewActualWeight').textContent = data.clientBill[10];
-    document.getElementById('previewDiscountWeight').textContent = data.clientBill[11];
-    document.getElementById('previewChargeableWeight').textContent = data.clientBill[12];
-    document.getElementById('previewRatePerKg').textContent = data.clientBill[13];
-    document.getElementById('previewBillCharge').textContent = data.clientBill[14];
-    document.getElementById('previewDiscountCharge').textContent = data.clientBill[15];
-    document.getElementById('previewTotalCharges').textContent = data.clientBill[16];
-    document.getElementById('previewPaidAmount').textContent = data.clientBill[17];
-    document.getElementById('previewOutstandingBalance').textContent = data.clientBill[18];
-    //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
+        // Populate charge details
+        document.getElementById('previewTotalPieces').textContent = data.clientBill[9];
+        document.getElementById('previewActualWeight').textContent = data.clientBill[10];
+        document.getElementById('previewDiscountWeight').textContent = data.clientBill[11];
+        document.getElementById('previewChargeableWeight').textContent = data.clientBill[12];
+        document.getElementById('previewRatePerKg').textContent = data.clientBill[13];
+        document.getElementById('previewBillCharge').textContent = data.clientBill[14];
+        document.getElementById('previewDiscountCharge').textContent = data.clientBill[15];
+        document.getElementById('previewTotalCharges').textContent = data.clientBill[16];
+        document.getElementById('previewPaidAmount').textContent = data.clientBill[17];
+        document.getElementById('previewOutstandingBalance').textContent = data.clientBill[18];
+        //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
 
-    // Populate items
-    const itemsTableBody = document.getElementById('previewItems');
-    itemsTableBody.innerHTML = ''; // Clear existing items
-    data.items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+        // Populate items
+        const itemsTableBody = document.getElementById('previewItems');
+        itemsTableBody.innerHTML = ''; // Clear existing items
+        data.items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
             <td>${item[0]}</td> <!-- Number -->
             <td>${item[1]}</td> <!-- Type -->
             <td>${item[2]}</td> <!-- Weight -->
         `;
-        itemsTableBody.appendChild(tr);
-    });
-}
+            itemsTableBody.appendChild(tr);
+        });
+    }
 
 
     //HOUSE WAY BILL
@@ -644,7 +670,9 @@ function populateForm(data) {
         $('#spinnerModal').modal('show'); // Show spinner
         google.script.run
             .withSuccessHandler(function (data) {
-                createAbbreviationsTable(data); // Render abbreviations table
+                allAbbreviationsData = data; // Store all abbreviations data
+                createAbbreviationsTable(allAbbreviationsData); // Render the first page of abbreviations
+                updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
                 $('#spinnerModal').modal('hide'); // Hide spinner
             })
             .withFailureHandler(function (error) {
@@ -660,7 +688,11 @@ function populateForm(data) {
         tableBody.innerHTML = ''; // Clear existing rows
 
         if (dataArray && dataArray.length) {
-            dataArray.forEach((row, index) => {
+            const startIndex = (currentAbbreviationPage - 1) * abbreviationsPerPage;
+            const endIndex = startIndex + abbreviationsPerPage;
+            const paginatedData = dataArray.slice(startIndex, endIndex);
+
+            paginatedData.forEach((row, index) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                 <td>${row[0]}</td> <!-- Name -->
@@ -672,6 +704,11 @@ function populateForm(data) {
             `;
                 tableBody.appendChild(tr);
             });
+
+            // If no valid rows were added, show "No data found"
+            if (tableBody.children.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data found</td></tr>';
+            }
         } else {
             tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data found</td></tr>';
         }
@@ -752,5 +789,49 @@ function populateForm(data) {
 
 
     //PAGINATION
+
+    // UPDATE PAGINATION CONTROLS
+    function updatePaginationControls(totalRecords) {
+        const paginationControls = document.getElementById('paginationControls');
+        paginationControls.innerHTML = '';
+
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+            paginationControls.appendChild(li);
+        }
+    }
+
+    // CHANGE PAGE FUNCTION
+    function changePage(page) {
+        currentPage = page; // Update the current page
+        createClientBillTable(allData); // Re-render the table for the new page
+        updatePaginationControls(allData.length); // Update pagination controls to reflect the active page
+    }
+
+    // UPDATE PAGINATION CONTROLS FOR ABBREVIATIONS
+    function updateAbbreviationPaginationControls(totalRecords) {
+        const paginationControls = document.getElementById('abbreviationPaginationControls');
+        paginationControls.innerHTML = '';
+
+        const totalPages = Math.ceil(totalRecords / abbreviationsPerPage);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentAbbreviationPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="changeAbbreviationPage(${i})">${i}</a>`;
+            paginationControls.appendChild(li);
+        }
+    }
+
+    // CHANGE PAGE FUNCTION FOR ABBREVIATIONS
+    function changeAbbreviationPage(page) {
+        currentAbbreviationPage = page; // Update the current page
+        createAbbreviationsTable(allAbbreviationsData); // Re-render the table for the new page
+        updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
+    }
 
 </script>
