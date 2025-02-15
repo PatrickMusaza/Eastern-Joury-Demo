@@ -76,7 +76,7 @@
                 </select>
             </div>
             <div class="col-sm-5">
-                <input type="number" id="itemWeight" name="itemWeight" class="form-control" step="1">
+                <input type="number" id="itemWeight" name="itemWeight" class="form-control" step="1" min="0">
             </div>
             <div class="col-sm-2">
                 <button type="button" class="btn btn-success" onclick="addItem()">Add</button>
@@ -112,61 +112,68 @@
         <div class="row mb-2">
             <label for="totalPieces" class="col-sm-4 col-form-label">Total Pieces:</label>
             <div class="col-sm-8">
-                <input type="number" id="totalPieces" name="totalPieces" class="form-control" readonly>
+                <input type="number" id="totalPieces" name="totalPieces" class="form-control" min="0" readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="actualWeight" class="col-sm-4 col-form-label">Actual Weight:</label>
             <div class="col-sm-8">
-                <input type="number" id="actualWeight" name="actualWeight" class="form-control" readonly>
+                <input type="number" id="actualWeight" name="actualWeight" class="form-control" min="0" readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="discountWeight" class="col-sm-4 col-form-label">Discount (W):</label>
             <div class="col-sm-8">
-                <input type="number" id="discountWeight" name="discountWeight" class="form-control">
+                <input type="number" id="discountWeight" name="discountWeight" class="form-control" min="0">
             </div>
         </div>
         <div class="row mb-2">
             <label for="chargeableWeight" class="col-sm-4 col-form-label">Chargeable (W):</label>
             <div class="col-sm-8">
-                <input type="number" id="chargeableWeight" name="chargeableWeight" class="form-control" readonly>
+                <input type="number" id="chargeableWeight" name="chargeableWeight" class="form-control" min="0"
+                    readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="ratePerKg" class="col-sm-4 col-form-label">Rate Per KG:</label>
             <div class="col-sm-8">
-                <input type="number" id="ratePerKg" name="ratePerKg" class="form-control">
+                <input type="number" id="ratePerKg" name="ratePerKg" class="form-control" value="3.90" min="0" readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="billCharge" class="col-sm-4 col-form-label">Bill Charge:</label>
             <div class="col-sm-8">
-                <input type="number" id="billCharge" name="billCharge" class="form-control" readonly>
+                <input type="number" id="billCharge" name="billCharge" class="form-control" value="100" min="0"
+                    readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="discountCharge" class="col-sm-4 col-form-label">Discount (C):</label>
             <div class="col-sm-8">
-                <input type="number" id="discountCharge" name="discountCharge" class="form-control">
+                <input type="number" id="discountCharge" name="discountCharge" class="form-control" min="0">
             </div>
         </div>
         <div class="row mb-2">
             <label for="totalCharges" class="col-sm-4 col-form-label">Total Charges:</label>
             <div class="col-sm-8">
-                <input type="number" id="totalCharges" name="totalCharges" class="form-control" readonly>
+                <input type="number" id="totalCharges" name="totalCharges" class="form-control" min="0" readonly>
             </div>
         </div>
         <div class="row mb-2">
             <label for="paidAmount" class="col-sm-4 col-form-label">Paid Amount:</label>
             <div class="col-sm-8">
-                <input type="number" id="paidAmount" name="paidAmount" class="form-control">
+                <input type="number" id="paidAmount" name="paidAmount" class="form-control" min="0">
             </div>
         </div>
-        <div class="row mb-2">
+        <div class="row">
             <label for="outstandingBalance" class="col-sm-4 col-form-label">Outstanding Balance:</label>
-            <div class="col-sm-8">
-                <input type="number" id="outstandingBalance" name="outstandingBalance" class="form-control" readonly>
+            <div class="col-sm-5">
+                <input type="number" id="outstandingBalance" name="outstandingBalance" class="form-control" min="0"
+                    readonly>
+            </div>
+            <div class="col-sm-3">
+                <button type="button" class="btn btn-info" onclick="calculateOutstandingBalance()">Calculate
+                    All</button>
             </div>
         </div>
     </div>

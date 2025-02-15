@@ -68,6 +68,7 @@
         generateBillNo(); // Generate and display Bill No
         fetchTypeData(); // Fetch Type data for dropdown
         loadClientBillData(); // Load client bill data
+        loadAbbreviations(); //load abbreviation data
     }
 
     window.addEventListener("load", functionInit, true);
@@ -132,7 +133,7 @@
                 <td>${row[8]}</td>
                 <td>
                     <div class="actions-dropdown">
-                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             &#8942; <!-- Three vertical dots -->
                         </button>
                         <ul class="dropdown-menu">
@@ -294,23 +295,25 @@
         });
     }
 
-  let itemCounter = 1; // Counter for item numbers
+    let itemCounter = 1; // Counter for item numbers
+    const RATE_PER_KG = 3.9; // Fixed rate per KG
+    const BILL_CHARGE = 100; // Fixed bill charge
 
-  function addItem() {
-    const typeDropdown = document.getElementById('type');
-    const type = typeDropdown.value; // Selected value (from Column B)
-    const itemWeight = parseFloat(document.getElementById('itemWeight').value); // Parse weight as a number
+    function addItem() {
+        const typeDropdown = document.getElementById('type');
+        const type = typeDropdown.value; // Selected value (from Column B)
+        const itemWeight = parseFloat(document.getElementById('itemWeight').value); // Parse weight as a number
 
-    if (!type || !itemWeight) {
-      alert('Please fill in both Type and Item Weight.');
-      return;
-    }
+        if (!type || !itemWeight) {
+            alert('Please fill in both Type and Item Weight.');
+            return;
+        }
 
-    const itemList = document.getElementById('itemList');
-    const itemListContainer = document.getElementById('itemListContainer');
-    const row = document.createElement('tr'); // Use table row
+        const itemList = document.getElementById('itemList');
+        const itemListContainer = document.getElementById('itemListContainer');
+        const row = document.createElement('tr'); // Use table row
 
-    row.innerHTML = `
+        row.innerHTML = `
         <td>${itemCounter}</td>
         <td>${typeDropdown.options[typeDropdown.selectedIndex].text}</td> <!-- Display label from Column A -->
         <td>${itemWeight} KG</td>
@@ -319,99 +322,145 @@
         </td>
     `;
 
-    itemList.appendChild(row);
+        itemList.appendChild(row);
 
-    // Display table header and item details title if hidden
-    itemListContainer.style.display = 'block';
+        // Display table header and item details title if hidden
+        itemListContainer.style.display = 'block';
 
-    // Save item to Google Sheets
-    const billNo = document.getElementById('billNo').value;
-    google.script.run
-      .withSuccessHandler(() => {
-        console.log("Item saved successfully.");
-      })
-      .withFailureHandler((error) => {
-        console.error("Error saving item:", error);
-      })
-      .saveItem({
-        number: itemCounter,
-        type: type, // Value from Column B
-        weight: itemWeight,
-        bill: billNo
-      });
+        // Save item to Google Sheets
+        const billNo = document.getElementById('billNo').value;
+        google.script.run
+            .withSuccessHandler(() => {
+                console.log("Item saved successfully.");
+            })
+            .withFailureHandler((error) => {
+                console.error("Error saving item:", error);
+            })
+            .saveItem({
+                number: itemCounter,
+                type: type, // Value from Column B
+                weight: itemWeight,
+                bill: billNo
+            });
 
-    // Increment counter and clear fields
-    itemCounter++;
-    updateChargeDetails(itemWeight); // Update charge details
-    typeDropdown.value = ''; // Reset dropdown
-    document.getElementById('itemWeight').value = ''; // Clear weight field
-  }
-
-  function removeItem(button) {
-    const itemRow = button.parentElement.parentElement;
-    const itemWeight = parseFloat(itemRow.querySelector('td:nth-child(3)').textContent.replace(' KG', '')); // Get the item weight
-    itemRow.remove(); // Remove the row from the UI
-
-    // Delete the item from Google Sheets
-    const billNo = document.getElementById('billNo').value;
-    const itemNumber = itemRow.querySelector('td:first-child').textContent; // Get the item number
-    google.script.run
-      .withSuccessHandler(() => {
-        console.log("Item removed successfully.");
-      })
-      .withFailureHandler((error) => {
-        console.error("Error removing item:", error);
-      })
-      .deleteItem(billNo, itemNumber); // Call Google Apps Script function
-
-    // Update charge details
-    updateChargeDetails(-itemWeight); // Subtract the removed item's weight
-
-    // Hide table if empty
-    const itemList = document.getElementById('itemList');
-    if (!itemList.hasChildNodes()) {
-      document.getElementById('itemListContainer').style.display = 'none';
+        // Increment counter and clear fields
+        itemCounter++;
+        updateChargeDetails(itemWeight); // Update charge details
+        typeDropdown.value = ''; // Reset dropdown
+        document.getElementById('itemWeight').value = ''; // Clear weight field
     }
-  }
 
-// Calculate charges when discounts change
-document.getElementById('discountWeight').addEventListener('input', function () {
-    updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
-});
+    function removeItem(button) {
+        const itemRow = button.parentElement.parentElement;
+        const itemWeight = parseFloat(itemRow.querySelector('td:nth-child(3)').textContent.replace(' KG', '')); // Get the item weight
+        itemRow.remove(); // Remove the row from the UI
 
-document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
+        // Delete the item from Google Sheets
+        const billNo = document.getElementById('billNo').value;
+        const itemNumber = itemRow.querySelector('td:first-child').textContent; // Get the item number
+        google.script.run
+            .withSuccessHandler(() => {
+                console.log("Item removed successfully.");
+            })
+            .withFailureHandler((error) => {
+                console.error("Error removing item:", error);
+            })
+            .deleteItem(billNo, itemNumber); // Call Google Apps Script function
 
-// Adjusted updateChargeDetails function
-function updateChargeDetails(weightChange) {
-    const totalPieces = document.getElementById('totalPieces');
-    const actualWeight = document.getElementById('actualWeight');
-    const chargeableWeight = document.getElementById('chargeableWeight');
+        // Update charge details
+        updateChargeDetails(-itemWeight); // Subtract the removed item's weight
 
-    // Update total pieces
-    totalPieces.value = Math.max(0, parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1));
+        // Hide table if empty
+        const itemList = document.getElementById('itemList');
+        if (!itemList.hasChildNodes()) {
+            document.getElementById('itemListContainer').style.display = 'none';
+        }
 
-    // Update actual weight
-    actualWeight.value = Math.max(0, parseFloat(actualWeight.value || "0") + weightChange);
+        itemCounter--;
+    }
 
-    // Calculate chargeable weight
-    const discountWeight = parseFloat(document.getElementById('discountWeight').value || "0");
-    chargeableWeight.value = Math.max(0, parseFloat(actualWeight.value) - discountWeight);
+    // Calculate charges when discounts change
+    document.getElementById('discountWeight').addEventListener('input', function () {
+        updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
+    });
 
-    // Update bill charge
-    calculateBillCharge();
-}
+    document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
 
-// Calculate bill charge
-function calculateBillCharge() {
-    const chargeableWeight = parseFloat(document.getElementById('chargeableWeight').value || "0");
-    const ratePerKg = parseFloat(document.getElementById('ratePerKg').value || "0");
-    const discountCharge = parseFloat(document.getElementById('discountCharge').value || "0");
+    // Adjusted updateChargeDetails function
+    function updateChargeDetails(weightChange) {
+        const totalPieces = document.getElementById('totalPieces');
+        const actualWeight = document.getElementById('actualWeight');
+        const chargeableWeight = document.getElementById('chargeableWeight');
 
-    // Calculate total charges
-    const totalCharges = 100 + (chargeableWeight * ratePerKg) - discountCharge; // SAR 100 base charge
-    const billCharge = document.getElementById('billCharge');
-    billCharge.value = Math.max(0, totalCharges).toFixed(2); // Ensure non-negative total
-}
+        // Update total pieces
+        totalPieces.value = Math.max(0, parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1));
+
+        // Update actual weight
+        actualWeight.value = Math.max(0, parseFloat(actualWeight.value || "0") + weightChange);
+
+        // Calculate chargeable weight
+        const discountWeight = parseFloat(document.getElementById('discountWeight').value || "0");
+        chargeableWeight.value = Math.max(0, parseFloat(actualWeight.value) - discountWeight);
+
+        // Update bill charge
+        calculateBillCharge();
+    }
+
+    // Calculate bill charge
+    function calculateBillCharge() {
+        const chargeableWeight = parseFloat(document.getElementById('chargeableWeight').value || "0");
+        const ratePerKg = parseFloat(document.getElementById('ratePerKg').value || "0");
+        const discountCharge = parseFloat(document.getElementById('discountCharge').value || "0");
+
+        // Calculate total charges
+        const totalCharges = 100 + (chargeableWeight * ratePerKg) - discountCharge; // SAR 100 base charge
+        const billCharge = document.getElementById('billCharge');
+        //billCharge.value = Math.max(0, totalCharges).toFixed(2); // Ensure non-negative total
+    }
+
+    // Ensure all numeric fields are >= 0
+    function validateInputs() {
+        const numericFields = document.querySelectorAll('input[type="number"]');
+        numericFields.forEach(field => {
+            if (parseFloat(field.value) < 0) {
+                field.value = 0; // Set to zero if below zero
+            }
+        });
+    }
+
+    // Function to calculate all fields based on input logic
+    function calculateOutstandingBalance() {
+        validateInputs(); // Ensure inputs are valid
+
+        // Get required fields
+        const totalPieces = parseFloat(document.getElementById('totalPieces').value || "0");
+        const actualWeight = parseFloat(document.getElementById('actualWeight').value || "0");
+        const discountWeight = parseFloat(document.getElementById('discountWeight').value || "0");
+        const ratePerKg = parseFloat(document.getElementById('ratePerKg').value || "0");
+        const discountCharge = parseFloat(document.getElementById('discountCharge').value || "0");
+        const paidAmount = parseFloat(document.getElementById('paidAmount').value || "0");
+
+        // Calculate chargeable weight
+        const chargeableWeight = Math.max(0, actualWeight - discountWeight);
+        document.getElementById('chargeableWeight').value = chargeableWeight;
+
+        // Calculate bill charge
+        const billCharge = 100 + (chargeableWeight * ratePerKg) - discountCharge; // SAR 100 base charge
+        //document.getElementById('billCharge').value = Math.max(0, billCharge).toFixed(2);
+
+        // Calculate total charges
+        const totalCharges = billCharge;
+        document.getElementById('totalCharges').value = totalCharges.toFixed(2);
+
+        // Calculate outstanding balance
+        const outstandingBalance = Math.max(0, totalCharges - paidAmount);
+        document.getElementById('outstandingBalance').value = outstandingBalance.toFixed(2);
+    }
+
+    // Trigger calculations on relevant input changes
+    ['discountWeight', 'ratePerKg', 'discountCharge', 'paidAmount'].forEach(id => {
+        document.getElementById(id).addEventListener('input', calculateOutstandingBalance);
+    });
 
     // GENERATE AND DISPLAY BILL NO
     function generateBillNo() {
@@ -493,22 +542,22 @@ function calculateBillCharge() {
     }
 
 
-//HOUSE WAY BILL
+    //HOUSE WAY BILL
 
-// GENERATE HOUSE WAY BILL
-function generateHouseWayBill(recId) {
-    $('#spinnerModal').modal('show'); // Show spinner
-    google.script.run
-        .withSuccessHandler(function (pdfUrl) {
-            $('#spinnerModal').modal('hide'); // Hide spinner
-            window.open(pdfUrl, '_blank'); // Open the PDF in a new tab
-        })
-        .withFailureHandler(function (error) {
-            console.error("Error generating House Way Bill:", error); // Debugging line
-            $('#spinnerModal').modal('hide'); // Hide spinner on error
-        })
-        .generateHouseWayBill(recId); // Call Google Apps Script function
-}
+    // GENERATE HOUSE WAY BILL
+    function generateHouseWayBill(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (pdfUrl) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                window.open(pdfUrl, '_blank'); // Open the PDF in a new tab
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating House Way Bill:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .generateHouseWayBill(recId); // Call Google Apps Script function
+    }
 
 
 
@@ -637,11 +686,6 @@ function generateHouseWayBill(recId) {
         }
     }
 
-    // INITIALIZE ON PAGE LOAD
-    document.addEventListener('DOMContentLoaded', function () {
-        loadAbbreviations(); // Load abbreviations when the page loads
-    });
-
     // SWITCH TO ABBREVIATIONS PAGE
     document.getElementById('abbreviationsBtn').addEventListener('click', function (event) {
         event.preventDefault(); // Prevent default link behavior
@@ -652,7 +696,7 @@ function generateHouseWayBill(recId) {
 
 
 
-//CONTAINER
+    //CONTAINER
 
 
     // LOAD CONTAINER DATA
@@ -677,21 +721,6 @@ function generateHouseWayBill(recId) {
     }
 
 
-
-
-
-//Input fields
-document.querySelectorAll('input[type="number"]').forEach(input => {
-    input.addEventListener('input', function () {
-        if (this.value < 0) {
-            this.value = 0;
-        }
-    });
-});
-
-
-
-
-
+    //PAGINATION
 
 </script>
