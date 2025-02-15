@@ -62,6 +62,7 @@
     let currentAbbreviationPage = 1;
     const abbreviationsPerPage = 5; // Number of records per page
     let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
+    let allContainerData = [];
 
 
     // Prevent forms from submitting.
@@ -82,6 +83,7 @@
         fetchTypeData(); // Fetch Type data for dropdown
         loadClientBillData(); // Load client bill data
         loadAbbreviations(); //load abbreviation data
+        loadContainerData();
     }
 
     window.addEventListener("load", functionInit, true);
@@ -766,7 +768,7 @@
     //CONTAINER
 
 
-    // LOAD CONTAINER DATA
+    // LOAD CONTAINER PAGE
     function loadContainerPage() {
         // Hide all tab contents
         const tabContents = document.querySelectorAll(".tab-content");
@@ -785,6 +787,82 @@
 
         // Activate the Abbreviations nav link
         document.getElementById("containerBtn").classList.add("active");
+    }
+
+    // LOAD CONTAINER DATA
+    function loadContainerData() {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (data) {
+                allContainerData = data; // Store all container records
+                createContainerTable(data); // Render the container table
+                $('#spinnerModal').modal('hide'); // Hide spinner
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error loading container data:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .getAllContainerRecords(); // Call Google Apps Script function
+    }
+
+    // CREATE THE CONTAINER TABLE
+    function createContainerTable(dataArray) {
+        const tableBody = document.getElementById('containerTable');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (dataArray && dataArray.length) {
+            dataArray.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${row[1]}</td> <!-- Bill No -->
+                <td>${row[2]}</td> <!-- Shipper Name -->
+                <td>${row[3]}</td> <!-- Telephone Number -->
+                <td>${row[8]}</td> <!-- Container No -->
+                <td>${row[9]}</td> <!-- Total Piece -->
+                <td>${row[10]}</td> <!-- Total Weight -->
+            `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No data found</td></tr>';
+        }
+    }
+
+    // HANDLE UPDATE CONTAINER
+    function handleUpdateContainer(event) {
+        event.preventDefault(); // Prevent form submission
+
+        const originalContainer = document.getElementById('originalContainer').value;
+        const newContainer = document.getElementById('newContainer').value;
+
+        if (!originalContainer || !newContainer) {
+            alert('Please fill in both Original Container and New Container.');
+            return;
+        }
+
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function () {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                alert('Container updated successfully!');
+                loadContainerData(); // Reload data
+                originalContainer.value = '';
+                newContainer.value = '';
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error updating container:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            })
+            .updateContainer(originalContainer, newContainer); // Call Google Apps Script function
+    }
+
+    // HANDLE SEARCH CONTAINER
+    function handleSearchContainer() {
+        const searchText = document.getElementById('searchContainer').value.toLowerCase();
+        const filteredData = allContainerData.filter(row =>
+            row[8].toLowerCase().includes(searchText) // Assuming container number is at index 3
+        );
+        createContainerTable(filteredData); // Render the filtered data
     }
 
 

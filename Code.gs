@@ -416,6 +416,29 @@ function generateHouseWayBill(recId) {
   return pdfUrl;
 }
 
+
+//CONTAINER NO
+
+function getAllContainerRecords() {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues();
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
+
+function updateContainer(originalContainer, newContainer) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) { // Start from 1 to skip header row
+    if (data[i][8] === originalContainer) { // Assuming container number is at index 8
+      sheet.getRange(i + 1, 9).setValue(newContainer); // Update container number
+    }
+  }
+}
+
+
+
+
 /*-------------------GENERAL-------------------------*/
 
 // INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)

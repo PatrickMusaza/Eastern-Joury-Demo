@@ -1,7 +1,7 @@
 <div class="container mt-5">
     <!-- Form Section -->
     <h3 class="mb-4">Update Container</h3>
-    <form>
+    <form id="updateContainerForm" onsubmit="handleUpdateContainer(event)">
         <div class="row mb-3">
             <!-- Original Container -->
             <div class="col-md-5">
@@ -45,8 +45,9 @@
     <div class="mt-5">
         <h3 class="mb-4">Search</h3>
         <div class="input-group">
-            <input type="text" class="form-control" placeholder="Search..." aria-label="Search">
-            <button class="btn btn-sm btn-primary" type="button">Search</button>
+            <input type="text" class="form-control" id="searchContainer" placeholder="Search by Container No"
+                aria-label="Search">
+            <button class="btn btn-sm btn-primary" type="button" onclick="handleSearchContainer()">Search</button>
         </div>
     </div>
 
@@ -65,24 +66,10 @@
                         <th>Total Weight</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>12345</td>
-                        <td>John Doe</td>
-                        <td>+123456789</td>
-                        <td>EJ001</td>
-                        <td>50</td>
-                        <td>500kg</td>
-                    </tr>
-                    <tr>
-                        <td>67890</td>
-                        <td>Jane Smith</td>
-                        <td>+987654321</td>
-                        <td>EJ002</td>
-                        <td>30</td>
-                        <td>300kg</td>
-                    </tr>
+                <tbody id="containerTable">
+                    <!-- Rows will be dynamically inserted here -->
                 </tbody>
             </table>
         </div>
     </div>
+</div>
