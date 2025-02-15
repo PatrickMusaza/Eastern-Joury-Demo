@@ -6,7 +6,7 @@
 // CONSTANTS
 const SPREADSHEET_ID = "1hoiskygCvco34k1pLNllvBXR9MBdf9aEjs07YGHnJ2I"; // Replace with your Google Sheets ID
 const CLIENT_BILL_SHEET = "ClientBill"; // Name of the sheet for Client Bill data
-const CLIENT_BILL_RANGE = "ClientBill!A2:I"; // Range for Client Bill data (adjust columns as needed)
+const CLIENT_BILL_RANGE = "ClientBill!A2:R"; // Range for Client Bill data (adjust columns as needed)
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
@@ -34,6 +34,16 @@ function processClientBill(formObject) {
         formObject.receiverName2,
         formObject.phoneNo2,
         formObject.containerNo,
+        formObject.totalPieces,
+        formObject.actualWeight,
+        formObject.discountWeight,
+        formObject.chargeableWeight,
+        formObject.ratePerKg,
+        formObject.billCharge,
+        formObject.discountCharge,
+        formObject.totalCharges,
+        formObject.paidAmount,
+        formObject.outstandingBalance,
         new Date().toLocaleString(),
       ],
     ];
@@ -52,6 +62,17 @@ function processClientBill(formObject) {
         formObject.receiverName2,
         formObject.phoneNo2,
         formObject.containerNo,
+        formObject.totalPieces,
+        formObject.actualWeight,
+        formObject.discountWeight,
+        formObject.chargeableWeight,
+        formObject.ratePerKg,
+        formObject.billCharge,
+        formObject.discountCharge,
+        formObject.totalCharges,
+        formObject.paidAmount,
+        formObject.outstandingBalance,
+        new Date().toLocaleString(),
         new Date().toLocaleString(),
       ],
     ];
@@ -177,7 +198,7 @@ function getClientBillData() {
 function updateClientBill(formObject) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const data = sheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
   const rowIndex = data.findIndex((row) => row[0] === formObject.recId); // Find the row with the matching recId
   if (rowIndex !== -1) {
     const values = [
@@ -190,6 +211,17 @@ function updateClientBill(formObject) {
       formObject.receiverName2,
       formObject.phoneNo2,
       formObject.containerNo,
+      formObject.totalPieces,
+      formObject.actualWeight,
+      formObject.discountWeight,
+      formObject.chargeableWeight,
+      formObject.ratePerKg,
+      formObject.billCharge,
+      formObject.discountCharge,
+      formObject.totalCharges,
+      formObject.paidAmount,
+      formObject.outstandingBalance,
+      new Date().toLocaleString(),
     ];
     sheet.getRange(rowIndex + 2, 1, 1, values.length).setValues([values]); // Update the row
   }
@@ -275,7 +307,7 @@ function deleteItem(billNo, itemNumber) {
 function getFirstTwentyRecords() {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const data = sheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
   const filteredData = data.filter((row) => row.some((cell) => cell !== "")); // Filter out empty rows
   return filteredData.slice(0, 20); // Return only the first 20 records
 }
@@ -286,7 +318,7 @@ function getRecordById(recId) {
   const itemSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Item');
 
   // Fetch client bill details
-  const clientBillData = clientBillSheet.getRange("A2:I").getValues(); // Fetch columns A to I
+  const clientBillData = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
   const clientBill = clientBillData.find(row => row[0] === recId); // Find the record with the matching recId
 
   // Fetch associated items
