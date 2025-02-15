@@ -6,7 +6,7 @@
 // CONSTANTS
 const SPREADSHEET_ID = "1hoiskygCvco34k1pLNllvBXR9MBdf9aEjs07YGHnJ2I"; // Replace with your Google Sheets ID
 const CLIENT_BILL_SHEET = "ClientBill"; // Name of the sheet for Client Bill data
-const CLIENT_BILL_RANGE = "ClientBill!A2:R"; // Range for Client Bill data (adjust columns as needed)
+const CLIENT_BILL_RANGE = "ClientBill!A2:S"; // Range for Client Bill data (adjust columns as needed)
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";

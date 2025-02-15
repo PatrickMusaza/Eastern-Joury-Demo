@@ -175,27 +175,41 @@
     }
 
     // POPULATE FORM WITH RECORD DATA
-    function populateForm(data) {
-        document.getElementById('recId').value = data[0][0]; // Set recId (hidden field)
-        document.getElementById('billNo').value = data[0][1]; // Set Bill No
-        document.getElementById('shipperName').value = data[0][2]; // Set Shipper Name
-        document.getElementById('telephoneNo').value = data[0][3]; // Set Shipper Tel
-        document.getElementById('receiverName1').value = data[0][4]; // Set Receiver Name 1
-        document.getElementById('phoneNo1').value = data[0][5]; // Set Phone No 1
-        document.getElementById('receiverName2').value = data[0][6]; // Set Receiver Name 2
-        document.getElementById('phoneNo2').value = data[0][7]; // Set Phone No 2
-        document.getElementById('containerNo').value = data[0][8]; // Set Container No
+function populateForm(data) {
+    // Basic details
+    document.getElementById('recId').value = data[0][0]; // Set recId (hidden field)
+    document.getElementById('billNo').value = data[0][1]; // Set Bill No
+    document.getElementById('shipperName').value = data[0][2]; // Set Shipper Name
+    document.getElementById('telephoneNo').value = data[0][3]; // Set Shipper Tel
+    document.getElementById('receiverName1').value = data[0][4]; // Set Receiver Name 1
+    document.getElementById('phoneNo1').value = data[0][5]; // Set Phone No 1
+    document.getElementById('receiverName2').value = data[0][6]; // Set Receiver Name 2
+    document.getElementById('phoneNo2').value = data[0][7]; // Set Phone No 2
+    document.getElementById('containerNo').value = data[0][8]; // Set Container No
 
-        // Fetch and display items for the current Bill No
-        const billNo = data[0][1]; // Get the Bill No
-        google.script.run
-            .withSuccessHandler(function (items) {
-                const itemList = document.getElementById('itemList');
-                itemList.innerHTML = ''; // Clear existing items
-                items.forEach((item, index) => {
-                    const itemRow = document.createElement('div');
-                    itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
-                    itemRow.innerHTML = `
+    // Populate additional fields
+    document.getElementById('totalPieces').value = data[0][9]; // Set Total Pieces
+    document.getElementById('actualWeight').value = data[0][10]; // Set Actual Weight
+    document.getElementById('discountWeight').value = data[0][11]; // Set Discount Weight
+    document.getElementById('chargeableWeight').value = data[0][12]; // Set Chargeable Weight
+    document.getElementById('ratePerKg').value = data[0][13]; // Set Rate Per KG
+    document.getElementById('billCharge').value = data[0][14]; // Set Bill Charge
+    document.getElementById('discountCharge').value = data[0][15]; // Set Discount Charge
+    document.getElementById('totalCharges').value = data[0][16]; // Set Total Charges
+    document.getElementById('paidAmount').value = data[0][17]; // Set Paid Amount
+    document.getElementById('outstandingBalance').value = data[0][18]; // Set Outstanding Balance
+
+    // Fetch and display items for the current Bill No
+    const billNo = data[0][1]; // Get the Bill No
+    document.getElementById('itemListContainer').style.display = 'block';
+    google.script.run
+        .withSuccessHandler(function (items) {
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = ''; // Clear existing items
+            items.forEach((item, index) => {
+                const itemRow = document.createElement('div');
+                itemRow.className = 'row mb-2 align-items-center'; // Align items vertically
+                itemRow.innerHTML = `
                     <div class="col-sm-3">${index + 1}</div>
                     <div class="col-sm-3">${item[1]}</div> <!-- Type -->
                     <div class="col-sm-3">${item[2]}</div> <!-- Weight -->
@@ -203,15 +217,14 @@
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
                     </div>
                 `;
-                    itemList.appendChild(itemRow);
-                });
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching items:", error); // Debugging line
-            })
-            .getItemsForBill(billNo); // Call Google Apps Script function
-    }
-
+                itemList.appendChild(itemRow);
+            });
+        })
+        .withFailureHandler(function (error) {
+            console.error("Error fetching items:", error); // Debugging line
+        })
+        .getItemsForBill(billNo); // Call Google Apps Script function
+}
 
     // LOAD ALL RECORDS
     function loadAllRecords() {
@@ -542,7 +555,7 @@
     document.getElementById('previewTotalCharges').textContent = data.clientBill[16];
     document.getElementById('previewPaidAmount').textContent = data.clientBill[17];
     document.getElementById('previewOutstandingBalance').textContent = data.clientBill[18];
-    document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
+    //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
 
     // Populate items
     const itemsTableBody = document.getElementById('previewItems');
