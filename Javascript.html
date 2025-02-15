@@ -520,29 +520,43 @@
     }
 
     // POPULATE PREVIEW MODAL
-    function populatePreviewModal(data) {
-        // Populate client bill details
-        document.getElementById('previewBillNo').textContent = data.clientBill[1];
-        document.getElementById('previewShipperName').textContent = data.clientBill[2];
-        document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
-        document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
-        document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
-        document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
-        document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
-        document.getElementById('previewContainerNo').textContent = data.clientBill[8];
+   function populatePreviewModal(data) {
+    // Populate client bill details
+    document.getElementById('previewBillNo').textContent = data.clientBill[1];
+    document.getElementById('previewShipperName').textContent = data.clientBill[2];
+    document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
+    document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
+    document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
+    document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
+    document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
+    document.getElementById('previewContainerNo').textContent = data.clientBill[8];
 
-        // Populate items
-        const itemsTableBody = document.getElementById('previewItems');
-        itemsTableBody.innerHTML = ''; // Clear existing items
-        data.items.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+    // Populate charge details
+    document.getElementById('previewTotalPieces').textContent = data.clientBill[9];
+    document.getElementById('previewActualWeight').textContent = data.clientBill[10];
+    document.getElementById('previewDiscountWeight').textContent = data.clientBill[11];
+    document.getElementById('previewChargeableWeight').textContent = data.clientBill[12];
+    document.getElementById('previewRatePerKg').textContent = data.clientBill[13];
+    document.getElementById('previewBillCharge').textContent = data.clientBill[14];
+    document.getElementById('previewDiscountCharge').textContent = data.clientBill[15];
+    document.getElementById('previewTotalCharges').textContent = data.clientBill[16];
+    document.getElementById('previewPaidAmount').textContent = data.clientBill[17];
+    document.getElementById('previewOutstandingBalance').textContent = data.clientBill[18];
+    document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
+
+    // Populate items
+    const itemsTableBody = document.getElementById('previewItems');
+    itemsTableBody.innerHTML = ''; // Clear existing items
+    data.items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item[0]}</td> <!-- Number -->
             <td>${item[1]}</td> <!-- Type -->
             <td>${item[2]}</td> <!-- Weight -->
         `;
-            itemsTableBody.appendChild(tr);
-        });
-    }
+        itemsTableBody.appendChild(tr);
+    });
+}
 
 
     //HOUSE WAY BILL

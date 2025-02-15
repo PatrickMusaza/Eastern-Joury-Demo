@@ -8,6 +8,7 @@
             </div>
             <div class="modal-body">
                 <div class="row">
+                    <!-- Left Column: Client Details -->
                     <div class="col-md-6">
                         <p><strong>Bill No:</strong> <span id="previewBillNo"></span></p>
                         <p><strong>Shipper Name:</strong> <span id="previewShipperName"></span></p>
@@ -18,11 +19,69 @@
                         <p><strong>Phone No 2:</strong> <span id="previewPhoneNo2"></span></p>
                         <p><strong>Container No:</strong> <span id="previewContainerNo"></span></p>
                     </div>
+
+                    <!-- Right Column: Charge Details -->
                     <div class="col-md-6">
+                        <h6>Charge Details</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Total Pieces:</strong></td>
+                                    <td><span id="previewTotalPieces"></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Actual Weight:</strong></td>
+                                    <td><span id="previewActualWeight"></span> KG</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Discount Weight:</strong></td>
+                                    <td><span id="previewDiscountWeight"></span> KG</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Chargeable Weight:</strong></td>
+                                    <td><span id="previewChargeableWeight"></span> KG</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Rate Per KG:</strong></td>
+                                    <td><span id="previewRatePerKg"></span> SAR/KG</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Bill Charge:</strong></td>
+                                    <td><span id="previewBillCharge"></span> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Discount Charge:</strong></td>
+                                    <td><span id="previewDiscountCharge"></span> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Charges:</strong></td>
+                                    <td><span id="previewTotalCharges"></span> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Paid Amount:</strong></td>
+                                    <td><span id="previewPaidAmount"></span> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Outstanding Balance:</strong></td>
+                                    <td><span id="previewOutstandingBalance"></span> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date:</strong></td>
+                                    <td><span id="previewDate"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Items Section -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
                         <h6>Items</h6>
                         <table class="table table-sm">
                             <thead>
                                 <tr>
+                                    <th>SN</th>
                                     <th>Type</th>
                                     <th>Weight</th>
                                 </tr>
@@ -35,7 +94,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
