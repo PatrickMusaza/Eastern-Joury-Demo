@@ -10,6 +10,7 @@ const CLIENT_BILL_RANGE = "ClientBill!A2:S"; // Range for Client Bill data (adju
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
+const EXPENSES_SHEET='Expenses';
 
 // Display HTML page
 function doGet(request) {
@@ -439,8 +440,8 @@ function updateContainer(originalContainer, newContainer) {
 //EXPENSES
 
 function getAllData() {
-  const expensesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
-  const containersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Containers'); // Replace with your sheet name
+  const expensesSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
+  const containersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET); // Replace with your sheet name
 
   const expensesData = expensesSheet.getDataRange().getValues();
   const containersData = containersSheet.getDataRange().getValues();
@@ -452,7 +453,7 @@ function getAllData() {
 }
 
 function saveExpense(expenseData) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
   sheet.appendRow([
     Utilities.getUuid(), // Generate a unique ID for the expense
     expenseData.containerNo,
@@ -464,6 +465,8 @@ function saveExpense(expenseData) {
   ]);
 }
 
+
+//RECEIPT
 
 
 /*-------------------GENERAL-------------------------*/
