@@ -87,6 +87,7 @@
         loadAbbreviations(); //load abbreviation data
         loadContainerData();
         loadData();
+        loadData();
     }
 
     window.addEventListener("load", functionInit, true);
@@ -160,6 +161,7 @@
                             &#8942; <!-- Three vertical dots -->
                         </button>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#">Manifest</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>

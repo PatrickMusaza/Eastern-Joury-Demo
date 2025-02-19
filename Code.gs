@@ -11,6 +11,7 @@ const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviati
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
 const EXPENSES_SHEET = "Expenses";
+const EXPENSES_SHEET='Expenses';
 
 // Display HTML page
 function doGet(request) {
