@@ -10,8 +10,8 @@ const CLIENT_BILL_RANGE = "ClientBill!A2:S"; // Range for Client Bill data (adju
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
+const ITEM_DATA_RANGE = "Item!A2:D";
 const EXPENSES_SHEET = "Expenses";
-const EXPENSES_SHEET='Expenses';
 
 // Display HTML page
 function doGet(request) {
@@ -379,32 +379,84 @@ function deleteAbbreviation(name) {
 
 //HOUSE WAY BILL
 
-// GENERATE HOUSE WAY BILL
-function generateHouseWayBill(recId) {
+// GENERATE HOUSE WAY
+function generateHouseWaybill(recId) {
   const clientBillSheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
-  const record = data.find((row) => row[0] === recId); // Find the record with the matching recId
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues();
+
+  // Find the record matching recId
+  const record = data.find((row) => row[0] === recId); // recId is in column A
 
   if (!record) {
     throw new Error("Record not found");
   }
 
-  // Template ID (replace with your Google Docs template ID)
-  const templateId = "1YflqixKBH--hayUdudZn4PYagFwRxWrzqhuWMkoJDZ8";
+  const billNo = record[1]; // BillNo is in column B
 
-  // Create a copy of the template
+  // Fetch Items Data
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+
+  const itemsData = itemsSheet.getDataRange().getValues();
+  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
+
+  // Create abbreviation dictionary to map short form to full form
+  let abbreviationMap = {};
+  for (let i = 1; i < abbreviationsData.length; i++) {
+    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
+    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
+    abbreviationMap[shortForm] = fullForm; // { "Short Form": "Full Form" }
+  }
+
+  // Count occurrences of each item type
+  let itemCountMap = {};
+  for (let i = 1; i < itemsData.length; i++) {
+    if (itemsData[i][3] === billNo) {
+      // Assuming Bill No is in Column D (Index 3)
+      let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
+      let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form if found
+      itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
+    }
+  }
+
+  // Format Items List based on the count
+  let itemsList = [];
+  for (let itemType in itemCountMap) {
+    let count = itemCountMap[itemType];
+    itemsList.push(`${count} ${itemType}`); // Display number of items and their full form
+  }
+
+  if (itemsList.length === 0) {
+    throw new Error("No items found for the selected Bill No.");
+  }
+
+  // Join items list into a single formatted string
+  let itemsFormatted = itemsList.join("\n");
+
+  // House Waybill Template
+  const templateId = "1pVQdnDmbE0OHMd5ElzOPx2lshECyIyz13cevk3iCOd4"; // Template Doc ID
+  const folderId = "1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"; // Drive Folder ID
+
+  // Copy Template
   const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const newDoc = templateDoc.makeCopy(
-    `House_Way_Bill_${record[1]}`,
-    DriveApp.getRootFolder()
+    `HouseWaybill_${billNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
   );
   const newDocId = newDoc.getId();
   const doc = DocumentApp.openById(newDocId);
   const body = doc.getBody();
 
-  // Replace placeholders with actual values
-  body.replaceText("{{BillNo}}", record[1]);
+  // Replace placeholders
+  body.replaceText("{{BillNo}}", billNo);
+  body.replaceText("{{ItemsList}}", itemsFormatted);
+  body.replaceText("{{Date}}", new Date().toLocaleString());
+
+  // Other fields from Client Bill
   body.replaceText("{{ShipperName}}", record[2]);
   body.replaceText("{{ShipperTel}}", record[3]);
   body.replaceText("{{ReceiverName1}}", record[4]);
@@ -412,21 +464,36 @@ function generateHouseWayBill(recId) {
   body.replaceText("{{ReceiverName2}}", record[6]);
   body.replaceText("{{PhoneNo2}}", record[7]);
   body.replaceText("{{ContainerNo}}", record[8]);
+  body.replaceText("{{TotalPieces}}", record[9]);
+  body.replaceText("{{ActualWeight}}", record[10]);
+  body.replaceText("{{DiscountWeight}}", record[11]);
+  body.replaceText("{{ChargeableWeight}}", record[12]);
+  body.replaceText("{{RatePerKg}}", record[13]);
+  body.replaceText("{{BillCharge}}", record[14]);
+  body.replaceText("{{DiscountCharge}}", record[15]);
+  body.replaceText("{{TotalCharges}}", record[16]);
+  body.replaceText("{{PaidAmount}}", record[17]);
+  body.replaceText("{{OutstandingBalance}}", record[18]);
 
-  // Save and close the document
+  // Save and Close Doc
   doc.saveAndClose();
 
   // Export as PDF
   const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const pdfFile = DriveApp.createFile(pdfBlob);
+  const folder = DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_"); // Desired folder
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
 
-  // Get the PDF download URL
-  const pdfUrl = pdfFile.getUrl();
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
 
-  // Delete the temporary document
-  DriveApp.getFileById(newDocId).setTrashed(true);
-
-  return pdfUrl;
+  // Return preview & download links
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
 }
 
 //CONTAINER NO
@@ -487,76 +554,148 @@ function saveExpense(expenseData) {
 
 // GENERATE RECEIPT
 function generateReceipt(recId) {
-  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
-  const record = data.find(row => row[0] === recId); // Find the record with the matching recId
+  const record = data.find((row) => row[0] === recId); // Find the record with the matching recId
 
   if (!record) {
     throw new Error("Record not found");
   }
 
   // Template ID (replace with your Google Docs template ID)
-  const templateId = '1XI-qUgaCUWdP5J4RSSgbvBK4Ndycu-LuRbW8GjPnlWQ';
+  const templateId = "1XI-qUgaCUWdP5J4RSSgbvBK4Ndycu-LuRbW8GjPnlWQ";
 
   // Create a copy of the template
   const templateDoc = DriveApp.getFileById(templateId);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const newDoc = templateDoc.makeCopy(`Receipt_${record[1]}_${timestamp}`, DriveApp.getFolderById('1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_'));
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `Receipt_${record[1]}_${timestamp}`,
+    DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_")
+  );
   const newDocId = newDoc.getId();
   const doc = DocumentApp.openById(newDocId);
   const body = doc.getBody();
 
   // Replace placeholders with actual values
-  body.replaceText('{{BillNo}}', record[1]);
-  body.replaceText('{{ShipperName}}', record[2]);
-  body.replaceText('{{ShipperTel}}', record[3]);
-  body.replaceText('{{ReceiverName1}}', record[4]);
-  body.replaceText('{{PhoneNo1}}', record[5]);
-  body.replaceText('{{ReceiverName2}}', record[6]);
-  body.replaceText('{{PhoneNo2}}', record[7]);
-  body.replaceText('{{ContainerNo}}', record[8]);
-  body.replaceText('{{TotalPieces}}', record[9]);
-  body.replaceText('{{ActualWeight}}', record[10]);
-  body.replaceText('{{DiscountWeight}}', record[11]);
-  body.replaceText('{{ChargeableWeight}}', record[12]);
-  body.replaceText('{{RatePerKg}}', record[13]);
-  body.replaceText('{{BillCharge}}', record[14]);
-  body.replaceText('{{DiscountCharge}}', record[15]);
-  body.replaceText('{{TotalCharges}}', record[16]);
-  body.replaceText('{{PaidAmount}}', record[17]);
-  body.replaceText('{{OutstandingBalance}}', record[18]);
-  body.replaceText('{{Date}}', new Date().toLocaleString());
+  body.replaceText("{{BillNo}}", record[1]);
+  body.replaceText("{{ShipperName}}", record[2]);
+  body.replaceText("{{ShipperTel}}", record[3]);
+  body.replaceText("{{ReceiverName1}}", record[4]);
+  body.replaceText("{{PhoneNo1}}", record[5]);
+  body.replaceText("{{ReceiverName2}}", record[6]);
+  body.replaceText("{{PhoneNo2}}", record[7]);
+  body.replaceText("{{ContainerNo}}", record[8]);
+  body.replaceText("{{TotalPieces}}", record[9]);
+  body.replaceText("{{ActualWeight}}", record[10]);
+  body.replaceText("{{DiscountWeight}}", record[11]);
+  body.replaceText("{{ChargeableWeight}}", record[12]);
+  body.replaceText("{{RatePerKg}}", record[13]);
+  body.replaceText("{{BillCharge}}", record[14]);
+  body.replaceText("{{DiscountCharge}}", record[15]);
+  body.replaceText("{{TotalCharges}}", record[16]);
+  body.replaceText("{{PaidAmount}}", record[17]);
+  body.replaceText("{{OutstandingBalance}}", record[18]);
+  body.replaceText("{{Date}}", new Date().toLocaleString());
+  body.replaceText("{{AMOUNTWORDS}}", numberToWords(record[16]));
 
   // Save and close the document
   doc.saveAndClose();
 
   // Export as PDF
   const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const folder = DriveApp.getFolderById('1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_'); // Desired folder
+  const folder = DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_"); // Desired folder
   const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
 
   // Set sharing permissions for the PDF
-  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  
-// Generate preview and download links for the PDF
-const pdfPreviewUrl = `https://drive.google.com/file/d/${pdfFile.getId()}/preview`;
-const pdfDownloadUrl = `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`;
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
 
-// Delete the temporary document
-DriveApp.getFileById(newDocId).setTrashed(true);
+  // Generate preview and download links for the PDF
+  const pdfPreviewUrl = `https://drive.google.com/file/d/${pdfFile.getId()}/preview`;
+  const pdfDownloadUrl = `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`;
 
-// Return both links as an object
-return {
-  previewUrl: pdfPreviewUrl,
-  downloadUrl: pdfDownloadUrl,
-};
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
 
+  // Return both links as an object
+  return {
+    previewUrl: pdfPreviewUrl,
+    downloadUrl: pdfDownloadUrl,
+  };
 }
-
 
 /*-------------------GENERAL-------------------------*/
 
 // INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function numberToWords(num) {
+  if (num === 0) return "zero";
+
+  const belowTwenty = [
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+  ];
+  const tens = [
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+  ];
+  const thousands = ["", "thousand", "million", "billion"];
+
+  function helper(n) {
+    if (n < 20) return belowTwenty[n - 1];
+    if (n < 100)
+      return (
+        tens[Math.floor(n / 10)] +
+        (n % 10 === 0 ? "" : "-" + belowTwenty[(n % 10) - 1])
+      );
+    if (n < 1000)
+      return (
+        belowTwenty[Math.floor(n / 100) - 1] +
+        " hundred" +
+        (n % 100 === 0 ? "" : " and " + helper(n % 100))
+      );
+    for (let i = 0; i < thousands.length; i++) {
+      const unit = 1000 ** (i + 1);
+      if (n < unit)
+        return (
+          helper(Math.floor(n / 1000 ** i)) +
+          " " +
+          thousands[i] +
+          (n % 1000 ** i === 0 ? "" : " " + helper(n % 1000 ** i))
+        );
+    }
+  }
+
+  return helper(num);
 }

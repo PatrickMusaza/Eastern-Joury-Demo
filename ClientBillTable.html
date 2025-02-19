@@ -52,7 +52,7 @@
                 </iframe>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
                 <!-- Download button dynamically set -->
                 <a id="downloadReceiptBtn" class="btn btn-primary" download>Download Receipt</a>
             </div>
@@ -60,6 +60,26 @@
     </div>
 </div>
 
+<!-- House Waybill Preview Modal -->
+<div class="modal fade" id="houseWaybillPreviewModal" tabindex="-1" aria-labelledby="houseWaybillPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">House Waybill Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="houseWaybillPreviewIframe"
+                    style="width: 100%; height: 500px; border: 1px solid #ccc;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <a id="downloadHouseWaybillBtn" class="btn btn-primary" download>Download House Waybill</a>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 <!-- Load More Button 

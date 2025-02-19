@@ -87,7 +87,6 @@
         loadAbbreviations(); //load abbreviation data
         loadContainerData();
         loadData();
-        loadData();
     }
 
     window.addEventListener("load", functionInit, true);
@@ -161,7 +160,6 @@
                             &#8942; <!-- Three vertical dots -->
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#">Manifest</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
@@ -606,19 +604,25 @@
 
     //HOUSE WAY BILL
 
-    // GENERATE HOUSE WAY BILL
     function generateHouseWayBill(recId) {
         $('#spinnerModal').modal('show'); // Show spinner
         google.script.run
-            .withSuccessHandler(function (pdfUrl) {
+            .withSuccessHandler(function (urls) {
                 $('#spinnerModal').modal('hide'); // Hide spinner
-                window.open(pdfUrl, '_blank'); // Open the PDF in a new tab
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    document.getElementById('houseWaybillPreviewIframe').src = urls.previewUrl;
+                    document.getElementById('downloadHouseWaybillBtn').href = urls.downloadUrl;
+                    $('#houseWaybillPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the House Waybill.");
+                }
             })
             .withFailureHandler(function (error) {
-                console.error("Error generating House Way Bill:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
+                console.error("Error generating House Waybill:", error);
+                $('#spinnerModal').modal('hide');
+                alert("Error generating House Waybill. Please try again.");
             })
-            .generateHouseWayBill(recId); // Call Google Apps Script function
+            .generateHouseWaybill(recId); // Call Google Apps Script function
     }
 
 
@@ -1114,5 +1118,7 @@
 
 
 
+
+</script>
 
 </script>
