@@ -10,6 +10,7 @@ const CLIENT_BILL_RANGE = "ClientBill!A2:S"; // Range for Client Bill data (adju
 const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
 const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
 const ITEM_DATA_SHEET = "Item";
+const EXPENSES_SHEET = "Expenses";
 
 // Display HTML page
 function doGet(request) {
@@ -306,20 +307,24 @@ function getFirstTwentyRecords() {
 
 // GET RECORD BY ID (WITH ITEMS)
 function getRecordById(recId) {
-  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const itemSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Item');
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
 
   // Fetch client bill details
-  const clientBillData = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
-  const clientBill = clientBillData.find(row => row[0] === recId); // Find the record with the matching recId
+  const clientBillData = clientBillSheet
+    .getRange(CLIENT_BILL_RANGE)
+    .getValues(); // Fetch columns A to I
+  const clientBill = clientBillData.find((row) => row[0] === recId); // Find the record with the matching recId
 
   // Fetch associated items
   const itemData = itemSheet.getRange("A2:D").getValues(); // Fetch columns A to D
-  const items = itemData.filter(row => row[3] === clientBill[1]); // Filter items with matching Bill No
+  const items = itemData.filter((row) => row[3] === clientBill[1]); // Filter items with matching Bill No
 
   return {
     clientBill: clientBill,
-    items: items
+    items: items,
   };
 }
 
@@ -327,13 +332,16 @@ function getRecordById(recId) {
 
 // SAVE ABBREVIATION
 function saveAbbreviation(formObject) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
   const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
-  const rowIndex = data.findIndex(row => row[0] === formObject.name); // Find the row with the matching name
+  const rowIndex = data.findIndex((row) => row[0] === formObject.name); // Find the row with the matching name
 
   if (rowIndex !== -1) {
     // Update existing abbreviation
-    sheet.getRange(rowIndex + 2, 1, 1, 2).setValues([[formObject.name, formObject.value]]);
+    sheet
+      .getRange(rowIndex + 2, 1, 1, 2)
+      .setValues([[formObject.name, formObject.value]]);
   } else {
     // Create new abbreviation
     sheet.appendRow([formObject.name, formObject.value]);
@@ -372,33 +380,37 @@ function deleteAbbreviation(name) {
 
 // GENERATE HOUSE WAY BILL
 function generateHouseWayBill(recId) {
-  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
-  const record = data.find(row => row[0] === recId); // Find the record with the matching recId
+  const record = data.find((row) => row[0] === recId); // Find the record with the matching recId
 
   if (!record) {
     throw new Error("Record not found");
   }
 
   // Template ID (replace with your Google Docs template ID)
-  const templateId = '1YflqixKBH--hayUdudZn4PYagFwRxWrzqhuWMkoJDZ8';
+  const templateId = "1YflqixKBH--hayUdudZn4PYagFwRxWrzqhuWMkoJDZ8";
 
   // Create a copy of the template
   const templateDoc = DriveApp.getFileById(templateId);
-  const newDoc = templateDoc.makeCopy(`House_Way_Bill_${record[1]}`, DriveApp.getRootFolder());
+  const newDoc = templateDoc.makeCopy(
+    `House_Way_Bill_${record[1]}`,
+    DriveApp.getRootFolder()
+  );
   const newDocId = newDoc.getId();
   const doc = DocumentApp.openById(newDocId);
   const body = doc.getBody();
 
   // Replace placeholders with actual values
-  body.replaceText('{{BillNo}}', record[1]);
-  body.replaceText('{{ShipperName}}', record[2]);
-  body.replaceText('{{ShipperTel}}', record[3]);
-  body.replaceText('{{ReceiverName1}}', record[4]);
-  body.replaceText('{{PhoneNo1}}', record[5]);
-  body.replaceText('{{ReceiverName2}}', record[6]);
-  body.replaceText('{{PhoneNo2}}', record[7]);
-  body.replaceText('{{ContainerNo}}', record[8]);
+  body.replaceText("{{BillNo}}", record[1]);
+  body.replaceText("{{ShipperName}}", record[2]);
+  body.replaceText("{{ShipperTel}}", record[3]);
+  body.replaceText("{{ReceiverName1}}", record[4]);
+  body.replaceText("{{PhoneNo1}}", record[5]);
+  body.replaceText("{{ReceiverName2}}", record[6]);
+  body.replaceText("{{PhoneNo2}}", record[7]);
+  body.replaceText("{{ContainerNo}}", record[8]);
 
   // Save and close the document
   doc.saveAndClose();
@@ -416,21 +428,24 @@ function generateHouseWayBill(recId) {
   return pdfUrl;
 }
 
-
 //CONTAINER NO
 
 function getAllContainerRecords() {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = sheet.getRange(CLIENT_BILL_RANGE).getValues();
   return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
 }
 
 function updateContainer(originalContainer, newContainer) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
   const data = sheet.getDataRange().getValues();
 
-  for (let i = 1; i < data.length; i++) { // Start from 1 to skip header row
-    if (data[i][8] === originalContainer) { // Assuming container number is at index 8
+  for (let i = 1; i < data.length; i++) {
+    // Start from 1 to skip header row
+    if (data[i][8] === originalContainer) {
+      // Assuming container number is at index 8
       sheet.getRange(i + 1, 9).setValue(newContainer); // Update container number
     }
   }
@@ -439,20 +454,23 @@ function updateContainer(originalContainer, newContainer) {
 //EXPENSES
 
 function getAllData() {
-  const expensesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
-  const containersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Containers'); // Replace with your sheet name
+  const expensesSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
+  const containersSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET); // Replace with your sheet name
 
   const expensesData = expensesSheet.getDataRange().getValues();
   const containersData = containersSheet.getDataRange().getValues();
 
   return {
     expenses: expensesData.slice(1), // Skip header row
-    containers: containersData.map(row => row[0]) // Assuming container numbers are in the first column
+    containers: containersData.map((row) => row[0]), // Assuming container numbers are in the first column
   };
 }
 
 function saveExpense(expenseData) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses'); // Replace with your sheet name
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
   sheet.appendRow([
     Utilities.getUuid(), // Generate a unique ID for the expense
     expenseData.containerNo,
@@ -460,10 +478,79 @@ function saveExpense(expenseData) {
     expenseData.containerTransportOffice,
     expenseData.containerLoadingLabour,
     // Add more expense fields here
-    expenseData.date
+    expenseData.date,
   ]);
 }
 
+//RECEIPT
+
+// GENERATE RECEIPT
+function generateReceipt(recId) {
+  const clientBillSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  const record = data.find(row => row[0] === recId); // Find the record with the matching recId
+
+  if (!record) {
+    throw new Error("Record not found");
+  }
+
+  // Template ID (replace with your Google Docs template ID)
+  const templateId = '1XI-qUgaCUWdP5J4RSSgbvBK4Ndycu-LuRbW8GjPnlWQ';
+
+  // Create a copy of the template
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const newDoc = templateDoc.makeCopy(`Receipt_${record[1]}_${timestamp}`, DriveApp.getFolderById('1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_'));
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders with actual values
+  body.replaceText('{{BillNo}}', record[1]);
+  body.replaceText('{{ShipperName}}', record[2]);
+  body.replaceText('{{ShipperTel}}', record[3]);
+  body.replaceText('{{ReceiverName1}}', record[4]);
+  body.replaceText('{{PhoneNo1}}', record[5]);
+  body.replaceText('{{ReceiverName2}}', record[6]);
+  body.replaceText('{{PhoneNo2}}', record[7]);
+  body.replaceText('{{ContainerNo}}', record[8]);
+  body.replaceText('{{TotalPieces}}', record[9]);
+  body.replaceText('{{ActualWeight}}', record[10]);
+  body.replaceText('{{DiscountWeight}}', record[11]);
+  body.replaceText('{{ChargeableWeight}}', record[12]);
+  body.replaceText('{{RatePerKg}}', record[13]);
+  body.replaceText('{{BillCharge}}', record[14]);
+  body.replaceText('{{DiscountCharge}}', record[15]);
+  body.replaceText('{{TotalCharges}}', record[16]);
+  body.replaceText('{{PaidAmount}}', record[17]);
+  body.replaceText('{{OutstandingBalance}}', record[18]);
+  body.replaceText('{{Date}}', new Date().toLocaleString());
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById('1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_'); // Desired folder
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+// Generate preview and download links for the PDF
+const pdfPreviewUrl = `https://drive.google.com/file/d/${pdfFile.getId()}/preview`;
+const pdfDownloadUrl = `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`;
+
+// Delete the temporary document
+DriveApp.getFileById(newDocId).setTrashed(true);
+
+// Return both links as an object
+return {
+  previewUrl: pdfPreviewUrl,
+  downloadUrl: pdfDownloadUrl,
+};
+
+}
 
 
 /*-------------------GENERAL-------------------------*/

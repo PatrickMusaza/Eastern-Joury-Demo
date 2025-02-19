@@ -86,7 +86,7 @@
         loadClientBillData(); // Load client bill data
         loadAbbreviations(); //load abbreviation data
         loadContainerData();
-        loadExpensesData();
+        loadData();
     }
 
     window.addEventListener("load", functionInit, true);
@@ -160,8 +160,7 @@
                             &#8942; <!-- Three vertical dots -->
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li>
-                            <li><a class="dropdown-item" href="#">Receipt</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#">Manifest</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
                             <li><a class="dropdown-item" href="#">Loading List</a></li>
@@ -944,8 +943,6 @@
                 <td>${row[0]}</td> <!-- Expense ID -->
                 <td>${row[1]}</td> <!-- Container No -->
                 <td>${row[2]}</td> <!-- Office Transport -->
-                <td>${row[3]}</td> <!-- Container Transport Office -->
-                <td>${row[4]}</td> <!-- Container Loading Labour -->
                 <!-- Add more expense type columns here -->
                 <td>${row[26]}</td> <!-- Date -->
                 <td>
@@ -1083,5 +1080,37 @@
         createAbbreviationsTable(allAbbreviationsData); // Re-render the table for the new page
         updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
     }
+
+
+
+    // RECEIPT
+
+    // GENERATE RECEIPT
+    function generateReceipt(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
+        google.script.run
+            .withSuccessHandler(function (urls) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    // Set the iframe source to the preview URL
+                    document.getElementById('receiptPreviewIframe').src = urls.previewUrl;
+                    // Set the download button's href to the download URL
+                    document.getElementById('downloadReceiptBtn').href = urls.downloadUrl;
+                    // Show the preview modal
+                    $('#receiptPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the receipt. Please try again.");
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating receipt:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+                alert("Error generating receipt. Please try again.");
+            })
+            .generateReceipt(recId); // Call the Google Apps Script function
+    }
+
+
+
 
 </script>
