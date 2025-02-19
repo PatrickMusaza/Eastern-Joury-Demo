@@ -161,7 +161,7 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
-                            <li><a class="dropdown-item" href="#">Manifest</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateManifest('${row[0]}')">Manifest</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
                             <li><a class="dropdown-item" href="#">Loading List</a></li>
                             <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
@@ -599,30 +599,6 @@
         `;
             itemsTableBody.appendChild(tr);
         });
-    }
-
-
-    //HOUSE WAY BILL
-
-    function generateHouseWayBill(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    document.getElementById('houseWaybillPreviewIframe').src = urls.previewUrl;
-                    document.getElementById('downloadHouseWaybillBtn').href = urls.downloadUrl;
-                    $('#houseWaybillPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the House Waybill.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating House Waybill:", error);
-                $('#spinnerModal').modal('hide');
-                alert("Error generating House Waybill. Please try again.");
-            })
-            .generateHouseWaybill(recId); // Call Google Apps Script function
     }
 
 
@@ -1114,6 +1090,58 @@
                 alert("Error generating receipt. Please try again.");
             })
             .generateReceipt(recId); // Call the Google Apps Script function
+    }
+
+
+    //HOUSE WAY BILL
+
+    function generateHouseWayBill(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner
+        google.script.run
+            .withSuccessHandler(function (urls) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    document.getElementById('houseWaybillPreviewIframe').src = urls.previewUrl;
+                    document.getElementById('downloadHouseWaybillBtn').href = urls.downloadUrl;
+                    $('#houseWaybillPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the House Waybill.");
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating House Waybill:", error);
+                $('#spinnerModal').modal('hide');
+                alert("Error generating House Waybill. Please try again.");
+            })
+            .generateHouseWaybill(recId); // Call Google Apps Script function
+    }
+
+
+
+    // MANIFEST
+
+    function generateManifest(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
+        google.script.run
+            .withSuccessHandler(function (urls) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    // Set the iframe source to the preview URL
+                    document.getElementById('manifestPreviewIframe').src = urls.previewUrl;
+                    // Set the download button's href to the download URL
+                    document.getElementById('downloadManifestBtn').href = urls.downloadUrl;
+                    // Show the preview modal
+                    $('#manifestPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the manifest. Please try again.");
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating manifest:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+                alert("Error generating manifest. Please try again.");
+            })
+            .generateManifestList(recId); // Call the Google Apps Script function
     }
 
 

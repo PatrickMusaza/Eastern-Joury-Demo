@@ -82,6 +82,30 @@
 </div>
 
 
+<!-- Manifest Preview Modal -->
+<div class="modal fade" id="manifestPreviewModal" tabindex="-1" aria-labelledby="manifestPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manifestPreviewModalLabel">Manifest Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Added styling for better visibility -->
+                <iframe id="manifestPreviewIframe" style="width: 100%; height: 500px; border: 1px solid #ccc;"
+                    frameborder="0">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <!-- Download button dynamically set -->
+                <a id="downloadManifestBtn" class="btn btn-primary" download>Download Manifest</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Load More Button 
 <div class="text-center mt-3">
     <button type="button" class="btn btn-success btn-sm" onclick="loadAllRecords()">Load All Records</button>

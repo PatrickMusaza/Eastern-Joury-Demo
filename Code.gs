@@ -377,125 +377,6 @@ function deleteAbbreviation(name) {
   }
 }
 
-//HOUSE WAY BILL
-
-// GENERATE HOUSE WAY
-function generateHouseWaybill(recId) {
-  const clientBillSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues();
-
-  // Find the record matching recId
-  const record = data.find((row) => row[0] === recId); // recId is in column A
-
-  if (!record) {
-    throw new Error("Record not found");
-  }
-
-  const billNo = record[1]; // BillNo is in column B
-
-  // Fetch Items Data
-  const itemsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
-  const abbreviationsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
-
-  const itemsData = itemsSheet.getDataRange().getValues();
-  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
-
-  // Create abbreviation dictionary to map short form to full form
-  let abbreviationMap = {};
-  for (let i = 1; i < abbreviationsData.length; i++) {
-    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
-    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
-    abbreviationMap[shortForm] = fullForm; // { "Short Form": "Full Form" }
-  }
-
-  // Count occurrences of each item type
-  let itemCountMap = {};
-  for (let i = 1; i < itemsData.length; i++) {
-    if (itemsData[i][3] === billNo) {
-      // Assuming Bill No is in Column D (Index 3)
-      let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
-      let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form if found
-      itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
-    }
-  }
-
-  // Format Items List based on the count
-  let itemsList = [];
-  for (let itemType in itemCountMap) {
-    let count = itemCountMap[itemType];
-    itemsList.push(`${count} ${itemType}`); // Display number of items and their full form
-  }
-
-  if (itemsList.length === 0) {
-    throw new Error("No items found for the selected Bill No.");
-  }
-
-  // Join items list into a single formatted string
-  let itemsFormatted = itemsList.join("\n");
-
-  // House Waybill Template
-  const templateId = "1pVQdnDmbE0OHMd5ElzOPx2lshECyIyz13cevk3iCOd4"; // Template Doc ID
-  const folderId = "1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"; // Drive Folder ID
-
-  // Copy Template
-  const templateDoc = DriveApp.getFileById(templateId);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const newDoc = templateDoc.makeCopy(
-    `HouseWaybill_${billNo}_${timestamp}`,
-    DriveApp.getFolderById(folderId)
-  );
-  const newDocId = newDoc.getId();
-  const doc = DocumentApp.openById(newDocId);
-  const body = doc.getBody();
-
-  // Replace placeholders
-  body.replaceText("{{BillNo}}", billNo);
-  body.replaceText("{{ItemsList}}", itemsFormatted);
-  body.replaceText("{{Date}}", new Date().toLocaleString());
-
-  // Other fields from Client Bill
-  body.replaceText("{{ShipperName}}", record[2]);
-  body.replaceText("{{ShipperTel}}", record[3]);
-  body.replaceText("{{ReceiverName1}}", record[4]);
-  body.replaceText("{{PhoneNo1}}", record[5]);
-  body.replaceText("{{ReceiverName2}}", record[6]);
-  body.replaceText("{{PhoneNo2}}", record[7]);
-  body.replaceText("{{ContainerNo}}", record[8]);
-  body.replaceText("{{TotalPieces}}", record[9]);
-  body.replaceText("{{ActualWeight}}", record[10]);
-  body.replaceText("{{DiscountWeight}}", record[11]);
-  body.replaceText("{{ChargeableWeight}}", record[12]);
-  body.replaceText("{{RatePerKg}}", record[13]);
-  body.replaceText("{{BillCharge}}", record[14]);
-  body.replaceText("{{DiscountCharge}}", record[15]);
-  body.replaceText("{{TotalCharges}}", record[16]);
-  body.replaceText("{{PaidAmount}}", record[17]);
-  body.replaceText("{{OutstandingBalance}}", record[18]);
-
-  // Save and Close Doc
-  doc.saveAndClose();
-
-  // Export as PDF
-  const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const folder = DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_"); // Desired folder
-  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
-
-  // Set sharing permissions for the PDF
-  pdfFile.setSharing(
-    DriveApp.Access.ANYONE_WITH_LINK,
-    DriveApp.Permission.VIEW
-  );
-
-  // Return preview & download links
-  return {
-    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
-    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
-  };
-}
-
 //CONTAINER NO
 
 function getAllContainerRecords() {
@@ -624,6 +505,286 @@ function generateReceipt(recId) {
   return {
     previewUrl: pdfPreviewUrl,
     downloadUrl: pdfDownloadUrl,
+  };
+}
+
+//HOUSE WAY BILL
+
+// GENERATE HOUSE WAY
+function generateHouseWaybill(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues();
+
+  // Find the record matching recId
+  const record = data.find((row) => row[0] === recId); // recId is in column A
+
+  if (!record) {
+    throw new Error("Record not found");
+  }
+
+  const billNo = record[1]; // BillNo is in column B
+
+  // Fetch Items Data
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+
+  const itemsData = itemsSheet.getDataRange().getValues();
+  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
+
+  // Create abbreviation dictionary to map short form to full form
+  let abbreviationMap = {};
+  for (let i = 1; i < abbreviationsData.length; i++) {
+    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
+    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
+    abbreviationMap[shortForm] = fullForm; // { "Short Form": "Full Form" }
+  }
+
+  // Count occurrences of each item type
+  let itemCountMap = {};
+  for (let i = 1; i < itemsData.length; i++) {
+    if (itemsData[i][3] === billNo) {
+      // Assuming Bill No is in Column D (Index 3)
+      let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
+      let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form if found
+      itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
+    }
+  }
+
+  // Format Items List based on the count
+  let itemsList = [];
+  for (let itemType in itemCountMap) {
+    let count = itemCountMap[itemType];
+    itemsList.push(`${count} ${itemType}`); // Display number of items and their full form
+  }
+
+  if (itemsList.length === 0) {
+    throw new Error("No items found for the selected Bill No.");
+  }
+
+  // Join items list into a single formatted string
+  let itemsFormatted = itemsList.join("\n");
+
+  // House Waybill Template
+  const templateId = "1pVQdnDmbE0OHMd5ElzOPx2lshECyIyz13cevk3iCOd4"; // Template Doc ID
+  const folderId = "1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"; // Drive Folder ID
+
+  // Copy Template
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `HouseWaybill_${billNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders
+  body.replaceText("{{BillNo}}", billNo);
+  body.replaceText("{{ItemsList}}", itemsFormatted);
+  body.replaceText("{{Date}}", new Date().toLocaleString());
+
+  // Other fields from Client Bill
+  body.replaceText("{{ShipperName}}", record[2]);
+  body.replaceText("{{ShipperTel}}", record[3]);
+  body.replaceText("{{ReceiverName1}}", record[4]);
+  body.replaceText("{{PhoneNo1}}", record[5]);
+  body.replaceText("{{ReceiverName2}}", record[6]);
+  body.replaceText("{{PhoneNo2}}", record[7]);
+  body.replaceText("{{ContainerNo}}", record[8]);
+  body.replaceText("{{TotalPieces}}", record[9]);
+  body.replaceText("{{ActualWeight}}", record[10]);
+  body.replaceText("{{DiscountWeight}}", record[11]);
+  body.replaceText("{{ChargeableWeight}}", record[12]);
+  body.replaceText("{{RatePerKg}}", record[13]);
+  body.replaceText("{{BillCharge}}", record[14]);
+  body.replaceText("{{DiscountCharge}}", record[15]);
+  body.replaceText("{{TotalCharges}}", record[16]);
+  body.replaceText("{{PaidAmount}}", record[17]);
+  body.replaceText("{{OutstandingBalance}}", record[18]);
+
+  // Save and Close Doc
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById("1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"); // Desired folder
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return preview & download links
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
+//MANIFEST
+
+//funstion to generate the manifest list
+function generateManifestList(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
+
+  // Create abbreviation dictionary
+  let abbreviationMap = {};
+  for (let i = 1; i < abbreviationsData.length; i++) {
+    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
+    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
+    abbreviationMap[shortForm] = fullForm; // { "CT": "Carton" }
+  }
+
+  // Find the Container No associated with recId
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      // Assuming recId is in Column A
+      containerNo = clientBillData[i][8]; // Assuming Container No is in Column I
+      break;
+    }
+  }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
+
+  // Get all Bill Nos associated with the same Container No
+  let bills = clientBillData.filter((row) => row[8] === containerNo); // Filter rows by Container No (Column I)
+
+  if (bills.length === 0) throw new Error("No bills found for the container.");
+
+  // Initialize Manifest List
+  let manifestList = [];
+  let totalPieces = 0;
+  let totalWeight = 0;
+
+  bills.forEach((bill) => {
+    const billNo = bill[1]; // Bill No (Column B)
+    const shipperName = bill[2]; // Shipper Name (Column C)
+    const shipperTel = bill[3]; // Tel No (Column D)
+    const receiverName = `${bill[4]} / ${bill[6]}`;
+    const receiverTel = `${bill[5]} / ${bill[7]}`;
+    const totalPiecesForBill = bill[9]; // Total Pieces (Column J)
+    const totalWeightForBill = bill[10]; // Total Weight (Column K)
+
+    // Count item types for the Bill No
+    let itemCountMap = {};
+    for (let i = 1; i < itemsData.length; i++) {
+      if (itemsData[i][3] === billNo) {
+        // Assuming Bill No is in Column D of Items sheet
+        let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
+        let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form
+        itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
+      }
+    }
+
+    // Format item counts
+    let itemsFormatted = [];
+    for (let itemType in itemCountMap) {
+      let count = itemCountMap[itemType];
+      itemsFormatted.push(`${count} ${itemType}`);
+    }
+    let itemsList = itemsFormatted.join(", "); // Join item types with commas
+    let index = 0;
+
+    // Add to Manifest List
+    manifestList.push([
+      index++, // Serial Number
+      billNo,
+      `${shipperName} /n ${receiverName}`,
+      `${shipperTel} /n ${receiverTel}`, // Shipper contact and Receiver contact
+      itemsList,
+      totalPiecesForBill,
+      totalWeightForBill,
+    ]);
+
+    totalPieces += totalPiecesForBill;
+    totalWeight += totalWeightForBill;
+  });
+
+  // Generate the document
+  const templateId = "1QsOLWuwCBFjVP-KF71P6I4MCeJLCpVE2btIrsaTLlxM"; // Replace with your Manifest Template Doc ID
+  const folderId = "1PDPiUFkyO0vM0yM_0Gir4FU41PKZkEI1"; // Replace with your target folder ID
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `ManifestList_${containerNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Create a simple table for manifest data
+  const table = body.appendTable();
+
+  // Add header row
+  const headerRow = table.appendTableRow();
+  const headers = [
+    "SR NO",
+    "HWB NO",
+    "SHIPPER / CONSIGNEE NAMES",
+    "CONTACT NO",
+    "DESCRIPTION OF GOODS",
+    "PCS",
+    "WEIGHT",
+  ];
+  headers.forEach((text) => {
+    headerRow.appendTableCell(text);
+  });
+
+  // Add manifest data rows
+  manifestList.forEach((row, index) => {
+    const dataRow = table.appendTableRow();
+    row.forEach((cellText) => {
+      dataRow.appendTableCell(cellText.toString());
+    });
+  });
+
+  // Add a total row
+  const totalRow = table.appendTableRow();
+  totalRow.appendTableCell("TOTAL"); // Merge first 4 columns for "TOTAL"
+  totalRow.appendTableCell(totalPieces.toString());
+  totalRow.appendTableCell(totalWeight.toString());
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById(folderId);
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return preview & download links
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
   };
 }
 
