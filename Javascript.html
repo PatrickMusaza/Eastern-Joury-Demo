@@ -163,7 +163,7 @@
                             <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateManifest('${row[0]}')">Manifest</a></li>
                             <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
-                            <li><a class="dropdown-item" href="#">Loading List</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateLoadingList('${row[0]}')">Loading List</a></li>
                             <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
                         </ul>
                     </div>
@@ -1144,6 +1144,32 @@
             .generateManifestList(recId); // Call the Google Apps Script function
     }
 
+
+    // LOADING LIST
+
+    function generateLoadingList(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
+        google.script.run
+            .withSuccessHandler(function (urls) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    // Set the iframe source to the preview URL
+                    document.getElementById('loadingListPreviewIframe').src = urls.previewUrl;
+                    // Set the download button's href to the download URL
+                    document.getElementById('downloadLoadingListBtn').href = urls.downloadUrl;
+                    // Show the preview modal
+                    $('#loadingListPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the loading list. Please try again.");
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating loading list:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+                alert("Error generating Loading List. Please try again.");
+            })
+            .generateLoadingList(recId); // Call the Google Apps Script function
+    }
 
 
 

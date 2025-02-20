@@ -675,7 +675,7 @@ function generateManifestList(recId) {
   let totalPieces = 0;
   let totalWeight = 0;
 
-  bills.forEach((bill) => {
+  bills.forEach((bill, index) => {
     const billNo = bill[1]; // Bill No (Column B)
     const shipperName = bill[2]; // Shipper Name (Column C)
     const shipperTel = bill[3]; // Tel No (Column D)
@@ -702,14 +702,13 @@ function generateManifestList(recId) {
       itemsFormatted.push(`${count} ${itemType}`);
     }
     let itemsList = itemsFormatted.join(", "); // Join item types with commas
-    let index = 0;
 
     // Add to Manifest List
     manifestList.push([
-      index++, // Serial Number
+      index + 1, // Serial Number
       billNo,
-      `${shipperName} /n ${receiverName}`,
-      `${shipperTel} /n ${receiverTel}`, // Shipper contact and Receiver contact
+      `${shipperName} \n${receiverName}`,
+      `${shipperTel} \n${receiverTel}`, // Shipper contact and Receiver contact
       itemsList,
       totalPiecesForBill,
       totalWeightForBill,
@@ -731,6 +730,10 @@ function generateManifestList(recId) {
   const newDocId = newDoc.getId();
   const doc = DocumentApp.openById(newDocId);
   const body = doc.getBody();
+
+  // Replace placeholders for container-level details
+  body.replaceText("{{ContainerNo}}", containerNo);
+  body.replaceText("{{Date}}", new Date().toLocaleString());
 
   // Create a simple table for manifest data
   const table = body.appendTable();
@@ -782,6 +785,138 @@ function generateManifestList(recId) {
   );
 
   // Return preview & download links
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
+//LOADING LIST
+
+function generateLoadingList(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+
+  // Find the Container No for the given recId
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      // Assuming recId is in Column A
+      containerNo = clientBillData[i][8]; // Assuming Container No is in Column I
+      break;
+    }
+  }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
+
+  // Get all Bill Nos associated with the same Container No
+  let bills = clientBillData.filter((row) => row[8] === containerNo); // Filter rows by Container No (Column I)
+
+  if (bills.length === 0) throw new Error("No bills found for the container.");
+
+  // Prepare Loading List data
+  let loadingList = [];
+  let totalPieces = 0;
+  let totalWeight = 0;
+
+  bills.forEach((bill, index) => {
+    const billNo = bill[1]; // HWB No (Column B)
+    const totalPiecesForBill = bill[9]; // Total Pieces (Column J)
+    const totalWeightForBill = bill[10]; // Total Weight (Column K)
+
+    // Get items for the current bill and classify them
+    let classifiedItems = {};
+    for (let i = 1; i < itemsData.length; i++) {
+      if (itemsData[i][3] === billNo) {
+        // Assuming Bill No is in Column D of Items sheet
+        let srNo = itemsData[i][0]; // SR NO (Column A in Items sheet)
+        let itemType = itemsData[i][1]; // Item Type (Column B in Items sheet)
+
+        if (!classifiedItems[srNo]) {
+          classifiedItems[srNo] = [];
+        }
+        classifiedItems[srNo].push(`${srNo} ${itemType}`);
+      }
+    }
+
+    // Prepare loading list row
+    let row = [index + 1, billNo, totalPiecesForBill, totalWeightForBill];
+    for (let col = 1; col <= 20; col++) {
+      row.push(classifiedItems[col] ? classifiedItems[col].join(", ") : "");
+    }
+    loadingList.push(row);
+
+    totalPieces += totalPiecesForBill;
+    totalWeight += totalWeightForBill;
+  });
+
+  // Generate the document
+  const templateId = "1deunNOVEO22mIaw-DsF33ul9YRthbUWF8WxQ1QIMSlI"; // Replace with your Loading List Template Doc ID
+  const folderId = "1TmbOGmOxcnfo5aiP6g7O50FmdznAEwhH"; // Replace with your target folder ID
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `LoadingList_${containerNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders in the template
+  body.replaceText("{{containerNo}}", containerNo);
+  body.replaceText("{{date}}", new Date().toLocaleDateString());
+
+  // Create the table
+  const table = body.appendTable();
+
+  // Add the header row
+  const headers = ["SR NO", "HWB NO", "TTL PCS", "TTL WEIGHT"];
+  for (let i = 1; i <= 20; i++) {
+    headers.push(i.toString());
+  }
+  const headerRow = table.appendTableRow();
+  headers.forEach((header) => {
+    headerRow.appendTableCell(header);
+  });
+
+  // Add the data rows
+  loadingList.forEach((row) => {
+    const dataRow = table.appendTableRow();
+    row.forEach((cell) => {
+      dataRow.appendTableCell(cell.toString());
+    });
+  });
+
+  // Add the total row
+  const totalRow = table.appendTableRow();
+  totalRow.appendTableCell("TOTAL"); // Merge first two columns for "TOTAL"
+  totalRow.appendTableCell(totalPieces.toString());
+  totalRow.appendTableCell(totalWeight.toString());
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById(folderId);
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return download link for the created document
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
     downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
