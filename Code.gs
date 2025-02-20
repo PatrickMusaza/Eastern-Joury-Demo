@@ -23,7 +23,7 @@ function doGet(request) {
 
 // PROCESS CLIENT BILL FORM SUBMISSION
 function processClientBill(formObject) {
-  if (formObject.recId && checkClientBillId(formObject.recId)) {
+  if (formObject.recId && formObject.recId.trim() !== "") {
     // Update existing record
     const values = [
       [
@@ -750,22 +750,69 @@ function generateManifestList(recId) {
     "WEIGHT",
   ];
   headers.forEach((text) => {
-    headerRow.appendTableCell(text);
+    const cell = headerRow.appendTableCell(text);
+    cell.setBackgroundColor("#1a73e8"); // Blue background
+    cell.setForegroundColor("#ffffff"); // White text for header
+    cell.setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    });
   });
 
   // Add manifest data rows
   manifestList.forEach((row, index) => {
     const dataRow = table.appendTableRow();
     row.forEach((cellText) => {
-      dataRow.appendTableCell(cellText.toString());
+      const cell = dataRow.appendTableCell(cellText.toString());
+      cell.setAttributes({
+        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+        [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+          DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+      });
+
+      // Simulate vertical alignment by adding padding
+      const paragraph = cell.getChild(0).asParagraph();
+      paragraph.setSpacingBefore(10); // Add space before the text
+      paragraph.setSpacingAfter(10); // Add space after the text
     });
   });
 
   // Add a total row
   const totalRow = table.appendTableRow();
-  totalRow.appendTableCell("TOTAL"); // Merge first 4 columns for "TOTAL"
-  totalRow.appendTableCell(totalPieces.toString());
-  totalRow.appendTableCell(totalWeight.toString());
+  const totalCell = totalRow.appendTableCell("TOTAL");
+  totalCell.setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
+
+  // Append empty cells to simulate colspan
+  for (let i = 0; i < 4; i++) {
+    const emptyCell = totalRow.appendTableCell("");
+    emptyCell.setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+    });
+  }
+
+  // Append total pieces and weight
+  totalRow.appendTableCell(totalPieces.toString()).setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
+  totalRow.appendTableCell(totalWeight.toString()).setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
 
   // Save and close the document
   doc.saveAndClose();
@@ -791,7 +838,7 @@ function generateManifestList(recId) {
   };
 }
 
-//LOADING LIST
+// LOADING LIST
 
 function generateLoadingList(recId) {
   const clientBillSheet =
@@ -882,22 +929,80 @@ function generateLoadingList(recId) {
   }
   const headerRow = table.appendTableRow();
   headers.forEach((header) => {
-    headerRow.appendTableCell(header);
+    const cell = headerRow.appendTableCell(header);
+    cell.setBackgroundColor("#1a73e8"); // Blue background for header
+    cell.setForegroundColor("#ffffff"); // White text for header
+    cell.setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    });
   });
 
   // Add the data rows
   loadingList.forEach((row) => {
     const dataRow = table.appendTableRow();
     row.forEach((cell) => {
-      dataRow.appendTableCell(cell.toString());
+      const tableCell = dataRow.appendTableCell(cell.toString());
+      tableCell.setAttributes({
+        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+        [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+          DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+      });
+
+      // Simulate vertical alignment by adding spacing
+      const paragraph = tableCell.getChild(0).asParagraph();
+      paragraph.setSpacingBefore(10); // Add space before the text
+      paragraph.setSpacingAfter(10); // Add space after the text
     });
   });
 
   // Add the total row
   const totalRow = table.appendTableRow();
-  totalRow.appendTableCell("TOTAL"); // Merge first two columns for "TOTAL"
-  totalRow.appendTableCell(totalPieces.toString());
-  totalRow.appendTableCell(totalWeight.toString());
+  const totalCell = totalRow.appendTableCell("TOTAL");
+  totalCell.setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
+
+  // Append empty cells to simulate colspan
+  for (let i = 0; i < 1; i++) {
+    const emptyCell = totalRow.appendTableCell("");
+    emptyCell.setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+    });
+  }
+
+  // Append total pieces and weight
+  totalRow.appendTableCell(totalPieces.toString()).setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
+  totalRow.appendTableCell(totalWeight.toString()).setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  });
+
+  // Append empty cells to simulate colspan
+  for (let i = 0; i < 20; i++) {
+    const emptyCell = totalRow.appendTableCell("");
+    emptyCell.setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
+      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
+        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+    });
+  }
 
   // Save and close the document
   doc.saveAndClose();
