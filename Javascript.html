@@ -266,16 +266,34 @@
             .getAllClientBillRecords(); // Call Google Apps Script function
     }
 
+
+    //SERIAZE DATA
+    function serializeFormAndSubmit(form) {
+        const formData = new FormData(form);
+        const formObject = {};
+
+        for (const [key, value] of formData.entries()) {
+            formObject[key] = value;
+        }
+
+        console.log("Serialized Form Object:", formObject); // Debugging line
+        handleClientBillSubmit(formObject);
+    }
+
     // HANDLE FORM SUBMISSION (UPDATE EXISTING RECORD)
     function handleClientBillSubmit(formObject) {
+        console.log("Form Object:", formObject); // Debugging line
         $('#spinnerModal').modal('show'); // Show spinner
         calculateOutstandingBalance();
+
         if (formObject.recId) {
+            console.log("Updating existing record with recId:", formObject.recId); // Debugging line
             // Update existing record
             google.script.run
                 .withSuccessHandler(function () {
                     $('#spinnerModal').modal('hide'); // Hide spinner
                     document.getElementById("ClientBillForm").reset(); // Reset form
+                    document.getElementById("recId").value = ""; // Clear recId for new records
                     generateBillNo(); // Generate new Bill No
                     clearItemList(); // Clear the item list and reset counter
                     loadClientBillData(); // Reload data
@@ -287,11 +305,13 @@
                 })
                 .updateClientBill(formObject); // Call Google Apps Script function
         } else {
+            console.log("Creating new record"); // Debugging line
             // Create new record
             google.script.run
                 .withSuccessHandler(function () {
                     $('#spinnerModal').modal('hide'); // Hide spinner
                     document.getElementById("ClientBillForm").reset(); // Reset form
+                    document.getElementById("recId").value = ""; // Clear recId for new records
                     generateBillNo(); // Generate new Bill No
                     clearItemList(); // Clear the item list and reset counter
                     loadClientBillData(); // Reload data

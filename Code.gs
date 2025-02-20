@@ -23,7 +23,10 @@ function doGet(request) {
 
 // PROCESS CLIENT BILL FORM SUBMISSION
 function processClientBill(formObject) {
-  if (formObject.recId && formObject.recId.trim() !== "") {
+  console.log("Processing form with recId:", formObject.recId); // Debugging line
+
+  if (formObject.recId && checkClientBillId(formObject.recId)) {
+    console.log("Updating existing record"); // Debugging line
     // Update existing record
     const values = [
       [
@@ -52,6 +55,7 @@ function processClientBill(formObject) {
     const updateRange = getClientBillRangeById(formObject.recId);
     updateClientBillRecord(values, updateRange);
   } else {
+    console.log("Creating new record"); // Debugging line
     // Create new record
     const values = [
       [
