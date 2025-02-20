@@ -408,29 +408,62 @@ function updateContainer(originalContainer, newContainer) {
 
 function getAllData() {
   const expensesSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
-  const containersSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET); // Replace with your sheet name
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
 
+  // Fetch expenses data
   const expensesData = expensesSheet.getDataRange().getValues();
-  const containersData = containersSheet.getDataRange().getValues();
 
-  return {
-    expenses: expensesData.slice(1), // Skip header row
-    containers: containersData.map((row) => row[0]), // Assuming container numbers are in the first column
-  };
+  // Fetch container numbers from Column 9 (I) of CLIENT_BILL_SHEET
+  const containersData = clientBillSheet
+    .getRange(2, 9, clientBillSheet.getLastRow() - 1, 1)
+    .getValues(); // Column 9 (I), starting from row 2
+  const containers = [...new Set(containersData.flat())]; // Extract unique container numbers
+
+  return { expenses: expensesData, containers: containers }; // Return the data object
 }
 
 function saveExpense(expenseData) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
+
+  // Calculate total expenses
+  const totalExpenses =
+    parseFloat(expenseData.officeTransport || 0) +
+    parseFloat(expenseData.containerTransportOffice || 0) +
+    parseFloat(expenseData.containerLoadingLabour || 0) +
+    parseFloat(expenseData.containerTransportSeaport || 0) +
+    parseFloat(expenseData.containerCharges || 0) +
+    parseFloat(expenseData.insurance || 0) +
+    parseFloat(expenseData.redseaCooperation || 0) +
+    parseFloat(expenseData.clearanceOffice || 0) +
+    parseFloat(expenseData.others || 0) +
+    parseFloat(expenseData.houseRent || 0) +
+    parseFloat(expenseData.electricityBill || 0) +
+    parseFloat(expenseData.officeStationery || 0) +
+    parseFloat(expenseData.officeEntertainment || 0) +
+    parseFloat(expenseData.payroll || 0);
+
+  // Append a new row with all expense fields and total expenses
   sheet.appendRow([
     Utilities.getUuid(), // Generate a unique ID for the expense
     expenseData.containerNo,
     expenseData.officeTransport,
     expenseData.containerTransportOffice,
     expenseData.containerLoadingLabour,
-    // Add more expense fields here
+    expenseData.containerTransportSeaport,
+    expenseData.containerCharges,
+    expenseData.insurance,
+    expenseData.redseaCooperation,
+    expenseData.clearanceOffice,
+    expenseData.others,
+    expenseData.houseRent,
+    expenseData.electricityBill,
+    expenseData.officeStationery,
+    expenseData.officeEntertainment,
+    expenseData.payroll,
+    totalExpenses, // Total Expenses
     expenseData.date,
   ]);
 }

@@ -282,7 +282,6 @@
 
     // HANDLE FORM SUBMISSION (UPDATE EXISTING RECORD)
     function handleClientBillSubmit(formObject) {
-        console.log("Form Object:", formObject); // Debugging line
         $('#spinnerModal').modal('show'); // Show spinner
         calculateOutstandingBalance();
 
@@ -305,7 +304,6 @@
                 })
                 .updateClientBill(formObject); // Call Google Apps Script function
         } else {
-            console.log("Creating new record"); // Debugging line
             // Create new record
             google.script.run
                 .withSuccessHandler(function () {
@@ -901,10 +899,14 @@
         $('#spinnerModal').modal('show'); // Show spinner
         google.script.run
             .withSuccessHandler(function (data) {
-                allExpensesData = data.expenses; // Store all expenses
-                allContainers = data.containers; // Store all containers
-                populateContainerDropdown(); // Populate container dropdown
-                createExpenseTable(allExpensesData); // Render the expense table
+                if (data && data.expenses && data.containers) {
+                    allExpensesData = data.expenses; // Assign expenses data
+                    allContainers = data.containers; // Assign containers data
+                    populateContainerDropdown(); // Populate container dropdown
+                    createExpenseTable(allExpensesData); // Render the expense table
+                } else {
+                    console.error("No data returned from the server.");
+                }
                 $('#spinnerModal').modal('hide'); // Hide spinner
             })
             .withFailureHandler(function (error) {
@@ -944,9 +946,8 @@
                 tr.innerHTML = `
                 <td>${row[0]}</td> <!-- Expense ID -->
                 <td>${row[1]}</td> <!-- Container No -->
-                <td>${row[2]}</td> <!-- Office Transport -->
-                <!-- Add more expense type columns here -->
-                <td>${row[26]}</td> <!-- Date -->
+                <td>${row[16]}</td> <!-- Total Expenses -->
+                <td>${row[17]}</td> <!-- Date -->
                 <td>
                     <button class="btn btn-sm btn-warning" onclick="editExpense('${row[0]}')">Edit</button>
                     <button class="btn btn-sm btn-info" onclick="previewExpense('${row[0]}')">Preview</button>
@@ -956,7 +957,7 @@
                 tableBody.appendChild(tr);
             });
         } else {
-            tableBody.innerHTML = '<tr><td colspan="28" class="text-center">No data found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
         }
     }
 
@@ -964,7 +965,7 @@
     function handleSearchExpenses() {
         const searchText = document.getElementById('searchExpense').value.toLowerCase();
         const filteredData = allExpensesData.filter(row =>
-            row[1].toLowerCase().includes(searchText) // Container No
+            row[1].toLowerCase().includes(searchText) // Container No is at index 1
         );
         createExpenseTable(filteredData); // Render the filtered data
     }
@@ -973,65 +974,100 @@
     function handleExpenseSubmit(event) {
         event.preventDefault(); // Prevent form submission
 
+        // Collect form data
         const expenseData = {
-            containerNo: document.getElementById('formContainerNo').value,
-            officeTransport: document.getElementById('formOfficeTransport').value,
-            containerTransportOffice: document.getElementById('formContainerTransportOffice').value,
-            containerLoadingLabour: document.getElementById('formContainerLoadingLabour').value,
-            // Add more expense fields here
-            date: document.getElementById('formDate').value
+            containerNo: document.getElementById("formContainerNo").value,
+            officeTransport: document.getElementById("formOfficeTransport").value,
+            containerTransportOffice: document.getElementById("formContainerTransportOffice").value,
+            containerLoadingLabour: document.getElementById("formContainerLoadingLabour").value,
+            containerTransportSeaport: document.getElementById("formContainerTransportSeaport").value,
+            containerCharges: document.getElementById("formContainerCharges").value,
+            insurance: document.getElementById("formInsurance").value,
+            redseaCooperation: document.getElementById("formRedseaCooperation").value,
+            clearanceOffice: document.getElementById("formClearanceOffice").value,
+            others: document.getElementById("formOthers").value,
+            houseRent: document.getElementById("formHouseRent").value,
+            electricityBill: document.getElementById("formElectricityBill").value,
+            officeStationery: document.getElementById("formOfficeStationery").value,
+            officeEntertainment: document.getElementById("formOfficeEntertainment").value,
+            payroll: document.getElementById("formPayroll").value,
+            date: document.getElementById("formDate").value,
         };
 
-        $('#spinnerModal').modal('show'); // Show spinner
+        // Send data to the backend
         google.script.run
-            .withSuccessHandler(function () {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                alert('Expense saved successfully!');
-                loadData(); // Reload data
+            .withSuccessHandler(() => {
+                alert("Expense saved successfully!");
+                document.getElementById("expenseForm").reset(); // Reset the form
+                loadData(); // Reload the expense table
             })
-            .withFailureHandler(function (error) {
-                console.error("Error saving expense:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
+            .withFailureHandler((error) => {
+                console.error("Error saving expense:", error);
+                alert("Failed to save expense. Please try again.");
             })
-            .saveExpense(expenseData); // Call Google Apps Script function
+            .saveExpense(expenseData);
     }
 
     // EDIT EXPENSE
     function editExpense(expenseId) {
         const expense = allExpensesData.find(row => row[0] === expenseId); // Assuming expenseId is at index 0
         if (expense) {
-            document.getElementById('formContainerNo').value = expense[1];
+            document.getElementById('formContainerNo').value = expense[1]; // Container No at index 1
             document.getElementById('formOfficeTransport').value = expense[2];
             document.getElementById('formContainerTransportOffice').value = expense[3];
             document.getElementById('formContainerLoadingLabour').value = expense[4];
-            // Populate more expense fields here
-            document.getElementById('formDate').value = expense[26];
+            document.getElementById('formContainerTransportSeaport').value = expense[5];
+            document.getElementById('formContainerCharges').value = expense[6];
+            document.getElementById('formInsurance').value = expense[7];
+            document.getElementById('formRedseaCooperation').value = expense[8];
+            document.getElementById('formClearanceOffice').value = expense[9];
+            document.getElementById('formOthers').value = expense[10];
+            document.getElementById('formHouseRent').value = expense[11];
+            document.getElementById('formElectricityBill').value = expense[12];
+            document.getElementById('formOfficeStationery').value = expense[13];
+            document.getElementById('formOfficeEntertainment').value = expense[14];
+            document.getElementById('formPayroll').value = expense[15];
+            document.getElementById('formDate').value = expense[17];
         }
     }
 
     // PREVIEW EXPENSE
     function previewExpense(expenseId) {
-        const expense = allExpensesData.find(row => row[0] === expenseId); // Assuming expenseId is at index 0
+        const expense = allExpensesData.find(row => row[0] === expenseId); // Find the expense by ID
         if (expense) {
-            alert(`Expense ID: ${expense[0]}\nContainer No: ${expense[1]}\nOffice Transport: ${expense[2]} SAR\nContainer Transport Office: ${expense[3]} SAR\nContainer Loading Labour: ${expense[4]} SAR\nDate: ${expense[26]}`);
+            // Populate modal fields
+            document.getElementById('previewExpenseId').textContent = expense[0];
+            document.getElementById('previewContainerNo').textContent = expense[1];
+            document.getElementById('previewOfficeTransport').textContent = expense[2];
+            document.getElementById('previewContainerTransportOffice').textContent = expense[3];
+            document.getElementById('previewContainerLoadingLabour').textContent = expense[4];
+            document.getElementById('previewContainerTransportSeaport').textContent = expense[5];
+            document.getElementById('previewContainerCharges').textContent = expense[6];
+            document.getElementById('previewInsurance').textContent = expense[7];
+            document.getElementById('previewRedseaCooperation').textContent = expense[8];
+            document.getElementById('previewClearanceOffice').textContent = expense[9];
+            document.getElementById('previewOthers').textContent = expense[10];
+            document.getElementById('previewHouseRent').textContent = expense[11];
+            document.getElementById('previewElectricityBill').textContent = expense[12];
+            document.getElementById('previewOfficeStationery').textContent = expense[13];
+            document.getElementById('previewOfficeEntertainment').textContent = expense[14];
+            document.getElementById('previewPayroll').textContent = expense[15];
+            document.getElementById('previewDate').textContent = expense[17];
+
+            // Show the modal
+            $('#previewModal').modal('show');
+        } else {
+            alert("Expense not found!");
         }
     }
 
     // DELETE EXPENSE
     function deleteExpense(expenseId) {
-        if (confirm("Are you sure you want to delete this expense?")) {
-            $('#spinnerModal').modal('show'); // Show spinner
-            google.script.run
-                .withSuccessHandler(function () {
-                    $('#spinnerModal').modal('hide'); // Hide spinner
-                    alert('Expense deleted successfully!');
-                    loadData(); // Reload data
-                })
-                .withFailureHandler(function (error) {
-                    console.error("Error deleting expense:", error); // Debugging line
-                    $('#spinnerModal').modal('hide'); // Hide spinner on error
-                })
-                .deleteExpense(expenseId); // Call Google Apps Script function
+        const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+        const data = sheet.getDataRange().getValues();
+        const rowIndex = data.findIndex(row => row[0] === expenseId); // Find the row with the matching expenseId
+        if (rowIndex !== -1) {
+            sheet.deleteRow(rowIndex + 1); // Delete the row
         }
     }
 

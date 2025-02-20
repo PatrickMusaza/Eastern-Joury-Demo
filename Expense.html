@@ -18,14 +18,61 @@
                     <input type="number" class="form-control" id="formOfficeTransport" min="0" required>
                 </div>
                 <div class="mb-3">
-                    <label for="formContainerTransportOffice" class="form-label">Container Transport Office (SAR)</label>
+                    <label for="formContainerTransportOffice" class="form-label">Container Transport Office
+                        (SAR)</label>
                     <input type="number" class="form-control" id="formContainerTransportOffice" min="0" required>
                 </div>
                 <div class="mb-3">
                     <label for="formContainerLoadingLabour" class="form-label">Container Loading Labour (SAR)</label>
                     <input type="number" class="form-control" id="formContainerLoadingLabour" min="0" required>
                 </div>
-                <!-- Add more expense fields here -->
+                <div class="mb-3">
+                    <label for="formContainerTransportSeaport" class="form-label">Container Transport Seaport
+                        (SAR)</label>
+                    <input type="number" class="form-control" id="formContainerTransportSeaport" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formContainerCharges" class="form-label">Container Charges (SAR)</label>
+                    <input type="number" class="form-control" id="formContainerCharges" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formInsurance" class="form-label">Insurance (SAR)</label>
+                    <input type="number" class="form-control" id="formInsurance" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formRedseaCooperation" class="form-label">Redsea Cooperation (SAR)</label>
+                    <input type="number" class="form-control" id="formRedseaCooperation" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formClearanceOffice" class="form-label">Clearance Office (SAR)</label>
+                    <input type="number" class="form-control" id="formClearanceOffice" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formOthers" class="form-label">Others (SAR)</label>
+                    <input type="number" class="form-control" id="formOthers" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formHouseRent" class="form-label">House Rent (SAR)</label>
+                    <input type="number" class="form-control" id="formHouseRent" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formElectricityBill" class="form-label">Electricity Bill (SAR)</label>
+                    <input type="number" class="form-control" id="formElectricityBill" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formOfficeStationery" class="form-label">Office Stationery (SAR)</label>
+                    <input type="number" class="form-control" id="formOfficeStationery" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formOfficeEntertainment" class="form-label">Office Entertainment (SAR)</label>
+                    <input type="number" class="form-control" id="formOfficeEntertainment" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="formPayroll" class="form-label">Payroll (SAR)</label>
+                    <input type="number" class="form-control" id="formPayroll" min="0" required>
+                </div>
+
+                <!-- Date -->
                 <div class="mb-3">
                     <label for="formDate" class="form-label">Date</label>
                     <input type="date" class="form-control" id="formDate" required>
@@ -65,6 +112,54 @@
                         <!-- Rows will be dynamically inserted here -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Popup Modal for Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Expense Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Expense ID:</strong> <span id="previewExpenseId"></span></p>
+                            <p><strong>Container No:</strong> <span id="previewContainerNo"></span></p>
+                            <p><strong>Office Transport:</strong> <span id="previewOfficeTransport"></span> SAR</p>
+                            <p><strong>Container Transport Office:</strong> <span
+                                    id="previewContainerTransportOffice"></span> SAR</p>
+                            <p><strong>Container Loading Labour:</strong> <span
+                                    id="previewContainerLoadingLabour"></span> SAR</p>
+                            <p><strong>Container Transport Seaport:</strong> <span
+                                    id="previewContainerTransportSeaport"></span> SAR</p>
+                            <p><strong>Container Charges:</strong> <span id="previewContainerCharges"></span> SAR</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Insurance:</strong> <span id="previewInsurance"></span> SAR</p>
+                            <p><strong>Redsea Cooperation:</strong> <span id="previewRedseaCooperation"></span> SAR</p>
+                            <p><strong>Clearance Office:</strong> <span id="previewClearanceOffice"></span> SAR</p>
+                            <p><strong>Others:</strong> <span id="previewOthers"></span> SAR</p>
+                            <p><strong>House Rent:</strong> <span id="previewHouseRent"></span> SAR</p>
+                            <p><strong>Electricity Bill:</strong> <span id="previewElectricityBill"></span> SAR</p>
+                            <p><strong>Office Stationery:</strong> <span id="previewOfficeStationery"></span> SAR</p>
+                            <p><strong>Office Entertainment:</strong> <span id="previewOfficeEntertainment"></span> SAR
+                            </p>
+                            <p><strong>Payroll:</strong> <span id="previewPayroll"></span> SAR</p>
+                            <p><strong>Date:</strong> <span id="previewDate"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
