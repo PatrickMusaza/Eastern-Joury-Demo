@@ -160,11 +160,13 @@
                             &#8942; <!-- Three vertical dots -->
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li><li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateManifest('${row[0]}')">Manifest</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateLoadingList('${row[0]}')">Loading List</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li>
                             <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateManifest('${row[0]}')">Manifest</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateLoadingList('${row[0]}')">Loading List</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="generateItemListCount('${row[0]}')">Item Piece Count</a></li>
                         </ul>
                     </div>
                 </td>
@@ -1227,6 +1229,31 @@
             .generateLoadingList(recId); // Call the Google Apps Script function
     }
 
+    // ITEM LIST COUNT
+
+    function generateItemListCount(recId) {
+        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
+        google.script.run
+            .withSuccessHandler(function (urls) {
+                $('#spinnerModal').modal('hide'); // Hide spinner
+                if (urls && urls.previewUrl && urls.downloadUrl) {
+                    // Set the iframe source to the preview URL
+                    document.getElementById('itemListPreviewIframe').src = urls.previewUrl;
+                    // Set the download button's href to the download URL
+                    document.getElementById('downloadItemListBtn').href = urls.downloadUrl;
+                    // Show the preview modal
+                    $('#itemListPreviewModal').modal('show');
+                } else {
+                    alert("Error: Unable to generate the item List. Please try again.");
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error generating item list:", error); // Debugging line
+                $('#spinnerModal').modal('hide'); // Hide spinner on error
+                alert("Error generating Item List. Please try again.");
+            })
+            .generateItemList(recId); // Call the Google Apps Script function  
+    }
 
 
 </script>

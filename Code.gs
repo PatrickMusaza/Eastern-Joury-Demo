@@ -1065,6 +1065,135 @@ function generateLoadingList(recId) {
   };
 }
 
+//ITEM LIST COUNT
+
+function generateItemList(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      containerNo = clientBillData[i][8];
+      break;
+    }
+  }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
+
+  let bills = clientBillData.filter((row) => row[8] === containerNo);
+  if (bills.length === 0) throw new Error("No bills found for the container.");
+
+  let itemCounts = {};
+  let totalPieces = 0;
+  let totalItemCounts = {};
+
+  bills.forEach((bill) => {
+    const billNo = bill[1];
+    const totalPiecesForBill = bill[9];
+    totalPieces += totalPiecesForBill;
+
+    if (!itemCounts[billNo]) {
+      itemCounts[billNo] = { totalPieces: totalPiecesForBill };
+    }
+
+    for (let i = 1; i < itemsData.length; i++) {
+      if (itemsData[i][3] === billNo) {
+        let itemType = itemsData[i][1];
+        itemCounts[billNo][itemType] = (itemCounts[billNo][itemType] || 0) + 1;
+        totalItemCounts[itemType] = (totalItemCounts[itemType] || 0) + 1;
+      }
+    }
+  });
+
+  const templateId = "1WxSqFcxdxSZEwmAKt83Ny5jDSRhPk16NahZqEUwIjdY";
+  const folderId = "1l1n66G2MPgEmlFB5iHN7ZUbijgbx7k8y";
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `ItemList_${containerNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  body.replaceText("{{containerNo}}", containerNo);
+  body.replaceText("{{date}}", new Date().toLocaleDateString());
+
+  const table = body.appendTable();
+  let headers = ["HWB NO", "TTL PCS", ...Object.keys(totalItemCounts)];
+  const headerRow = table.appendTableRow();
+  headers.forEach((header) => {
+    const cell = headerRow.appendTableCell(header);
+    cell.setBackgroundColor("#1a73e8").setForegroundColor("#ffffff");
+  });
+
+  Object.entries(itemCounts).forEach(([billNo, counts]) => {
+    const row = table.appendTableRow();
+    row.appendTableCell(billNo).setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
+    });
+    row
+      .appendTableCell(counts.totalPieces ? counts.totalPieces.toString() : "")
+      .setAttributes({
+        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: counts.totalPieces
+          ? "#FF0000"
+          : "#000000",
+      });
+    headers.slice(2).forEach((type) => {
+      row.appendTableCell((counts[type] || "").toString()).setAttributes({
+        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
+      });
+    });
+  });
+
+  const totalRow = table.appendTableRow();
+  totalRow.appendTableCell("TOTAL").setAttributes({
+    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
+  });
+  totalRow
+    .appendTableCell(totalPieces ? totalPieces.toString() : "")
+    .setAttributes({
+      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+      [DocumentApp.Attribute.FOREGROUND_COLOR]: totalPieces
+        ? "#FF0000"
+        : "#000000",
+    });
+  headers.slice(2).forEach((type) => {
+    totalRow
+      .appendTableCell((totalItemCounts[type] || "").toString())
+      .setAttributes({
+        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
+        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
+      });
+  });
+
+  doc.saveAndClose();
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById(folderId);
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newDocId).setTrashed(true);
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
 /*-------------------GENERAL-------------------------*/
 
 // INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)
