@@ -392,15 +392,27 @@ function getAllContainerRecords() {
 }
 
 function updateContainer(originalContainer, newContainer) {
-  const sheet =
+  const clientBillSheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const data = sheet.getDataRange().getValues();
+  const expenseSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
 
-  for (let i = 1; i < data.length; i++) {
-    // Start from 1 to skip header row
-    if (data[i][8] === originalContainer) {
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const expenseData = expenseSheet.getDataRange().getValues();
+
+  // Update Client Bill Sheet
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][8] === originalContainer) {
       // Assuming container number is at index 8
-      sheet.getRange(i + 1, 9).setValue(newContainer); // Update container number
+      clientBillSheet.getRange(i + 1, 9).setValue(newContainer); // Update container number (column index 9)
+    }
+  }
+
+  // Update Expense Sheet
+  for (let i = 1; i < expenseData.length; i++) {
+    if (expenseData[i][1] === originalContainer) {
+      // Assuming container number is at index 1
+      expenseSheet.getRange(i + 1, 2).setValue(newContainer); // Update container number (column index 2)
     }
   }
 }
