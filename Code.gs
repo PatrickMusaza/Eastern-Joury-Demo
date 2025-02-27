@@ -420,7 +420,7 @@ function saveExpense(data) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
   sheet.appendRow([
-    data.id,
+    generateUniqueId(),
     data.container,
     data.type,
     data.description,

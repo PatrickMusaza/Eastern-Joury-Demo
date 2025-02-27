@@ -67,7 +67,7 @@
     let allContainers = [];
     let expenses = [];
     let currentPageExpense = 1;
-    const expenseRecordsPerPage = 2;
+    const expenseRecordsPerPage = 20;
 
 
     // Prevent forms from submitting.
@@ -439,14 +439,14 @@
 
         itemCounter--;
     }
-/*
-    // Calculate charges when discounts change
-    document.getElementById('discountWeight').addEventListener('input', function () {
-        updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
-    });
-
-    document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
-*/
+    /*
+        // Calculate charges when discounts change
+        document.getElementById('discountWeight').addEventListener('input', function () {
+            updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
+        });
+    
+        document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
+    */
     // Adjusted updateChargeDetails function
     function updateChargeDetails(weightChange) {
         const totalPieces = document.getElementById('totalPieces');
@@ -907,41 +907,40 @@
             containers.forEach(c => select.append(`<option value="${c}">${c}</option>`));
         }).getContainers();
     }
-function loadExpenses() {
-    console.log("Requesting data from server...");
-    google.script.run
-        .withSuccessHandler(function (data) {
+    function loadExpenses() {
+        console.log("Requesting data from server...");
+        google.script.run
+            .withSuccessHandler(function (data) {
                 currentPageExpense = 1;
                 expenses = data;
                 displayExpenses(expenses);
-        })
-        .withFailureHandler(function (error) {
-            console.error("Error fetching expenses:", error);
-        })
-        .getExpenses();
-}
-
-function displayExpenses(dataArray) {
-    console.log("🚀 Displaying expenses:", dataArray);
-
-    const tableBody = document.getElementById('expenseTableBody');
-    tableBody.innerHTML = ''; // Clear existing rows
-
-    if (!Array.isArray(dataArray) || dataArray.length === 0) {
-        console.log("⚠️ No expenses found.");
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No expenses found</td></tr>';
-        document.getElementById("pageNumber").innerText = "Page 1";
-        return;
+                updatePaginationControlsExpense(expenses.length); // Update pagination controls
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error fetching expenses:", error);
+            })
+            .getExpenses();
     }
 
-    const start = (currentPageExpense - 1) * expenseRecordsPerPage;
-    const end = start + expenseRecordsPerPage;
-    const pageExpenses = dataArray.slice(start, end);
+    function displayExpenses(dataArray) {
 
-    pageExpenses.forEach((exp, index) => {
-        console.log(`📌 Adding expense: ${JSON.stringify(exp)}`);
+        const tableBody = document.getElementById('expenseTableBody');
+        tableBody.innerHTML = ''; // Clear existing rows
 
-        const row = `<tr>
+        if (!Array.isArray(dataArray) || dataArray.length === 0) {
+            console.log("⚠️ No expenses found.");
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No expenses found</td></tr>';
+            document.getElementById("pageNumber").innerText = "Page 1";
+            return;
+        }
+
+        const start = (currentPageExpense - 1) * expenseRecordsPerPage;
+        const end = start + expenseRecordsPerPage;
+        const pageExpenses = dataArray.slice(start, end);
+
+        pageExpenses.forEach((exp, index) => {
+
+            const row = `<tr>
             <td>${exp[1]}</td>
             <td>${exp[2]}</td>
             <td>${exp[3]}</td>
@@ -951,120 +950,93 @@ function displayExpenses(dataArray) {
                 <button class="btn btn-sm btn-info text-white" onclick="previewExpense(${index + start})">Preview</button>
             </td>
         </tr>`;
-        tableBody.innerHTML += row;
-    });
-
-    document.getElementById("pageNumber").innerText = `Page ${currentPageExpense} of ${Math.ceil(expenses.length / expenseRecordsPerPage)}`;
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("prevPage").addEventListener("click", function () {
-        if (currentPageExpense > 1) {
-            currentPageExpense--;
-            displayExpenses(expenses);
-        }
-    });
-
-    document.getElementById("nextPage").addEventListener("click", function () {
-        if (currentPageExpense * expenseRecordsPerPage < expenses.length) {
-            currentPageExpense++;
-            displayExpenses(expenses);
-        }
-    });
-});
-
+            tableBody.innerHTML += row;
+        });
+    }
 
     // Save expense form submission
- function saveExpenseForm(event) {
-    event.preventDefault();
-    $('#spinnerModal').modal('show'); // Show spinner
+    function saveExpenseForm(event) {
+        event.preventDefault();
+        $('#spinnerModal').modal('show'); // Show spinner
 
-    const expenseId = document.getElementById("expenseId").value;
-    const data = {
-        id: expenseId || generateUniqueId(), // Use existing ID or generate new
-        container: document.getElementById("containerSelect").value,
-        type: document.getElementById("expenseType").value,
-        description: document.getElementById("description").value,
-        amount: document.getElementById("amount").value,
-    };
+        const expenseId = document.getElementById("expenseId").value;
+        const data = {
+            id: expenseId, // Use existing ID or generate new
+            container: document.getElementById("containerSelect").value,
+            type: document.getElementById("expenseType").value,
+            description: document.getElementById("description").value,
+            amount: document.getElementById("amount").value,
+        };
 
-    if (expenseId) {
-        console.log("Updating existing expense:", data);
-        google.script.run
-            .withSuccessHandler(() => {
-                $('#spinnerModal').modal('hide');
-                document.getElementById("expenseForm").reset();
-                document.getElementById("expenseId").value = ""; // Clear ID
-                loadExpenses();
-            })
-            .withFailureHandler((error) => {
-                $('#spinnerModal').modal('hide');
-                console.error("Error updating expense:", error);
-                alert("Failed to update expense.");
-            })
-            .updateExpense(data);
-    } else {
-        console.log("Creating new expense:", data);
-        google.script.run
-            .withSuccessHandler(() => {
-                $('#spinnerModal').modal('hide');
-                document.getElementById("expenseForm").reset();
-                loadExpenses();
-            })
-            .withFailureHandler((error) => {
-                $('#spinnerModal').modal('hide');
-                console.error("Error saving expense:", error);
-                alert("Failed to save expense.");
-            })
-            .saveExpense(data);
-    }
-}
-
-
-// Edit expense
-function editExpense(index) {
-    const exp = expenses[index];
-
-    if (!exp) {
-        console.error(`❌ Expense at index ${index} not found.`);
-        return;
+        if (expenseId) {
+            console.log("Updating existing expense:", data);
+            google.script.run
+                .withSuccessHandler(() => {
+                    $('#spinnerModal').modal('hide');
+                    document.getElementById("expenseForm").reset();
+                    document.getElementById("expenseId").value = ""; // Clear ID
+                    loadExpenses();
+                })
+                .withFailureHandler((error) => {
+                    $('#spinnerModal').modal('hide');
+                    console.error("Error updating expense:", error);
+                    alert("Failed to update expense.");
+                })
+                .updateExpense(data);
+        } else {
+            console.log("Creating new expense:", data);
+            google.script.run
+                .withSuccessHandler(() => {
+                    $('#spinnerModal').modal('hide');
+                    document.getElementById("expenseForm").reset();
+                    loadExpenses();
+                })
+                .withFailureHandler((error) => {
+                    $('#spinnerModal').modal('hide');
+                    console.error("Error saving expense:", error);
+                    alert("Failed to save expense.");
+                })
+                .saveExpense(data);
+        }
     }
 
-    console.log("✏️ Editing Expense:", exp);
+    // Edit expense
+    function editExpense(index) {
+        const exp = expenses[index];
 
-    document.getElementById("expenseId").value = exp[0]; // Store ID for update
-    document.getElementById("containerSelect").value = exp[1];
-    document.getElementById("expenseType").value = exp[2];
-    document.getElementById("description").value = exp[3];
-    document.getElementById("amount").value = exp[4];
-}
+        if (!exp) {
+            console.error(`❌ Expense at index ${index} not found.`);
+            return;
+        }
+
+        console.log("✏️ Editing Expense:", exp);
+
+        document.getElementById("expenseId").value = exp[0]; // Store ID for update
+        document.getElementById("containerSelect").value = exp[1];
+        document.getElementById("expenseType").value = exp[2];
+        document.getElementById("description").value = exp[3];
+        document.getElementById("amount").value = exp[4];
+    }
 
     // Preview expense
     function previewExpense(index) {
-      
-    const expense = expenses[index]; // Get the expense details
-    if (!expense) {
-        console.error("Expense not found at index:", index);
-        return;
+
+        const expense = expenses[index]; // Get the expense details
+        if (!expense) {
+            console.error("Expense not found at index:", index);
+            return;
+        }
+
+        // Populate the modal with expense details
+        document.getElementById("previewContainer").textContent = expense[1]; // Container
+        document.getElementById("previewType").textContent = expense[2]; // Type
+        document.getElementById("previewDescription").textContent = expense[3]; // Description
+        document.getElementById("previewAmount").textContent = expense[4]; // Amount
+
+        // Show the modal
+        const previewModal = new bootstrap.Modal(document.getElementById('previewExpenseModal'));
+        previewModal.show();
     }
-
-    // Populate the modal with expense details
-    document.getElementById("previewContainer").textContent = expense[1]; // Container
-    document.getElementById("previewType").textContent = expense[2]; // Type
-    document.getElementById("previewDescription").textContent = expense[3]; // Description
-    document.getElementById("previewAmount").textContent = expense[4]; // Amount
-
-    // Show the modal
-    const previewModal = new bootstrap.Modal(document.getElementById('previewExpenseModal'));
-    previewModal.show();
-    }
-
-    // Initial load
-$(document).ready(() => {
-    loadContainers();
-    loadExpenses();
-});
-
 
     //PAGINATION
 
@@ -1088,6 +1060,28 @@ $(document).ready(() => {
         currentPage = page; // Update the current page
         createClientBillTable(allData); // Re-render the table for the new page
         updatePaginationControls(allData.length); // Update pagination controls to reflect the active page
+    }
+
+    // UPDATE PAGINATION CONTROLS EXPENSE
+    function updatePaginationControlsExpense(totalRecords) {
+        const paginationControls = document.getElementById('paginationControlsExpense');
+        paginationControls.innerHTML = '';
+
+        const totalPages = Math.ceil(totalRecords / expenseRecordsPerPage);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPageExpense ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="changePageExpense(${i})">${i}</a>`;
+            paginationControls.appendChild(li);
+        }
+    }
+
+    // CHANGE PAGE FUNCTION
+    function changePageExpense(page) {
+        currentPageExpense = page; // Update the current page
+        displayExpenses(expenses); // Re-render the table for the new page
+        updatePaginationControlsExpense(expenses.length); // Update pagination controls to reflect the active page
     }
 
     // UPDATE PAGINATION CONTROLS FOR ABBREVIATIONS
