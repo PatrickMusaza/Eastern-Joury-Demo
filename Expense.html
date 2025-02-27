@@ -1,165 +1,105 @@
 <div class="container mt-5">
-    <div class="row">
-        <!-- Form Section (Left) -->
-        <div class="col-md-4">
-            <h3 class="mb-4">Add/Update Expense</h3>
-            <form id="expenseForm" onsubmit="handleExpenseSubmit(event)">
-                <!-- Container No -->
-                <div class="mb-3">
-                    <label for="formContainerNo" class="form-label">Container No</label>
-                    <select class="form-select" id="formContainerNo" required>
-                        <!-- Options will be dynamically populated -->
-                    </select>
-                </div>
+    <h2 class="mb-4 text-center text-primary">EXPENSE MANAGEMENT</h2>
 
-                <!-- Expense Amounts -->
-                <div class="mb-3">
-                    <label for="formOfficeTransport" class="form-label">Office Transport (SAR)</label>
-                    <input type="number" class="form-control" id="formOfficeTransport" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formContainerTransportOffice" class="form-label">Container Transport Office
-                        (SAR)</label>
-                    <input type="number" class="form-control" id="formContainerTransportOffice" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formContainerLoadingLabour" class="form-label">Container Loading Labour (SAR)</label>
-                    <input type="number" class="form-control" id="formContainerLoadingLabour" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formContainerTransportSeaport" class="form-label">Container Transport Seaport
-                        (SAR)</label>
-                    <input type="number" class="form-control" id="formContainerTransportSeaport" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formContainerCharges" class="form-label">Container Charges (SAR)</label>
-                    <input type="number" class="form-control" id="formContainerCharges" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formInsurance" class="form-label">Insurance (SAR)</label>
-                    <input type="number" class="form-control" id="formInsurance" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formRedseaCooperation" class="form-label">Redsea Cooperation (SAR)</label>
-                    <input type="number" class="form-control" id="formRedseaCooperation" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formClearanceOffice" class="form-label">Clearance Office (SAR)</label>
-                    <input type="number" class="form-control" id="formClearanceOffice" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formOthers" class="form-label">Others (SAR)</label>
-                    <input type="number" class="form-control" id="formOthers" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formHouseRent" class="form-label">House Rent (SAR)</label>
-                    <input type="number" class="form-control" id="formHouseRent" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formElectricityBill" class="form-label">Electricity Bill (SAR)</label>
-                    <input type="number" class="form-control" id="formElectricityBill" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formOfficeStationery" class="form-label">Office Stationery (SAR)</label>
-                    <input type="number" class="form-control" id="formOfficeStationery" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formOfficeEntertainment" class="form-label">Office Entertainment (SAR)</label>
-                    <input type="number" class="form-control" id="formOfficeEntertainment" min="0" required>
-                </div>
-                <div class="mb-3">
-                    <label for="formPayroll" class="form-label">Payroll (SAR)</label>
-                    <input type="number" class="form-control" id="formPayroll" min="0" required>
-                </div>
-
-                <!-- Date -->
-                <div class="mb-3">
-                    <label for="formDate" class="form-label">Date</label>
-                    <input type="date" class="form-control" id="formDate" required>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="text-center">
-                    <button type="submit" class="btn btn-primary">Save Expense</button>
-                </div>
-            </form>
+    <form id="expenseForm" class="mb-5 p-4 border rounded shadow-sm bg-light" onsubmit="saveExpenseForm(event)">
+        <!-- Expense Form -->
+        <h3 class="mb-3 text-dark">Add Expense</h3>
+        <input type="hidden" id="expenseId">
+        <div class="col-md-4 mb-3">
+            <label for="containerSelect" class="form-label">Select Container:</label>
+            <select id="containerSelect" class="form-select">
+                <option value="">--Select the container no--</option>
+                <!-- Options will be populated dynamically -->
+            </select>
         </div>
-
-        <!-- Table Section (Right) -->
-        <div class="col-md-8">
-            <!-- Search Section -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>Expense Records</h3>
-                <div class="input-group w-50">
-                    <input type="text" class="form-control" id="searchExpense" placeholder="Search by Container No">
-                    <button class="btn btn-primary" type="button" onclick="handleSearchExpenses()">Search</button>
-                </div>
+        <div class="row fw-bold mb-2">
+            <div class="col-md-4">TYPE OF EXPENSES</div>
+            <div class="col-md-4">Description</div>
+            <div class="col-md-4">Amount</div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <select id="expenseType" class="form-select">
+                    <option>Client Transport</option>
+                    <option>Container Transport Office</option>
+                    <option>Container Loading Labour</option>
+                    <option>Container Transport Seaport</option>
+                    <option>Container Charges</option>
+                    <option>Insurance</option>
+                    <option>Redsea Cooperation</option>
+                    <option>Clearance Office</option>
+                    <option>Others</option>
+                    <option>House Rent</option>
+                    <option>Electricity Bill</option>
+                    <option>Office Stationery</option>
+                    <option>Office Entertainment</option>
+                    <option>Payroll</option>
+                </select>
             </div>
-
-            <!-- Table -->
-            <div class="table-responsive">
-                <table class="table table-striped-custom">
-                    <thead>
-                        <tr>
-                            <th>Expense ID</th>
-                            <th>Container No</th>
-                            <th>Total Expenses</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expenseTable">
-                        <!-- Rows will be dynamically inserted here -->
-                    </tbody>
-                </table>
+            <div class="col-md-4">
+                <input type="text" id="description" class="form-control" required placeholder="Expense Description">
+            </div>
+            <div class="col-md-4">
+                <input type="number" id="amount" class="form-control" min="0" required placeholder="Amount">
             </div>
         </div>
+        <div class="col-12 mt-3 text-end">
+            <button type="submit" class="btn btn-primary px-4">Save Expense</button>
+        </div>
+    </form>
+
+    <!-- Expense Table -->
+    <h3 class="mb-3 text-dark">Expense Records</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered shadow-sm">
+            <thead>
+                <tr class="bg-primary text-white">
+                    <th>Container</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="expenseTableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item">
+                    <button id="prevPage" class="page-link">Previous</button>
+                </li>
+                <li class="page-item">
+                    <span id="pageNumber" class="page-link">Page 1</span>
+                </li>
+                <li class="page-item">
+                    <button id="nextPage" class="page-link">Next</button>
+                </li>
+            </ul>
+        </nav>
     </div>
 </div>
 
-
-
-<!-- Popup Modal for Preview -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<!-- Modal for Previewing Expense Details -->
+<div class="modal fade" id="previewExpenseModal" tabindex="-1" aria-labelledby="previewExpenseModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">Expense Details</h5>
+                <h5 class="modal-title" id="previewExpenseModalLabel">Expense Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Expense ID:</strong> <span id="previewExpenseId"></span></p>
-                            <p><strong>Container No:</strong> <span id="previewContainerNo"></span></p>
-                            <p><strong>Office Transport:</strong> <span id="previewOfficeTransport"></span> SAR</p>
-                            <p><strong>Container Transport Office:</strong> <span
-                                    id="previewContainerTransportOffice"></span> SAR</p>
-                            <p><strong>Container Loading Labour:</strong> <span
-                                    id="previewContainerLoadingLabour"></span> SAR</p>
-                            <p><strong>Container Transport Seaport:</strong> <span
-                                    id="previewContainerTransportSeaport"></span> SAR</p>
-                            <p><strong>Container Charges:</strong> <span id="previewContainerCharges"></span> SAR</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Insurance:</strong> <span id="previewInsurance"></span> SAR</p>
-                            <p><strong>Redsea Cooperation:</strong> <span id="previewRedseaCooperation"></span> SAR</p>
-                            <p><strong>Clearance Office:</strong> <span id="previewClearanceOffice"></span> SAR</p>
-                            <p><strong>Others:</strong> <span id="previewOthers"></span> SAR</p>
-                            <p><strong>House Rent:</strong> <span id="previewHouseRent"></span> SAR</p>
-                            <p><strong>Electricity Bill:</strong> <span id="previewElectricityBill"></span> SAR</p>
-                            <p><strong>Office Stationery:</strong> <span id="previewOfficeStationery"></span> SAR</p>
-                            <p><strong>Office Entertainment:</strong> <span id="previewOfficeEntertainment"></span> SAR
-                            </p>
-                            <p><strong>Payroll:</strong> <span id="previewPayroll"></span> SAR</p>
-                            <p><strong>Date:</strong> <span id="previewDate"></span></p>
-                        </div>
-                    </div>
-                </div>
+                <p><strong>Container:</strong> <span id="previewContainer"></span></p>
+                <p><strong>Type:</strong> <span id="previewType"></span></p>
+                <p><strong>Description:</strong> <span id="previewDescription"></span></p>
+                <p><strong>Amount:</strong> <span id="previewAmount"></span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

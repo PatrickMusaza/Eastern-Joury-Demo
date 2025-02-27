@@ -12,6 +12,7 @@ const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations dat
 const ITEM_DATA_SHEET = "Item";
 const ITEM_DATA_RANGE = "Item!A2:D";
 const EXPENSES_SHEET = "Expenses";
+const EXPENSES_SHEET_RANGE = "Expenses!A2:E";
 
 // Display HTML page
 function doGet(request) {
@@ -406,66 +407,72 @@ function updateContainer(originalContainer, newContainer) {
 
 //EXPENSES
 
-function getAllData() {
-  const expensesSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
-  const clientBillSheet =
+// Fetch unique container numbers from ClientBill sheet
+function getContainers() {
+  const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-
-  // Fetch expenses data
-  const expensesData = expensesSheet.getDataRange().getValues();
-
-  // Fetch container numbers from Column 9 (I) of CLIENT_BILL_SHEET
-  const containersData = clientBillSheet
-    .getRange(2, 9, clientBillSheet.getLastRow() - 1, 1)
-    .getValues(); // Column 9 (I), starting from row 2
-  const containers = [...new Set(containersData.flat())]; // Extract unique container numbers
-
-  return { expenses: expensesData, containers: containers }; // Return the data object
+  const data = sheet.getRange("I2:I").getValues().flat().filter(String);
+  return [...new Set(data)]; // Remove duplicates
 }
 
-function saveExpense(expenseData) {
+// Save new expense entry
+function saveExpense(data) {
   const sheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET); // Replace with your sheet name
-
-  // Calculate total expenses
-  const totalExpenses =
-    parseFloat(expenseData.officeTransport || 0) +
-    parseFloat(expenseData.containerTransportOffice || 0) +
-    parseFloat(expenseData.containerLoadingLabour || 0) +
-    parseFloat(expenseData.containerTransportSeaport || 0) +
-    parseFloat(expenseData.containerCharges || 0) +
-    parseFloat(expenseData.insurance || 0) +
-    parseFloat(expenseData.redseaCooperation || 0) +
-    parseFloat(expenseData.clearanceOffice || 0) +
-    parseFloat(expenseData.others || 0) +
-    parseFloat(expenseData.houseRent || 0) +
-    parseFloat(expenseData.electricityBill || 0) +
-    parseFloat(expenseData.officeStationery || 0) +
-    parseFloat(expenseData.officeEntertainment || 0) +
-    parseFloat(expenseData.payroll || 0);
-
-  // Append a new row with all expense fields and total expenses
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
   sheet.appendRow([
-    Utilities.getUuid(), // Generate a unique ID for the expense
-    expenseData.containerNo,
-    expenseData.officeTransport,
-    expenseData.containerTransportOffice,
-    expenseData.containerLoadingLabour,
-    expenseData.containerTransportSeaport,
-    expenseData.containerCharges,
-    expenseData.insurance,
-    expenseData.redseaCooperation,
-    expenseData.clearanceOffice,
-    expenseData.others,
-    expenseData.houseRent,
-    expenseData.electricityBill,
-    expenseData.officeStationery,
-    expenseData.officeEntertainment,
-    expenseData.payroll,
-    totalExpenses, // Total Expenses
-    expenseData.date,
+    data.id,
+    data.container,
+    data.type,
+    data.description,
+    data.amount,
+    new Date(),
   ]);
+  return "Expense added successfully!";
+}
+
+function updateExpense(data) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const dataRange = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][0] === data.id) {
+      // Find matching ID
+      sheet
+        .getRange(i + 1, 2, 1, 4)
+        .setValues([
+          [data.container, data.type, data.description, data.amount],
+        ]);
+      return "Expense updated successfully!";
+    }
+  }
+  return "Expense not found.";
+}
+
+// Fetch expenses with optional container filter
+function getExpenses() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const data = sheet.getRange(EXPENSES_SHEET_RANGE).getValues(); // Fetch columns A to F
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
+
+// Edit an existing expense
+function editExpense(index, updatedData) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const row = index + 2; // Adjust for header row
+  sheet
+    .getRange(row, 2, 1, 3)
+    .setValues([
+      [
+        updatedData.container,
+        updatedData.type,
+        updatedData.description,
+        updatedData.amount,
+      ],
+    ]);
+  return "Expense updated!";
 }
 
 //RECEIPT
@@ -514,7 +521,13 @@ function generateReceipt(recId) {
   body.replaceText("{{TotalCharges}}", record[16]);
   body.replaceText("{{PaidAmount}}", record[17]);
   body.replaceText("{{OutstandingBalance}}", record[18]);
-  body.replaceText("{{Date}}", new Date().toLocaleString());
+
+  const currentDate = new Date();
+  const date = currentDate.toLocaleDateString(); // Get the date part
+  const time = currentDate.toLocaleTimeString(); // Get the time part
+
+  // Replace the {{Date}} placeholder with the formatted string
+  body.replaceText("{{Date}}", date + "\n" + time);
   body.replaceText("{{AMOUNTWORDS}}", numberToWords(record[16]));
 
   // Save and close the document
@@ -1202,42 +1215,42 @@ function include(filename) {
 }
 
 function numberToWords(num) {
-  if (num === 0) return "zero";
+  if (num === 0) return "ZERO";
 
   const belowTwenty = [
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
-    "thirteen",
-    "fourteen",
-    "fifteen",
-    "sixteen",
-    "seventeen",
-    "eighteen",
-    "nineteen",
+    "ONE",
+    "TWO",
+    "THREE",
+    "FOUR",
+    "FIVE",
+    "SIX",
+    "SEVEN",
+    "EIGHT",
+    "NINE",
+    "TEN",
+    "ELEVEN",
+    "TWELVE",
+    "THIRTEEN",
+    "FOURTEEN",
+    "FIFTEEN",
+    "SIXTEEN",
+    "SEVENTEEN",
+    "EIGHTEEN",
+    "NINETEEN",
   ];
   const tens = [
     "",
     "",
-    "twenty",
-    "thirty",
-    "forty",
-    "fifty",
-    "sixty",
-    "seventy",
-    "eighty",
-    "ninety",
+    "TWENTY",
+    "THIRTY",
+    "FORTY",
+    "FIFTY",
+    "SIXTY",
+    "SEVENTY",
+    "EIGHTY",
+    "NINETY",
   ];
-  const thousands = ["", "thousand", "million", "billion"];
+  const thousands = ["", "THOUSAND", "MILLION", "BILLION"];
 
   function helper(n) {
     if (n < 20) return belowTwenty[n - 1];
@@ -1249,8 +1262,8 @@ function numberToWords(num) {
     if (n < 1000)
       return (
         belowTwenty[Math.floor(n / 100) - 1] +
-        " hundred" +
-        (n % 100 === 0 ? "" : " and " + helper(n % 100))
+        " HUNDRED" +
+        (n % 100 === 0 ? "" : " AND " + helper(n % 100))
       );
     for (let i = 0; i < thousands.length; i++) {
       const unit = 1000 ** (i + 1);
