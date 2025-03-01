@@ -13,6 +13,9 @@ const ITEM_DATA_SHEET = "Item";
 const ITEM_DATA_RANGE = "Item!A2:D";
 const EXPENSES_SHEET = "Expenses";
 const EXPENSES_SHEET_RANGE = "Expenses!A2:E";
+const USER_SHEET = "Users";
+const USER_SHEET_RANGE = "Users!A2:C";
+const LOGS_SHEET = "Logs";
 
 // Display HTML page
 function doGet(request) {
@@ -20,6 +23,27 @@ function doGet(request) {
   let htmlOutput = HtmlService.createHtmlOutput(html);
   htmlOutput.addMetaTag("viewport", "width=device-width, initial-scale=1");
   return htmlOutput;
+}
+
+//LOGIN
+function getUserCredentials() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
+  const data = sheet.getRange(USER_SHEET_RANGE).getValues();
+  const users = data.map((row) => ({
+    username: row[0],
+    password: row[1],
+    role: row[2],
+  }));
+  return users;
+}
+
+//LOGS
+function logEvent(username, event, details) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET);
+  const timestamp = new Date();
+  sheet.appendRow([timestamp, username, event, details]);
 }
 
 // PROCESS CLIENT BILL FORM SUBMISSION

@@ -80,10 +80,27 @@
         }
     }
 
+    //LOGS
+
+    function checkRole() {
+        const role = sessionStorage.getItem('role');
+        const username = sessionStorage.getItem('username'); // Store username during login
+        if (role === 'admin') {
+            // Log access to reports page
+            google.script.run.logEvent(username, 'Page Access', 'Accessed Reports Page');
+            loadReportsPage();
+        } else {
+            // Log denied access to reports page
+            google.script.run.logEvent(username, 'Page Access', 'Access Denied to Reports Page');
+            alert('You do not have permission to access this page.');
+        }
+    }
+
     // INITIALIZE FUNCTIONS ONLOAD
     function functionInit() {
         $('#spinnerModal').modal('show'); // Show spinner on load
         preventFormSubmit();
+        loadClientBillPage();
         generateBillNo(); // Generate and display Bill No
         fetchTypeData(); // Fetch Type data for dropdown
         loadClientBillData(); // Load client bill data
@@ -93,7 +110,7 @@
         loadExpenses();
     }
 
-    window.addEventListener("load", functionInit, true);
+    //window.addEventListener("load", functionInit, true);
 
     // Initialize on page load
     window.addEventListener('load', () => {
@@ -123,10 +140,10 @@
 
     // LOAD CLIENT BILL DATA
     function loadClientBillData() {
-        console.log("Loading client bill data..."); // Debugging line
+        //console.log("Loading client bill data..."); // Debugging line
         google.script.run
             .withSuccessHandler(function (data) {
-                console.log("Data received:", data); // Debugging line
+                //console.log("Data received:", data); // Debugging line
                 allData = data; // Store all records
                 createClientBillTable(allData); // Render the first page of records
                 updatePaginationControls(allData.length); // Update pagination controls
@@ -518,10 +535,10 @@
         document.getElementById('outstandingBalance').value = outstandingBalance.toFixed(2);
     }
 
-    // Trigger calculations on relevant input changes
+    /* Trigger calculations on relevant input changes
     ['discountWeight', 'ratePerKg', 'discountCharge', 'paidAmount'].forEach(id => {
         document.getElementById(id).addEventListener('input', calculateOutstandingBalance);
-    });
+    });*/
 
     // GENERATE AND DISPLAY BILL NO
     function generateBillNo() {
@@ -908,7 +925,7 @@
         }).getContainers();
     }
     function loadExpenses() {
-        console.log("Requesting data from server...");
+        //console.log("Requesting data from server...");
         google.script.run
             .withSuccessHandler(function (data) {
                 currentPageExpense = 1;

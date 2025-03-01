@@ -1,186 +1,160 @@
-<form id="ClientBillForm" onsubmit="serializeFormAndSubmit(this); return false;">
-    <p class="h4 mb-4 text-center">Client Bill Form</p>
-    <input type="hidden" id="recId" name="recId" value=""> <!-- Hidden field for recId -->
-    <div class="mb-3 row">
-        <label for="billNo" class="col-sm-4 col-form-label">Bill No:</label>
-        <div class="col-sm-8">
-            <input type="text" id="billNo" name="billNo" class="form-control" readonly>
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="shipperName" class="col-sm-4 col-form-label">Shipper Name:</label>
-        <div class="col-sm-8">
-            <input type="text" id="shipperName" name="shipperName" class="form-control" required>
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="telephoneNo" class="col-sm-4 col-form-label">Telephone No:</label>
-        <div class="col-sm-8">
-            <input type="tel" id="telephoneNo" name="telephoneNo" class="form-control" required>
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="receiverName1" class="col-sm-4 col-form-label">Receiver Name 1:</label>
-        <div class="col-sm-8">
-            <input type="text" id="receiverName1" name="receiverName1" class="form-control" required>
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="phoneNo1" class="col-sm-4 col-form-label">Phone No 1:</label>
-        <div class="col-sm-8">
-            <input type="tel" id="phoneNo1" name="phoneNo1" class="form-control" required>
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="receiverName2" class="col-sm-4 col-form-label">Receiver Name 2:</label>
-        <div class="col-sm-8">
-            <input type="text" id="receiverName2" name="receiverName2" class="form-control">
-        </div>
-    </div>
-    <div class="mb-3 row">
-        <label for="phoneNo2" class="col-sm-4 col-form-label">Phone No 2:</label>
-        <div class="col-sm-8">
-            <input type="tel" id="phoneNo2" name="phoneNo2" class="form-control">
-        </div>
-    </div>
-    <!-- Container No (Dropdown) -->
-    <div class="mb-3 row">
-        <label for="containerNo" class="col-sm-4 col-form-label">Container No:</label>
-        <div class="col-sm-8">
-            <select id="containerNo" name="containerNo" class="form-select">
-                <option value="EJ001" selected>EJ001</option>
-                <option value="EJ002">EJ002</option>
-                <option value="EJ003">EJ003</option>
-            </select>
-        </div>
-    </div>
+<p class="h4 mb-4 text-center">Client Bill Database</p>
 
-    <!-- Item Management Section -->
-    <div class="mb-3">
-        <p class="h5 mb-3">Item Management</p>
-        <div class="row">
-            <div class="col-sm-5">
-                <label for="type" class="col-form-label">Type:</label>
-            </div>
-            <div class="col-sm-5">
-                <label for="itemWeight" class="col-form-label">Item Weight:</label>
-            </div>
-            <div class="col-sm-2">
-                <label for="action_add" class="col-form-label">Action</label>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-5">
-                <select id="type" name="type" class="form-select">
-                    <option value="">--Select Type--</option>
-                </select>
-            </div>
-            <div class="col-sm-5">
-                <input type="number" id="itemWeight" name="itemWeight" class="form-control" step="1" min="0">
-            </div>
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-success" onclick="addItem()">Add</button>
-            </div>
-        </div>
-        <div class="row mt-2">
-        </div>
-
-        <div class="container" id="itemListContainer" style="display:none;">
-            <p class="h5 mb-3">Item Details</p>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Type</th>
-                            <th>Weight</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemList">
-                        <!-- Rows will be dynamically added here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Charge Details Section -->
-    <div class="mb-3">
-        <p class="h5 mb-3">Charge Details</p>
-        <div class="row mb-2">
-            <label for="totalPieces" class="col-sm-4 col-form-label">Total Pieces:</label>
-            <div class="col-sm-8">
-                <input type="number" id="totalPieces" name="totalPieces" class="form-control" min="0" readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="actualWeight" class="col-sm-4 col-form-label">Actual Weight:</label>
-            <div class="col-sm-8">
-                <input type="number" id="actualWeight" name="actualWeight" class="form-control" min="0" readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="discountWeight" class="col-sm-4 col-form-label">Discount (W):</label>
-            <div class="col-sm-8">
-                <input type="number" id="discountWeight" name="discountWeight" class="form-control" min="0">
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="chargeableWeight" class="col-sm-4 col-form-label">Chargeable (W):</label>
-            <div class="col-sm-8">
-                <input type="number" id="chargeableWeight" name="chargeableWeight" class="form-control" min="0"
-                    readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="ratePerKg" class="col-sm-4 col-form-label">Rate Per KG:</label>
-            <div class="col-sm-8">
-                <input type="number" id="ratePerKg" name="ratePerKg" class="form-control" value="3.90" min="0" readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="billCharge" class="col-sm-4 col-form-label">Bill Charge:</label>
-            <div class="col-sm-8">
-                <input type="number" id="billCharge" name="billCharge" class="form-control" value="100" min="0"
-                    readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="discountCharge" class="col-sm-4 col-form-label">Discount (C):</label>
-            <div class="col-sm-8">
-                <input type="number" id="discountCharge" name="discountCharge" class="form-control" min="0">
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="totalCharges" class="col-sm-4 col-form-label">Total Charges:</label>
-            <div class="col-sm-8">
-                <input type="number" id="totalCharges" name="totalCharges" class="form-control" min="0" readonly>
-            </div>
-        </div>
-        <div class="row mb-2">
-            <label for="paidAmount" class="col-sm-4 col-form-label">Paid Amount:</label>
-            <div class="col-sm-8">
-                <input type="number" id="paidAmount" name="paidAmount" class="form-control" min="0">
-            </div>
-        </div>
-        <div class="row">
-            <label for="outstandingBalance" class="col-sm-4 col-form-label">Outstanding Balance:</label>
-            <div class="col-sm-5">
-                <input type="number" id="outstandingBalance" name="outstandingBalance" class="form-control" min="0"
-                    readonly>
-            </div>
-            <div class="col-sm-3">
-                <button type="button" class="btn btn-info" onclick="calculateOutstandingBalance()">Calculate
-                    All</button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Submit Button -->
-    <div class="text-center">
-        <button type="submit" class="btn btn-primary">Submit</button>
+<!-- Search Form -->
+<form id="searchClientBillForm" class="form-inline mb-4" onsubmit="handleClientBillSearch(event)">
+    <div class="input-group w-100">
+        <input type="text" class="form-control form-control-sm" id="searchText"
+            placeholder="Search by Bill No, Shipper Name, Telephone No, Container No">
+        <button type="submit" class="btn btn-sm btn-primary">Search</button>
     </div>
 </form>
+
+<!-- Client Bill Table -->
+<div class="table-responsive">
+    <table class="table table-striped-custom">
+        <thead>
+            <tr>
+                <th>Bill No</th>
+                <th>Shipper Name</th>
+                <th>Telephone Number</th>
+                <th>Container No</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="clientBillTable">
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination Controls -->
+<div class="d-flex justify-content-center mt-3">
+    <nav aria-label="Page navigation">
+        <ul class="pagination" id="paginationControls">
+            <!-- Pagination buttons will be dynamically inserted here -->
+        </ul>
+    </nav>
+</div>
+
+<!-- Receipt Preview Modal -->
+<div class="modal fade" id="receiptPreviewModal" tabindex="-1" aria-labelledby="receiptPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptPreviewModalLabel">Receipt Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Added styling for better visibility -->
+                <iframe id="receiptPreviewIframe" style="width: 100%; height: 500px; border: 1px solid #ccc;"
+                    frameborder="0">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <!-- Download button dynamically set -->
+                <a id="downloadReceiptBtn" class="btn btn-primary" download>Download Receipt</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- House Waybill Preview Modal -->
+<div class="modal fade" id="houseWaybillPreviewModal" tabindex="-1" aria-labelledby="houseWaybillPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">House Waybill Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="houseWaybillPreviewIframe"
+                    style="width: 100%; height: 500px; border: 1px solid #ccc;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <a id="downloadHouseWaybillBtn" class="btn btn-primary" download>Download House Waybill</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Manifest Preview Modal -->
+<div class="modal fade" id="manifestPreviewModal" tabindex="-1" aria-labelledby="manifestPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manifestPreviewModalLabel">Manifest Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Added styling for better visibility -->
+                <iframe id="manifestPreviewIframe" style="width: 100%; height: 500px; border: 1px solid #ccc;"
+                    frameborder="0">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <!-- Download button dynamically set -->
+                <a id="downloadManifestBtn" class="btn btn-primary" download>Download Manifest</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading List Preview Modal -->
+<div class="modal fade" id="loadingListPreviewModal" tabindex="-1" aria-labelledby="loadingListPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loadingListPreviewModalLabel">Loading List Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Added styling for better visibility -->
+                <iframe id="loadingListPreviewIframe" style="width: 100%; height: 500px; border: 1px solid #ccc;"
+                    frameborder="0">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <!-- Download button dynamically set -->
+                <a id="downloadLoadingListBtn" class="btn btn-primary" download>Download Loading List</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Item List Preview Modal -->
+<div class="modal fade" id="itemListPreviewModal" tabindex="-1" aria-labelledby="itemListPreviewModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemListPreviewModalLabel">Item Piece Count Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Added styling for better visibility -->
+                <iframe id="itemListPreviewIframe" style="width: 100%; height: 500px; border: 1px solid #ccc;"
+                    frameborder="0">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <!-- Download button dynamically set -->
+                <a id="downloadItemListBtn" class="btn btn-primary" download>Download Item Piece Count</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load More Button 
+<div class="text-center mt-3">
+    <button type="button" class="btn btn-success btn-sm" onclick="loadAllRecords()">Load All Records</button>
+</div>-->
