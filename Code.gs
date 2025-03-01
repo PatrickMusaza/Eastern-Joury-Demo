@@ -12,7 +12,7 @@ const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations dat
 const ITEM_DATA_SHEET = "Item";
 const ITEM_DATA_RANGE = "Item!A2:D";
 const EXPENSES_SHEET = "Expenses";
-const EXPENSES_SHEET_RANGE = "Expenses!A2:E";
+const EXPENSES_SHEET_RANGE = "Expenses!A2:F";
 const USER_SHEET = "Users";
 const USER_SHEET_RANGE = "Users!A2:C";
 const LOGS_SHEET = "Logs";
@@ -461,7 +461,7 @@ function saveExpense(data) {
     data.type,
     data.description,
     data.amount,
-    new Date(),
+    new Date().toString(),
   ]);
   return "Expense added successfully!";
 }
