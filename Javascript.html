@@ -1,176 +1,188 @@
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
-    crossorigin="anonymous"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+  crossorigin="anonymous"
+></script>
 <script>
-    // Function to handle tab switching
-    function switchTab(event, tabId) {
-        event.preventDefault(); // Prevent default link behavior
+  // Function to handle tab switching
+  function switchTab(event, tabId) {
+    event.preventDefault(); // Prevent default link behavior
 
-        // Remove active class from all tabs
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-
-        // Add active class to the clicked tab
-        event.target.classList.add('active');
-
-        // Hide all content sections
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.style.display = 'none';
-        });
-
-        // Show the selected content section
-        document.getElementById(tabId).style.display = 'block';
-    }
-
-    // Add event listeners to tabs
-    document.getElementById('clientBillBtn').addEventListener('click', (event) => {
-        switchTab(event, 'clientBillContent');
+    // Remove active class from all tabs
+    document.querySelectorAll(".nav-link").forEach((link) => {
+      link.classList.remove("active");
     });
 
-    document.getElementById('expensesBtn').addEventListener('click', (event) => {
-        switchTab(event, 'expensesContent');
+    // Add active class to the clicked tab
+    event.target.classList.add("active");
+
+    // Hide all content sections
+    document.querySelectorAll(".tab-content").forEach((content) => {
+      content.style.display = "none";
     });
 
-    document.getElementById('reportsBtn').addEventListener('click', (event) => {
-        switchTab(event, 'reportsContent');
+    // Show the selected content section
+    document.getElementById(tabId).style.display = "block";
+  }
+
+  // Add event listeners to tabs
+  document
+    .getElementById("clientBillBtn")
+    .addEventListener("click", (event) => {
+      switchTab(event, "clientBillContent");
     });
 
-    document.getElementById('abbreviationsBtn').addEventListener('click', (event) => {
-        switchTab(event, 'abbreviationsContent');
+  document.getElementById("expensesBtn").addEventListener("click", (event) => {
+    switchTab(event, "expensesContent");
+  });
+
+  document.getElementById("reportsBtn").addEventListener("click", (event) => {
+    switchTab(event, "reportsContent");
+  });
+
+  document
+    .getElementById("abbreviationsBtn")
+    .addEventListener("click", (event) => {
+      switchTab(event, "abbreviationsContent");
     });
 
-    document.getElementById('containerBtn').addEventListener('click', (event) => {
-        switchTab(event, 'containerContent');
-    });
+  document.getElementById("containerBtn").addEventListener("click", (event) => {
+    switchTab(event, "containerContent");
+  });
 
-    // Initialize the first tab as active
-    window.addEventListener('load', () => {
-        document.getElementById('clientBillBtn').click(); // Simulate click on the first tab
-    });
+  // Initialize the first tab as active
+  window.addEventListener("load", () => {
+    document.getElementById("clientBillBtn").click(); // Simulate click on the first tab
+  });
 </script>
 <script>
+  // CONSTANTS
+  let currentPage = 1;
+  const recordsPerPage = 20;
+  let allData = []; // This will store all records fetched from the server
+  let itemCounter = 1; // Counter for item numbers
+  const RATE_PER_KG = 3.9; // Fixed rate per KG
+  const BILL_CHARGE = 100; // Fixed bill charge
+  let currentAbbreviationPage = 1;
+  const abbreviationsPerPage = 5; // Number of records per page
+  let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
+  let allContainerData = [];
+  let allExpensesData = [];
+  let allContainers = [];
+  let expenses = [];
+  let currentPageExpense = 1;
+  const expenseRecordsPerPage = 20;
 
-    // CONSTANTS
-    let currentPage = 1;
-    const recordsPerPage = 20;
-    let allData = []; // This will store all records fetched from the server
-    let itemCounter = 1; // Counter for item numbers
-    const RATE_PER_KG = 3.9; // Fixed rate per KG
-    const BILL_CHARGE = 100; // Fixed bill charge
-    let currentAbbreviationPage = 1;
-    const abbreviationsPerPage = 5; // Number of records per page
-    let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
-    let allContainerData = [];
-    let allExpensesData = [];
-    let allContainers = [];
-    let expenses = [];
-    let currentPageExpense = 1;
-    const expenseRecordsPerPage = 20;
-
-
-    // Prevent forms from submitting.
-    function preventFormSubmit() {
-        var forms = document.querySelectorAll('form');
-        for (var i = 0; i < forms.length; i++) {
-            forms[i].addEventListener('submit', function (event) {
-                event.preventDefault();
-            });
-        }
+  // Prevent forms from submitting.
+  function preventFormSubmit() {
+    var forms = document.querySelectorAll("form");
+    for (var i = 0; i < forms.length; i++) {
+      forms[i].addEventListener("submit", function (event) {
+        event.preventDefault();
+      });
     }
+  }
 
-    //LOGS
+  //LOGS
 
-    function checkRole() {
-        const role = sessionStorage.getItem('role');
-        const username = sessionStorage.getItem('username'); // Store username during login
-        if (role === 'admin') {
-            // Log access to reports page
-            google.script.run.logEvent(username, 'Page Access', 'Accessed Reports Page');
-            loadReportsPage();
-        } else {
-            // Log denied access to reports page
-            google.script.run.logEvent(username, 'Page Access', 'Access Denied to Reports Page');
-            alert('You do not have permission to access this page.');
-        }
+  function checkRole() {
+    const role = sessionStorage.getItem("role");
+    const username = sessionStorage.getItem("username"); // Store username during login
+    if (role === "admin") {
+      // Log access to reports page
+      google.script.run.logEvent(
+        username,
+        "Page Access",
+        "Accessed Reports Page"
+      );
+      loadReportsPage();
+    } else {
+      // Log denied access to reports page
+      google.script.run.logEvent(
+        username,
+        "Page Access",
+        "Access Denied to Reports Page"
+      );
+      alert("You do not have permission to access this page.");
     }
+  }
 
-    // INITIALIZE FUNCTIONS ONLOAD
-    function functionInit() {
-        $('#spinnerModal').modal('show'); // Show spinner on load
-        preventFormSubmit();
-        loadClientBillPage();
-        generateBillNo(); // Generate and display Bill No
-        fetchTypeData(); // Fetch Type data for dropdown
-        loadClientBillData(); // Load client bill data
-        loadAbbreviations(); //load abbreviation data
-        loadContainerData();
-        loadContainers();
-        loadExpenses();
-    }
+  // INITIALIZE FUNCTIONS ONLOAD
+  function functionInit() {
+    $("#spinnerModal").modal("show"); // Show spinner on load
+    preventFormSubmit();
+    loadClientBillPage();
+    generateBillNo(); // Generate and display Bill No
+    fetchTypeData(); // Fetch Type data for dropdown
+    loadClientBillData(); // Load client bill data
+    loadAbbreviations(); //load abbreviation data
+    loadContainerData();
+    loadContainers();
+    loadExpenses();
+  }
 
-    //window.addEventListener("load", functionInit, true);
+  //window.addEventListener("load", functionInit, true);
 
-    // Initialize on page load
-    window.addEventListener('load', () => {
-        generateBillNo(); // Generate and display Bill No
+  // Initialize on page load
+  window.addEventListener("load", () => {
+    generateBillNo(); // Generate and display Bill No
+  });
+
+  // LOAD ClientBill PAGE
+  function loadClientBillPage() {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach((content) => {
+      content.style.display = "none";
     });
 
-    // LOAD ClientBill PAGE
-    function loadClientBillPage() {
-        // Hide all tab contents
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabContents.forEach((content) => {
-            content.style.display = "none";
-        });
+    // Show the Abbreviations tab content
+    document.getElementById("clientBillContent").style.display = "block";
 
-        // Show the Abbreviations tab content
-        document.getElementById("clientBillContent").style.display = "block";
+    // Deactivate all nav links
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
 
-        // Deactivate all nav links
-        const navLinks = document.querySelectorAll(".nav-link");
-        navLinks.forEach((link) => {
-            link.classList.remove("active");
-        });
+    // Activate the Abbreviations nav link
+    document.getElementById("clientBillBtn").classList.add("active");
+  }
 
-        // Activate the Abbreviations nav link
-        document.getElementById("clientBillBtn").classList.add("active");
-    }
+  // LOAD CLIENT BILL DATA
+  function loadClientBillData() {
+    //console.log("Loading client bill data..."); // Debugging line
+    google.script.run
+      .withSuccessHandler(function (data) {
+        //console.log("Data received:", data); // Debugging line
+        allData = data; // Store all records
+        createClientBillTable(allData); // Render the first page of records
+        updatePaginationControls(allData.length); // Update pagination controls
+        $("#spinnerModal").modal("hide"); // Hide spinner after data is loaded
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading data:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getAllClientBillRecords(); // Call Google Apps Script function
+  }
 
-    // LOAD CLIENT BILL DATA
-    function loadClientBillData() {
-        //console.log("Loading client bill data..."); // Debugging line
-        google.script.run
-            .withSuccessHandler(function (data) {
-                //console.log("Data received:", data); // Debugging line
-                allData = data; // Store all records
-                createClientBillTable(allData); // Render the first page of records
-                updatePaginationControls(allData.length); // Update pagination controls
-                $('#spinnerModal').modal('hide'); // Hide spinner after data is loaded
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error loading data:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getAllClientBillRecords(); // Call Google Apps Script function
-    }
+  function createClientBillTable(dataArray) {
+    const tableBody = document.getElementById("clientBillTable");
+    tableBody.innerHTML = ""; // Clear existing rows
 
-    function createClientBillTable(dataArray) {
-        const tableBody = document.getElementById('clientBillTable');
-        tableBody.innerHTML = ''; // Clear existing rows
+    if (dataArray && dataArray.length) {
+      const startIndex = (currentPage - 1) * recordsPerPage;
+      const endIndex = startIndex + recordsPerPage;
+      const paginatedData = dataArray.slice(startIndex, endIndex);
 
-        if (dataArray && dataArray.length) {
-            const startIndex = (currentPage - 1) * recordsPerPage;
-            const endIndex = startIndex + recordsPerPage;
-            const paginatedData = dataArray.slice(startIndex, endIndex);
+      paginatedData.forEach((row, index) => {
+        // Skip empty rows
+        if (row.every((cell) => cell === "")) return;
 
-            paginatedData.forEach((row, index) => {
-                // Skip empty rows
-                if (row.every(cell => cell === '')) return;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
                 <td>${row[1]}</td>
                 <td>${row[2]}</td>
                 <td>${row[3]}</td>
@@ -192,70 +204,71 @@
                     </div>
                 </td>
             `;
-                tableBody.appendChild(tr);
-            });
+        tableBody.appendChild(tr);
+      });
 
-            // If no valid rows were added, show "No data found"
-            if (tableBody.children.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
-            }
-        } else {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No data found</td></tr>';
-        }
+      // If no valid rows were added, show "No data found"
+      if (tableBody.children.length === 0) {
+        tableBody.innerHTML =
+          '<tr><td colspan="5" class="text-center">No data found</td></tr>';
+      }
+    } else {
+      tableBody.innerHTML =
+        '<tr><td colspan="5" class="text-center">No data found</td></tr>';
     }
+  }
 
+  // EDIT RECORD
+  function editRecord(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        populateForm(data); // Populate the form with the record data
+        $("#spinnerModal").modal("hide"); // Hide spinner
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching record:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getRecordByIds(recId); // Call Google Apps Script function
+  }
 
-    // EDIT RECORD
-    function editRecord(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                populateForm(data); // Populate the form with the record data
-                $('#spinnerModal').modal('hide'); // Hide spinner
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching record:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getRecordByIds(recId); // Call Google Apps Script function
-    }
+  // POPULATE FORM WITH RECORD DATA
+  function populateForm(data) {
+    // Basic details
+    document.getElementById("recId").value = data[0][0]; // Set recId (hidden field)
+    document.getElementById("billNo").value = data[0][1]; // Set Bill No
+    document.getElementById("shipperName").value = data[0][2]; // Set Shipper Name
+    document.getElementById("telephoneNo").value = data[0][3]; // Set Shipper Tel
+    document.getElementById("receiverName1").value = data[0][4]; // Set Receiver Name 1
+    document.getElementById("phoneNo1").value = data[0][5]; // Set Phone No 1
+    document.getElementById("receiverName2").value = data[0][6]; // Set Receiver Name 2
+    document.getElementById("phoneNo2").value = data[0][7]; // Set Phone No 2
+    document.getElementById("containerNo").value = data[0][8]; // Set Container No
 
-    // POPULATE FORM WITH RECORD DATA
-    function populateForm(data) {
-        // Basic details
-        document.getElementById('recId').value = data[0][0]; // Set recId (hidden field)
-        document.getElementById('billNo').value = data[0][1]; // Set Bill No
-        document.getElementById('shipperName').value = data[0][2]; // Set Shipper Name
-        document.getElementById('telephoneNo').value = data[0][3]; // Set Shipper Tel
-        document.getElementById('receiverName1').value = data[0][4]; // Set Receiver Name 1
-        document.getElementById('phoneNo1').value = data[0][5]; // Set Phone No 1
-        document.getElementById('receiverName2').value = data[0][6]; // Set Receiver Name 2
-        document.getElementById('phoneNo2').value = data[0][7]; // Set Phone No 2
-        document.getElementById('containerNo').value = data[0][8]; // Set Container No
+    // Populate additional fields
+    document.getElementById("totalPieces").value = data[0][9]; // Set Total Pieces
+    document.getElementById("actualWeight").value = data[0][10]; // Set Actual Weight
+    document.getElementById("discountWeight").value = data[0][11]; // Set Discount Weight
+    document.getElementById("chargeableWeight").value = data[0][12]; // Set Chargeable Weight
+    document.getElementById("ratePerKg").value = data[0][13]; // Set Rate Per KG
+    document.getElementById("billCharge").value = data[0][14]; // Set Bill Charge
+    document.getElementById("discountCharge").value = data[0][15]; // Set Discount Charge
+    document.getElementById("totalCharges").value = data[0][16]; // Set Total Charges
+    document.getElementById("paidAmount").value = data[0][17]; // Set Paid Amount
+    document.getElementById("outstandingBalance").value = data[0][18]; // Set Outstanding Balance
 
-        // Populate additional fields
-        document.getElementById('totalPieces').value = data[0][9]; // Set Total Pieces
-        document.getElementById('actualWeight').value = data[0][10]; // Set Actual Weight
-        document.getElementById('discountWeight').value = data[0][11]; // Set Discount Weight
-        document.getElementById('chargeableWeight').value = data[0][12]; // Set Chargeable Weight
-        document.getElementById('ratePerKg').value = data[0][13]; // Set Rate Per KG
-        document.getElementById('billCharge').value = data[0][14]; // Set Bill Charge
-        document.getElementById('discountCharge').value = data[0][15]; // Set Discount Charge
-        document.getElementById('totalCharges').value = data[0][16]; // Set Total Charges
-        document.getElementById('paidAmount').value = data[0][17]; // Set Paid Amount
-        document.getElementById('outstandingBalance').value = data[0][18]; // Set Outstanding Balance
+    // Fetch and display items for the current Bill No
+    const billNo = data[0][1]; // Get the Bill No
+    document.getElementById("itemListContainer").style.display = "block";
+    google.script.run
+      .withSuccessHandler(function (items) {
+        const itemList = document.getElementById("itemList"); // Table body
+        itemList.innerHTML = ""; // Clear existing rows
 
-        // Fetch and display items for the current Bill No
-        const billNo = data[0][1]; // Get the Bill No
-        document.getElementById('itemListContainer').style.display = 'block';
-        google.script.run
-            .withSuccessHandler(function (items) {
-                const itemList = document.getElementById('itemList'); // Table body
-                itemList.innerHTML = ''; // Clear existing rows
-
-                items.forEach((item, index) => {
-                    const row = document.createElement('tr'); // Create table row
-                    row.innerHTML = `
+        items.forEach((item, index) => {
+          const row = document.createElement("tr"); // Create table row
+          row.innerHTML = `
                     <td>${index + 1}</td> <!-- Item Number -->
                     <td>${item[1]}</td> <!-- Type -->
                     <td>${item[2]} KG</td> <!-- Weight -->
@@ -263,200 +276,203 @@
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
                     </td>
                 `;
-                    itemList.appendChild(row); // Append row to table body
-                });
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching items:", error); // Debugging line
-            })
-            .getItemsForBill(billNo); // Call Google Apps Script function
-    }
-
-    // LOAD ALL RECORDS
-    function loadAllRecords() {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                allData = data; // Store all records
-                createClientBillTable(allData); // Render the first page of records
-                updatePaginationControls(allData.length); // Update pagination controls
-                $('#spinnerModal').modal('hide'); // Hide spinner
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error loading all records:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getAllClientBillRecords(); // Call Google Apps Script function
-    }
-
-
-    //SERIAZE DATA
-    function serializeFormAndSubmit(form) {
-        const formData = new FormData(form);
-        const formObject = {};
-
-        for (const [key, value] of formData.entries()) {
-            formObject[key] = value;
-        }
-
-        console.log("Serialized Form Object:", formObject); // Debugging line
-        handleClientBillSubmit(formObject);
-    }
-
-    // HANDLE FORM SUBMISSION (UPDATE EXISTING RECORD)
-    function handleClientBillSubmit(formObject) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        calculateOutstandingBalance();
-
-        if (formObject.recId) {
-            console.log("Updating existing record with recId:", formObject.recId); // Debugging line
-            // Update existing record
-            google.script.run
-                .withSuccessHandler(function () {
-                    $('#spinnerModal').modal('hide'); // Hide spinner
-                    document.getElementById("ClientBillForm").reset(); // Reset form
-                    document.getElementById("recId").value = ""; // Clear recId for new records
-                    generateBillNo(); // Generate new Bill No
-                    clearItemList(); // Clear the item list and reset counter
-                    loadClientBillData(); // Reload data
-                    document.getElementById('itemListContainer').style.display = 'none';
-                })
-                .withFailureHandler(function (error) {
-                    console.error("Error updating record:", error); // Debugging line
-                    $('#spinnerModal').modal('hide'); // Hide spinner on error
-                })
-                .updateClientBill(formObject); // Call Google Apps Script function
-        } else {
-            // Create new record
-            google.script.run
-                .withSuccessHandler(function () {
-                    $('#spinnerModal').modal('hide'); // Hide spinner
-                    document.getElementById("ClientBillForm").reset(); // Reset form
-                    document.getElementById("recId").value = ""; // Clear recId for new records
-                    generateBillNo(); // Generate new Bill No
-                    clearItemList(); // Clear the item list and reset counter
-                    loadClientBillData(); // Reload data
-                    document.getElementById('itemListContainer').style.display = 'none';
-                })
-                .withFailureHandler(function (error) {
-                    console.error("Error creating record:", error); // Debugging line
-                    $('#spinnerModal').modal('hide'); // Hide spinner on error
-                })
-                .processClientBill(formObject); // Call Google Apps Script function
-        }
-    }
-
-    // CLEAR ITEM LIST AND RESET COUNTER
-    function clearItemList() {
-        const itemList = document.getElementById('itemList');
-        itemList.innerHTML = ''; // Clear all items from the list
-        itemCounter = 1; // Reset the item counter
-    }
-
-    // FETCH TYPE DATA FROM ABBREVIATIONS SHEET
-    function fetchTypeData() {
-        google.script.run
-            .withSuccessHandler(function (data) {
-                populateTypeDropdown(data);
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching type data:", error); // Debugging line
-            })
-            .getAbbreviations();
-    }
-
-    // Populate Type dropdown
-    function populateTypeDropdown(data) {
-        const typeDropdown = document.getElementById('type');
-        typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
-        data.forEach((row) => {
-            const option = document.createElement('option');
-            option.value = row[1]; // Value from Column B
-            option.text = row[0]; // Label from Column A
-            typeDropdown.appendChild(option);
+          itemList.appendChild(row); // Append row to table body
         });
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching items:", error); // Debugging line
+      })
+      .getItemsForBill(billNo); // Call Google Apps Script function
+  }
+
+  // LOAD ALL RECORDS
+  function loadAllRecords() {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        allData = data; // Store all records
+        createClientBillTable(allData); // Render the first page of records
+        updatePaginationControls(allData.length); // Update pagination controls
+        $("#spinnerModal").modal("hide"); // Hide spinner
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading all records:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getAllClientBillRecords(); // Call Google Apps Script function
+  }
+
+  //SERIAZE DATA
+  function serializeFormAndSubmit(form) {
+    const formData = new FormData(form);
+    const formObject = {};
+
+    for (const [key, value] of formData.entries()) {
+      formObject[key] = value;
     }
 
-    function addItem() {
-        const typeDropdown = document.getElementById('type');
-        const type = typeDropdown.value; // Selected value (from Column B)
-        const itemWeight = parseFloat(document.getElementById('itemWeight').value); // Parse weight as a number
+    console.log("Serialized Form Object:", formObject); // Debugging line
+    handleClientBillSubmit(formObject);
+  }
 
-        if (!type || !itemWeight) {
-            alert('Please fill in both Type and Item Weight.');
-            return;
-        }
+  // HANDLE FORM SUBMISSION (UPDATE EXISTING RECORD)
+  function handleClientBillSubmit(formObject) {
+    $("#spinnerModal").modal("show"); // Show spinner
+    calculateOutstandingBalance();
 
-        const itemList = document.getElementById('itemList');
-        const itemListContainer = document.getElementById('itemListContainer');
-        const row = document.createElement('tr'); // Use table row
+    if (formObject.recId) {
+      console.log("Updating existing record with recId:", formObject.recId); // Debugging line
+      // Update existing record
+      google.script.run
+        .withSuccessHandler(function () {
+          $("#spinnerModal").modal("hide"); // Hide spinner
+          document.getElementById("ClientBillForm").reset(); // Reset form
+          document.getElementById("recId").value = ""; // Clear recId for new records
+          generateBillNo(); // Generate new Bill No
+          clearItemList(); // Clear the item list and reset counter
+          loadClientBillData(); // Reload data
+          document.getElementById("itemListContainer").style.display = "none";
+        })
+        .withFailureHandler(function (error) {
+          console.error("Error updating record:", error); // Debugging line
+          $("#spinnerModal").modal("hide"); // Hide spinner on error
+        })
+        .updateClientBill(formObject); // Call Google Apps Script function
+    } else {
+      // Create new record
+      google.script.run
+        .withSuccessHandler(function () {
+          $("#spinnerModal").modal("hide"); // Hide spinner
+          document.getElementById("ClientBillForm").reset(); // Reset form
+          document.getElementById("recId").value = ""; // Clear recId for new records
+          generateBillNo(); // Generate new Bill No
+          clearItemList(); // Clear the item list and reset counter
+          loadClientBillData(); // Reload data
+          document.getElementById("itemListContainer").style.display = "none";
+        })
+        .withFailureHandler(function (error) {
+          console.error("Error creating record:", error); // Debugging line
+          $("#spinnerModal").modal("hide"); // Hide spinner on error
+        })
+        .processClientBill(formObject); // Call Google Apps Script function
+    }
+  }
 
-        row.innerHTML = `
+  // CLEAR ITEM LIST AND RESET COUNTER
+  function clearItemList() {
+    const itemList = document.getElementById("itemList");
+    itemList.innerHTML = ""; // Clear all items from the list
+    itemCounter = 1; // Reset the item counter
+  }
+
+  // FETCH TYPE DATA FROM ABBREVIATIONS SHEET
+  function fetchTypeData() {
+    google.script.run
+      .withSuccessHandler(function (data) {
+        populateTypeDropdown(data);
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching type data:", error); // Debugging line
+      })
+      .getAbbreviations();
+  }
+
+  // Populate Type dropdown
+  function populateTypeDropdown(data) {
+    const typeDropdown = document.getElementById("type");
+    typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
+    data.forEach((row) => {
+      const option = document.createElement("option");
+      option.value = row[1]; // Value from Column B
+      option.text = row[0]; // Label from Column A
+      typeDropdown.appendChild(option);
+    });
+  }
+
+  function addItem() {
+    const typeDropdown = document.getElementById("type");
+    const type = typeDropdown.value; // Selected value (from Column B)
+    const itemWeight = parseFloat(document.getElementById("itemWeight").value); // Parse weight as a number
+
+    if (!type || !itemWeight) {
+      alert("Please fill in both Type and Item Weight.");
+      return;
+    }
+
+    const itemList = document.getElementById("itemList");
+    const itemListContainer = document.getElementById("itemListContainer");
+    const row = document.createElement("tr"); // Use table row
+
+    row.innerHTML = `
         <td>${itemCounter}</td>
-        <td>${typeDropdown.options[typeDropdown.selectedIndex].text}</td> <!-- Display label from Column A -->
+        <td>${
+          typeDropdown.options[typeDropdown.selectedIndex].text
+        }</td> <!-- Display label from Column A -->
         <td>${itemWeight} KG</td>
         <td>
             <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
         </td>
     `;
 
-        itemList.appendChild(row);
+    itemList.appendChild(row);
 
-        // Display table header and item details title if hidden
-        itemListContainer.style.display = 'block';
+    // Display table header and item details title if hidden
+    itemListContainer.style.display = "block";
 
-        // Save item to Google Sheets
-        const billNo = document.getElementById('billNo').value;
-        google.script.run
-            .withSuccessHandler(() => {
-                console.log("Item saved successfully.");
-            })
-            .withFailureHandler((error) => {
-                console.error("Error saving item:", error);
-            })
-            .saveItem({
-                number: itemCounter,
-                type: type, // Value from Column B
-                weight: itemWeight,
-                bill: billNo
-            });
+    // Save item to Google Sheets
+    const billNo = document.getElementById("billNo").value;
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Item saved successfully.");
+      })
+      .withFailureHandler((error) => {
+        console.error("Error saving item:", error);
+      })
+      .saveItem({
+        number: itemCounter,
+        type: type, // Value from Column B
+        weight: itemWeight,
+        bill: billNo,
+      });
 
-        // Increment counter and clear fields
-        itemCounter++;
-        updateChargeDetails(itemWeight); // Update charge details
-        typeDropdown.value = ''; // Reset dropdown
-        document.getElementById('itemWeight').value = ''; // Clear weight field
+    // Increment counter and clear fields
+    itemCounter++;
+    updateChargeDetails(itemWeight); // Update charge details
+    typeDropdown.value = ""; // Reset dropdown
+    document.getElementById("itemWeight").value = ""; // Clear weight field
+  }
+
+  function removeItem(button) {
+    const itemRow = button.parentElement.parentElement;
+    const itemWeight = parseFloat(
+      itemRow.querySelector("td:nth-child(3)").textContent.replace(" KG", "")
+    ); // Get the item weight
+    itemRow.remove(); // Remove the row from the UI
+
+    // Delete the item from Google Sheets
+    const billNo = document.getElementById("billNo").value;
+    const itemNumber = itemRow.querySelector("td:first-child").textContent; // Get the item number
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Item removed successfully.");
+      })
+      .withFailureHandler((error) => {
+        console.error("Error removing item:", error);
+      })
+      .deleteItem(billNo, itemNumber); // Call Google Apps Script function
+
+    // Update charge details
+    updateChargeDetails(-itemWeight); // Subtract the removed item's weight
+
+    // Hide table if empty
+    const itemList = document.getElementById("itemList");
+    if (!itemList.hasChildNodes()) {
+      document.getElementById("itemListContainer").style.display = "none";
     }
 
-    function removeItem(button) {
-        const itemRow = button.parentElement.parentElement;
-        const itemWeight = parseFloat(itemRow.querySelector('td:nth-child(3)').textContent.replace(' KG', '')); // Get the item weight
-        itemRow.remove(); // Remove the row from the UI
-
-        // Delete the item from Google Sheets
-        const billNo = document.getElementById('billNo').value;
-        const itemNumber = itemRow.querySelector('td:first-child').textContent; // Get the item number
-        google.script.run
-            .withSuccessHandler(() => {
-                console.log("Item removed successfully.");
-            })
-            .withFailureHandler((error) => {
-                console.error("Error removing item:", error);
-            })
-            .deleteItem(billNo, itemNumber); // Call Google Apps Script function
-
-        // Update charge details
-        updateChargeDetails(-itemWeight); // Subtract the removed item's weight
-
-        // Hide table if empty
-        const itemList = document.getElementById('itemList');
-        if (!itemList.hasChildNodes()) {
-            document.getElementById('itemListContainer').style.display = 'none';
-        }
-
-        itemCounter--;
-    }
-    /*
+    itemCounter--;
+  }
+  /*
         // Calculate charges when discounts change
         document.getElementById('discountWeight').addEventListener('input', function () {
             updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
@@ -464,264 +480,308 @@
     
         document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
     */
-    // Adjusted updateChargeDetails function
-    function updateChargeDetails(weightChange) {
-        const totalPieces = document.getElementById('totalPieces');
-        const actualWeight = document.getElementById('actualWeight');
-        const chargeableWeight = document.getElementById('chargeableWeight');
+  // Adjusted updateChargeDetails function
+  function updateChargeDetails(weightChange) {
+    const totalPieces = document.getElementById("totalPieces");
+    const actualWeight = document.getElementById("actualWeight");
+    const chargeableWeight = document.getElementById("chargeableWeight");
 
-        // Update total pieces
-        totalPieces.value = Math.max(0, parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1));
+    // Update total pieces
+    totalPieces.value = Math.max(
+      0,
+      parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1)
+    );
 
-        // Update actual weight
-        actualWeight.value = Math.max(0, parseFloat(actualWeight.value || "0") + weightChange);
+    // Update actual weight
+    actualWeight.value = Math.max(
+      0,
+      parseFloat(actualWeight.value || "0") + weightChange
+    );
 
-        // Calculate chargeable weight
-        const discountWeight = parseFloat(document.getElementById('discountWeight').value || "0");
-        chargeableWeight.value = Math.max(0, parseFloat(actualWeight.value) - discountWeight);
+    // Calculate chargeable weight
+    const discountWeight = parseFloat(
+      document.getElementById("discountWeight").value || "0"
+    );
+    chargeableWeight.value = Math.max(
+      0,
+      parseFloat(actualWeight.value) - discountWeight
+    );
 
-        // Update bill charge
-        calculateBillCharge();
-    }
+    // Update bill charge
+    calculateBillCharge();
+  }
+
+  // Calculate bill charge
+  function calculateBillCharge() {
+    const chargeableWeight = parseFloat(
+      document.getElementById("chargeableWeight").value || "0"
+    );
+    const ratePerKg = parseFloat(
+      document.getElementById("ratePerKg").value || "0"
+    );
+    const discountCharge = parseFloat(
+      document.getElementById("discountCharge").value || "0"
+    );
+
+    // Calculate total charges
+    const totalCharges = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
+    const billCharge = document.getElementById("billCharge");
+    //billCharge.value = Math.max(0, totalCharges).toFixed(2); // Ensure non-negative total
+  }
+
+  // Ensure all numeric fields are >= 0
+  function validateInputs() {
+    const numericFields = document.querySelectorAll('input[type="number"]');
+    numericFields.forEach((field) => {
+      if (parseFloat(field.value) < 0) {
+        field.value = 0; // Set to zero if below zero
+      }
+    });
+  }
+
+  // Function to calculate all fields based on input logic
+  function calculateOutstandingBalance() {
+    validateInputs(); // Ensure inputs are valid
+
+    // Get required fields
+    const totalPieces = parseFloat(
+      document.getElementById("totalPieces").value || "0"
+    );
+    const actualWeight = parseFloat(
+      document.getElementById("actualWeight").value || "0"
+    );
+    const discountWeight = parseFloat(
+      document.getElementById("discountWeight").value || "0"
+    );
+    const ratePerKg = parseFloat(
+      document.getElementById("ratePerKg").value || "0"
+    );
+    const discountCharge = parseFloat(
+      document.getElementById("discountCharge").value || "0"
+    );
+    const paidAmount = parseFloat(
+      document.getElementById("paidAmount").value || "0"
+    );
+
+    // Calculate chargeable weight
+    const chargeableWeight = Math.max(0, actualWeight - discountWeight);
+    document.getElementById("chargeableWeight").value = chargeableWeight;
 
     // Calculate bill charge
-    function calculateBillCharge() {
-        const chargeableWeight = parseFloat(document.getElementById('chargeableWeight').value || "0");
-        const ratePerKg = parseFloat(document.getElementById('ratePerKg').value || "0");
-        const discountCharge = parseFloat(document.getElementById('discountCharge').value || "0");
+    const billCharge = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
+    //document.getElementById('billCharge').value = Math.max(0, billCharge).toFixed(2);
 
-        // Calculate total charges
-        const totalCharges = 100 + (chargeableWeight * ratePerKg) - discountCharge; // SAR 100 base charge
-        const billCharge = document.getElementById('billCharge');
-        //billCharge.value = Math.max(0, totalCharges).toFixed(2); // Ensure non-negative total
-    }
+    // Calculate total charges
+    const totalCharges = billCharge;
+    document.getElementById("totalCharges").value = totalCharges.toFixed(2);
 
-    // Ensure all numeric fields are >= 0
-    function validateInputs() {
-        const numericFields = document.querySelectorAll('input[type="number"]');
-        numericFields.forEach(field => {
-            if (parseFloat(field.value) < 0) {
-                field.value = 0; // Set to zero if below zero
-            }
-        });
-    }
+    // Calculate outstanding balance
+    const outstandingBalance = Math.max(0, totalCharges - paidAmount);
+    document.getElementById("outstandingBalance").value =
+      outstandingBalance.toFixed(2);
+  }
 
-    // Function to calculate all fields based on input logic
-    function calculateOutstandingBalance() {
-        validateInputs(); // Ensure inputs are valid
-
-        // Get required fields
-        const totalPieces = parseFloat(document.getElementById('totalPieces').value || "0");
-        const actualWeight = parseFloat(document.getElementById('actualWeight').value || "0");
-        const discountWeight = parseFloat(document.getElementById('discountWeight').value || "0");
-        const ratePerKg = parseFloat(document.getElementById('ratePerKg').value || "0");
-        const discountCharge = parseFloat(document.getElementById('discountCharge').value || "0");
-        const paidAmount = parseFloat(document.getElementById('paidAmount').value || "0");
-
-        // Calculate chargeable weight
-        const chargeableWeight = Math.max(0, actualWeight - discountWeight);
-        document.getElementById('chargeableWeight').value = chargeableWeight;
-
-        // Calculate bill charge
-        const billCharge = 100 + (chargeableWeight * ratePerKg) - discountCharge; // SAR 100 base charge
-        //document.getElementById('billCharge').value = Math.max(0, billCharge).toFixed(2);
-
-        // Calculate total charges
-        const totalCharges = billCharge;
-        document.getElementById('totalCharges').value = totalCharges.toFixed(2);
-
-        // Calculate outstanding balance
-        const outstandingBalance = Math.max(0, totalCharges - paidAmount);
-        document.getElementById('outstandingBalance').value = outstandingBalance.toFixed(2);
-    }
-
-    /* Trigger calculations on relevant input changes
+  /* Trigger calculations on relevant input changes
     ['discountWeight', 'ratePerKg', 'discountCharge', 'paidAmount'].forEach(id => {
         document.getElementById(id).addEventListener('input', calculateOutstandingBalance);
     });*/
 
-    // GENERATE AND DISPLAY BILL NO
-    function generateBillNo() {
-        google.script.run
-            .withSuccessHandler((lastBillNo) => {
-                const billNoField = document.getElementById('billNo');
-                const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
-                billNoField.value = nextBillNo; // Set the value of the Bill No field
-            })
-            .withFailureHandler((error) => {
-                console.error("Error generating Bill No:", error); // Debugging line
-                const billNoField = document.getElementById('billNo');
-                billNoField.value = 'EJ001'; // Default if no data or error
-            })
-            .getLastBillNo(); // Call Google Apps Script function
-    }
+  // GENERATE AND DISPLAY BILL NO
+  function generateBillNo() {
+    google.script.run
+      .withSuccessHandler((lastBillNo) => {
+        const billNoField = document.getElementById("billNo");
+        const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
+        billNoField.value = nextBillNo; // Set the value of the Bill No field
+      })
+      .withFailureHandler((error) => {
+        console.error("Error generating Bill No:", error); // Debugging line
+        const billNoField = document.getElementById("billNo");
+        billNoField.value = "EJ001"; // Default if no data or error
+      })
+      .getLastBillNo(); // Call Google Apps Script function
+  }
 
-    // HELPER FUNCTION TO INCREMENT BILL NO
-    function incrementBillNo(billNo) {
-        if (!billNo) return 'EJ001'; // Default if no Bill No exists
-        const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
-        const number = parseInt(billNo.slice(2)); // Extract number
-        return `${prefix}${String(number + 1).padStart(3, '0')}`; // Increment and return
-    }
+  // HELPER FUNCTION TO INCREMENT BILL NO
+  function incrementBillNo(billNo) {
+    if (!billNo) return "EJ001"; // Default if no Bill No exists
+    const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
+    const number = parseInt(billNo.slice(2)); // Extract number
+    return `${prefix}${String(number + 1).padStart(3, "0")}`; // Increment and return
+  }
 
-    // HANDLE SEARCH
-    function handleClientBillSearch(event) {
-        event.preventDefault(); // Prevent form submission
-        const searchText = document.getElementById('searchText').value.toLowerCase();
-        google.script.run
-            .withSuccessHandler(function (data) {
-                createClientBillTable(data); // Render filtered records
-                const filteredData = allData.filter(row =>
-                    row[1].toLowerCase().includes(searchText) ||
-                    row[2].toLowerCase().includes(searchText) ||
-                    row[3].toLowerCase().includes(searchText) ||
-                    row[8].toLowerCase().includes(searchText)
-                );
-                currentPage = 1; // Reset to the first page when searching
-                createClientBillTable(filteredData); // Render the filtered data
-                updatePaginationControls(filteredData.length); // Update pagination controls
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error searching records:", error); // Debugging line
-            })
-            .searchClientBill(searchText); // Call Google Apps Script function
-    }
+  // HANDLE SEARCH
+  function handleClientBillSearch(event) {
+    event.preventDefault(); // Prevent form submission
+    const searchText = document
+      .getElementById("searchText")
+      .value.toLowerCase();
+    google.script.run
+      .withSuccessHandler(function (data) {
+        createClientBillTable(data); // Render filtered records
+        const filteredData = allData.filter(
+          (row) =>
+            row[1].toLowerCase().includes(searchText) ||
+            row[2].toLowerCase().includes(searchText) ||
+            row[3].toLowerCase().includes(searchText) ||
+            row[8].toLowerCase().includes(searchText)
+        );
+        currentPage = 1; // Reset to the first page when searching
+        createClientBillTable(filteredData); // Render the filtered data
+        updatePaginationControls(filteredData.length); // Update pagination controls
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error searching records:", error); // Debugging line
+      })
+      .searchClientBill(searchText); // Call Google Apps Script function
+  }
 
-    // PREVIEW RECORD
-    function previewRecord(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                populatePreviewModal(data); // Populate the preview modal with the record data
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                $('#previewModal').modal('show'); // Show the preview modal
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching record:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getRecordById(recId); // Call Google Apps Script function
-    }
+  // PREVIEW RECORD
+  function previewRecord(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        populatePreviewModal(data); // Populate the preview modal with the record data
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        $("#previewModal").modal("show"); // Show the preview modal
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching record:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getRecordById(recId); // Call Google Apps Script function
+  }
 
-    // POPULATE PREVIEW MODAL
-    function populatePreviewModal(data) {
-        // Populate client bill details
-        document.getElementById('previewBillNo').textContent = data.clientBill[1];
-        document.getElementById('previewShipperName').textContent = data.clientBill[2];
-        document.getElementById('previewTelephoneNo').textContent = data.clientBill[3];
-        document.getElementById('previewReceiverName1').textContent = data.clientBill[4];
-        document.getElementById('previewPhoneNo1').textContent = data.clientBill[5];
-        document.getElementById('previewReceiverName2').textContent = data.clientBill[6];
-        document.getElementById('previewPhoneNo2').textContent = data.clientBill[7];
-        document.getElementById('previewContainerNo').textContent = data.clientBill[8];
+  // POPULATE PREVIEW MODAL
+  function populatePreviewModal(data) {
+    // Populate client bill details
+    document.getElementById("previewBillNo").textContent = data.clientBill[1];
+    document.getElementById("previewShipperName").textContent =
+      data.clientBill[2];
+    document.getElementById("previewTelephoneNo").textContent =
+      data.clientBill[3];
+    document.getElementById("previewReceiverName1").textContent =
+      data.clientBill[4];
+    document.getElementById("previewPhoneNo1").textContent = data.clientBill[5];
+    document.getElementById("previewReceiverName2").textContent =
+      data.clientBill[6];
+    document.getElementById("previewPhoneNo2").textContent = data.clientBill[7];
+    document.getElementById("previewContainerNo").textContent =
+      data.clientBill[8];
 
-        // Populate charge details
-        document.getElementById('previewTotalPieces').textContent = data.clientBill[9];
-        document.getElementById('previewActualWeight').textContent = data.clientBill[10];
-        document.getElementById('previewDiscountWeight').textContent = data.clientBill[11];
-        document.getElementById('previewChargeableWeight').textContent = data.clientBill[12];
-        document.getElementById('previewRatePerKg').textContent = data.clientBill[13];
-        document.getElementById('previewBillCharge').textContent = data.clientBill[14];
-        document.getElementById('previewDiscountCharge').textContent = data.clientBill[15];
-        document.getElementById('previewTotalCharges').textContent = data.clientBill[16];
-        document.getElementById('previewPaidAmount').textContent = data.clientBill[17];
-        document.getElementById('previewOutstandingBalance').textContent = data.clientBill[18];
-        //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
+    // Populate charge details
+    document.getElementById("previewTotalPieces").textContent =
+      data.clientBill[9];
+    document.getElementById("previewActualWeight").textContent =
+      data.clientBill[10];
+    document.getElementById("previewDiscountWeight").textContent =
+      data.clientBill[11];
+    document.getElementById("previewChargeableWeight").textContent =
+      data.clientBill[12];
+    document.getElementById("previewRatePerKg").textContent =
+      data.clientBill[13];
+    document.getElementById("previewBillCharge").textContent =
+      data.clientBill[14];
+    document.getElementById("previewDiscountCharge").textContent =
+      data.clientBill[15];
+    document.getElementById("previewTotalCharges").textContent =
+      data.clientBill[16];
+    document.getElementById("previewPaidAmount").textContent =
+      data.clientBill[17];
+    document.getElementById("previewOutstandingBalance").textContent =
+      data.clientBill[18];
+    //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
 
-        // Populate items
-        const itemsTableBody = document.getElementById('previewItems');
-        itemsTableBody.innerHTML = ''; // Clear existing items
-        data.items.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+    // Populate items
+    const itemsTableBody = document.getElementById("previewItems");
+    itemsTableBody.innerHTML = ""; // Clear existing items
+    data.items.forEach((item) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
             <td>${item[0]}</td> <!-- Number -->
             <td>${item[1]}</td> <!-- Type -->
             <td>${item[2]}</td> <!-- Weight -->
         `;
-            itemsTableBody.appendChild(tr);
-        });
-    }
+      itemsTableBody.appendChild(tr);
+    });
+  }
 
+  // ABBREVIATIONS
 
+  // LOAD ABBREVIATIONS PAGE
+  function loadAbbreviationsPage() {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach((content) => {
+      content.style.display = "none";
+    });
 
-    // ABBREVIATIONS
+    // Show the Abbreviations tab content
+    document.getElementById("abbreviationsContent").style.display = "block";
 
+    // Deactivate all nav links
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
 
+    // Activate the Abbreviations nav link
+    document.getElementById("abbreviationsBtn").classList.add("active");
+  }
 
-    // LOAD ABBREVIATIONS PAGE
-    function loadAbbreviationsPage() {
-        // Hide all tab contents
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabContents.forEach((content) => {
-            content.style.display = "none";
-        });
+  // HANDLE ABBREVIATION FORM SUBMISSION
+  function handleAbbreviationSubmit(event) {
+    event.preventDefault(); // Prevent form submission
+    const formObject = {
+      name: document.getElementById("abbreviationName").value,
+      value: document.getElementById("abbreviationValue").value,
+    };
 
-        // Show the Abbreviations tab content
-        document.getElementById("abbreviationsContent").style.display = "block";
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function () {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        alert("Abbreviation saved successfully!");
+        document.getElementById("AbbreviationsForm").reset(); // Reset form
+        loadAbbreviations(); // Reload data
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error saving abbreviation:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .saveAbbreviation(formObject); // Call Google Apps Script function
+  }
 
-        // Deactivate all nav links
-        const navLinks = document.querySelectorAll(".nav-link");
-        navLinks.forEach((link) => {
-            link.classList.remove("active");
-        });
+  // LOAD ABBREVIATIONS
+  function loadAbbreviations() {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        allAbbreviationsData = data; // Store all abbreviations data
+        createAbbreviationsTable(allAbbreviationsData); // Render the first page of abbreviations
+        updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
+        $("#spinnerModal").modal("hide"); // Hide spinner
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading abbreviations:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getAbbreviations(); // Call Google Apps Script function
+  }
 
-        // Activate the Abbreviations nav link
-        document.getElementById("abbreviationsBtn").classList.add("active");
-    }
+  // CREATE THE ABBREVIATIONS TABLE
+  function createAbbreviationsTable(dataArray) {
+    const tableBody = document.getElementById("abbreviationsTable");
+    tableBody.innerHTML = ""; // Clear existing rows
 
-    // HANDLE ABBREVIATION FORM SUBMISSION
-    function handleAbbreviationSubmit(event) {
-        event.preventDefault(); // Prevent form submission
-        const formObject = {
-            name: document.getElementById('abbreviationName').value,
-            value: document.getElementById('abbreviationValue').value
-        };
+    if (dataArray && dataArray.length) {
+      const startIndex = (currentAbbreviationPage - 1) * abbreviationsPerPage;
+      const endIndex = startIndex + abbreviationsPerPage;
+      const paginatedData = dataArray.slice(startIndex, endIndex);
 
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function () {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                alert('Abbreviation saved successfully!');
-                document.getElementById("AbbreviationsForm").reset(); // Reset form
-                loadAbbreviations(); // Reload data
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error saving abbreviation:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .saveAbbreviation(formObject); // Call Google Apps Script function
-    }
-
-    // LOAD ABBREVIATIONS
-    function loadAbbreviations() {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                allAbbreviationsData = data; // Store all abbreviations data
-                createAbbreviationsTable(allAbbreviationsData); // Render the first page of abbreviations
-                updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
-                $('#spinnerModal').modal('hide'); // Hide spinner
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error loading abbreviations:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getAbbreviations(); // Call Google Apps Script function
-    }
-
-    // CREATE THE ABBREVIATIONS TABLE
-    function createAbbreviationsTable(dataArray) {
-        const tableBody = document.getElementById('abbreviationsTable');
-        tableBody.innerHTML = ''; // Clear existing rows
-
-        if (dataArray && dataArray.length) {
-            const startIndex = (currentAbbreviationPage - 1) * abbreviationsPerPage;
-            const endIndex = startIndex + abbreviationsPerPage;
-            const paginatedData = dataArray.slice(startIndex, endIndex);
-
-            paginatedData.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+      paginatedData.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
                 <td>${row[0]}</td> <!-- Name -->
                 <td>${row[1]}</td> <!-- Abbreviation -->
                 <td>
@@ -729,116 +789,119 @@
                     <button type="button" class="btn btn-danger btn-sm" onclick="deleteAbbreviation('${row[0]}')">Delete</button>
                 </td>
             `;
-                tableBody.appendChild(tr);
-            });
+        tableBody.appendChild(tr);
+      });
 
-            // If no valid rows were added, show "No data found"
-            if (tableBody.children.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data found</td></tr>';
-            }
-        } else {
-            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data found</td></tr>';
-        }
+      // If no valid rows were added, show "No data found"
+      if (tableBody.children.length === 0) {
+        tableBody.innerHTML =
+          '<tr><td colspan="3" class="text-center">No data found</td></tr>';
+      }
+    } else {
+      tableBody.innerHTML =
+        '<tr><td colspan="3" class="text-center">No data found</td></tr>';
     }
+  }
 
-    // EDIT ABBREVIATION
-    function editAbbreviation(name) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                populateAbbreviationForm(data); // Populate the form with the abbreviation data
-                $('#spinnerModal').modal('hide'); // Hide spinner
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching abbreviation:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getAbbreviationByName(name); // Call Google Apps Script function
+  // EDIT ABBREVIATION
+  function editAbbreviation(name) {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        populateAbbreviationForm(data); // Populate the form with the abbreviation data
+        $("#spinnerModal").modal("hide"); // Hide spinner
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching abbreviation:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getAbbreviationByName(name); // Call Google Apps Script function
+  }
+
+  // POPULATE ABBREVIATION FORM
+  function populateAbbreviationForm(data) {
+    document.getElementById("abbreviationName").value = data[0][0]; // Set Name
+    document.getElementById("abbreviationValue").value = data[0][1]; // Set Abbreviation
+  }
+
+  // DELETE ABBREVIATION
+  function deleteAbbreviation(name) {
+    if (confirm("Are you sure you want to delete this abbreviation?")) {
+      $("#spinnerModal").modal("show"); // Show spinner
+      google.script.run
+        .withSuccessHandler(function () {
+          $("#spinnerModal").modal("hide"); // Hide spinner
+          alert("Abbreviation deleted successfully!");
+          loadAbbreviations(); // Reload data
+        })
+        .withFailureHandler(function (error) {
+          console.error("Error deleting abbreviation:", error); // Debugging line
+          $("#spinnerModal").modal("hide"); // Hide spinner on error
+        })
+        .deleteAbbreviation(name); // Call Google Apps Script function
     }
+  }
 
-    // POPULATE ABBREVIATION FORM
-    function populateAbbreviationForm(data) {
-        document.getElementById('abbreviationName').value = data[0][0]; // Set Name
-        document.getElementById('abbreviationValue').value = data[0][1]; // Set Abbreviation
-    }
-
-    // DELETE ABBREVIATION
-    function deleteAbbreviation(name) {
-        if (confirm("Are you sure you want to delete this abbreviation?")) {
-            $('#spinnerModal').modal('show'); // Show spinner
-            google.script.run
-                .withSuccessHandler(function () {
-                    $('#spinnerModal').modal('hide'); // Hide spinner
-                    alert('Abbreviation deleted successfully!');
-                    loadAbbreviations(); // Reload data
-                })
-                .withFailureHandler(function (error) {
-                    console.error("Error deleting abbreviation:", error); // Debugging line
-                    $('#spinnerModal').modal('hide'); // Hide spinner on error
-                })
-                .deleteAbbreviation(name); // Call Google Apps Script function
-        }
-    }
-
-    // SWITCH TO ABBREVIATIONS PAGE
-    document.getElementById('abbreviationsBtn').addEventListener('click', function (event) {
-        event.preventDefault(); // Prevent default link behavior
-        google.script.run.withSuccessHandler(function (html) {
-            document.body.innerHTML = html; // Load the Abbreviations page
-        }).include('Abbreviations'); // Include the Abbreviations.html file
+  // SWITCH TO ABBREVIATIONS PAGE
+  document
+    .getElementById("abbreviationsBtn")
+    .addEventListener("click", function (event) {
+      event.preventDefault(); // Prevent default link behavior
+      google.script.run
+        .withSuccessHandler(function (html) {
+          document.body.innerHTML = html; // Load the Abbreviations page
+        })
+        .include("Abbreviations"); // Include the Abbreviations.html file
     });
 
+  //CONTAINER
 
+  // LOAD CONTAINER PAGE
+  function loadContainerPage() {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach((content) => {
+      content.style.display = "none";
+    });
 
-    //CONTAINER
+    // Show the Abbreviations tab content
+    document.getElementById("containerContent").style.display = "block";
 
+    // Deactivate all nav links
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
 
-    // LOAD CONTAINER PAGE
-    function loadContainerPage() {
-        // Hide all tab contents
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabContents.forEach((content) => {
-            content.style.display = "none";
-        });
+    // Activate the Abbreviations nav link
+    document.getElementById("containerBtn").classList.add("active");
+  }
 
-        // Show the Abbreviations tab content
-        document.getElementById("containerContent").style.display = "block";
+  // LOAD CONTAINER DATA
+  function loadContainerData() {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (data) {
+        allContainerData = data; // Store all container records
+        createContainerTable(data); // Render the container table
+        $("#spinnerModal").modal("hide"); // Hide spinner
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading container data:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .getAllContainerRecords(); // Call Google Apps Script function
+  }
 
-        // Deactivate all nav links
-        const navLinks = document.querySelectorAll(".nav-link");
-        navLinks.forEach((link) => {
-            link.classList.remove("active");
-        });
+  // CREATE THE CONTAINER TABLE
+  function createContainerTable(dataArray) {
+    const tableBody = document.getElementById("containerTable");
+    tableBody.innerHTML = ""; // Clear existing rows
 
-        // Activate the Abbreviations nav link
-        document.getElementById("containerBtn").classList.add("active");
-    }
-
-    // LOAD CONTAINER DATA
-    function loadContainerData() {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (data) {
-                allContainerData = data; // Store all container records
-                createContainerTable(data); // Render the container table
-                $('#spinnerModal').modal('hide'); // Hide spinner
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error loading container data:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .getAllContainerRecords(); // Call Google Apps Script function
-    }
-
-    // CREATE THE CONTAINER TABLE
-    function createContainerTable(dataArray) {
-        const tableBody = document.getElementById('containerTable');
-        tableBody.innerHTML = ''; // Clear existing rows
-
-        if (dataArray && dataArray.length) {
-            dataArray.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+    if (dataArray && dataArray.length) {
+      dataArray.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
                 <td>${row[1]}</td> <!-- Bill No -->
                 <td>${row[2]}</td> <!-- Shipper Name -->
                 <td>${row[3]}</td> <!-- Telephone Number -->
@@ -846,416 +909,491 @@
                 <td>${row[9]}</td> <!-- Total Piece -->
                 <td>${row[10]}</td> <!-- Total Weight -->
             `;
-                tableBody.appendChild(tr);
-            });
-        } else {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No data found</td></tr>';
-        }
+        tableBody.appendChild(tr);
+      });
+    } else {
+      tableBody.innerHTML =
+        '<tr><td colspan="6" class="text-center">No data found</td></tr>';
+    }
+  }
+
+  // HANDLE UPDATE CONTAINER
+  function handleUpdateContainer(event) {
+    event.preventDefault(); // Prevent form submission
+
+    const originalContainer =
+      document.getElementById("originalContainer").value;
+    const newContainer = document.getElementById("newContainer").value;
+
+    if (!originalContainer || !newContainer) {
+      alert("Please fill in both Original Container and New Container.");
+      return;
     }
 
-    // HANDLE UPDATE CONTAINER
-    function handleUpdateContainer(event) {
-        event.preventDefault(); // Prevent form submission
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function () {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        alert("Container updated successfully!");
+        loadContainerData(); // Reload data
+        originalContainer.value = "";
+        newContainer.value = "";
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error updating container:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+      })
+      .updateContainer(originalContainer, newContainer); // Call Google Apps Script function
+  }
 
-        const originalContainer = document.getElementById('originalContainer').value;
-        const newContainer = document.getElementById('newContainer').value;
+  // HANDLE SEARCH CONTAINER
+  function handleSearchContainer() {
+    const searchText = document
+      .getElementById("searchContainer")
+      .value.toLowerCase();
+    const filteredData = allContainerData.filter(
+      (row) => row[8].toLowerCase().includes(searchText) // Assuming container number is at index 3
+    );
+    createContainerTable(filteredData); // Render the filtered data
+  }
 
-        if (!originalContainer || !newContainer) {
-            alert('Please fill in both Original Container and New Container.');
-            return;
-        }
+  //EXPENSES
 
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function () {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                alert('Container updated successfully!');
-                loadContainerData(); // Reload data
-                originalContainer.value = '';
-                newContainer.value = '';
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error updating container:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-            })
-            .updateContainer(originalContainer, newContainer); // Call Google Apps Script function
-    }
+  // LOAD Expense PAGE
+  function loadExpensesPage() {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach((content) => {
+      content.style.display = "none";
+    });
 
-    // HANDLE SEARCH CONTAINER
-    function handleSearchContainer() {
-        const searchText = document.getElementById('searchContainer').value.toLowerCase();
-        const filteredData = allContainerData.filter(row =>
-            row[8].toLowerCase().includes(searchText) // Assuming container number is at index 3
-        );
-        createContainerTable(filteredData); // Render the filtered data
-    }
+    // Show the Abbreviations tab content
+    document.getElementById("expensesContent").style.display = "block";
 
+    // Deactivate all nav links
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
 
+    // Activate the Abbreviations nav link
+    document.getElementById("expensesBtn").classList.add("active");
+  }
 
-    //EXPENSES
-
-
-    // LOAD Expense PAGE
-    function loadExpensesPage() {
-        // Hide all tab contents
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabContents.forEach((content) => {
-            content.style.display = "none";
+  // Load container numbers
+  function loadContainers() {
+    google.script.run
+      .withSuccessHandler(function (containers) {
+        const containerSelect = document.getElementById("containerSelect");
+        containerSelect.innerHTML =
+          '<option value="">--Select Container--</option>';
+        containers.forEach((container) => {
+          const option = document.createElement("option");
+          option.value = container;
+          option.text = container;
+          containerSelect.appendChild(option);
         });
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading containers:", error);
+      })
+      .getContainers(); // Call the Google Apps Script function
+  }
 
-        // Show the Abbreviations tab content
-        document.getElementById("expensesContent").style.display = "block";
+  function loadExpenses() {
+    //console.log("Requesting data from server...");
+    google.script.run
+      .withSuccessHandler(function (data) {
+        currentPageExpense = 1;
+        expenses = data;
+        displayExpenses(expenses);
+        updatePaginationControlsExpense(expenses.length); // Update pagination controls
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error fetching expenses:", error);
+      })
+      .getExpenses();
+  }
 
-        // Deactivate all nav links
-        const navLinks = document.querySelectorAll(".nav-link");
-        navLinks.forEach((link) => {
-            link.classList.remove("active");
-        });
+  function displayExpenses(dataArray) {
+    const tableBody = document.getElementById("expenseTableBody");
+    tableBody.innerHTML = ""; // Clear existing rows
 
-        // Activate the Abbreviations nav link
-        document.getElementById("expensesBtn").classList.add("active");
+    if (!Array.isArray(dataArray) || dataArray.length === 0) {
+      console.log("⚠️ No expenses found.");
+      tableBody.innerHTML =
+        '<tr><td colspan="6" class="text-center">No expenses found</td></tr>';
+      document.getElementById("pageNumber").innerText = "Page 1";
+      return;
     }
 
-    // Load container numbers
-    function loadContainers() {
-        google.script.run.withSuccessHandler(containers => {
-            const select = $("#containerSelect");
-            select.append(`<option value="">--Select Container--</option>`);
-            containers.forEach(c => select.append(`<option value="${c}">${c}</option>`));
-        }).getContainers();
-    }
-    function loadExpenses() {
-        //console.log("Requesting data from server...");
-        google.script.run
-            .withSuccessHandler(function (data) {
-                currentPageExpense = 1;
-                expenses = data;
-                displayExpenses(expenses);
-                updatePaginationControlsExpense(expenses.length); // Update pagination controls
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error fetching expenses:", error);
-            })
-            .getExpenses();
-    }
+    const start = (currentPageExpense - 1) * expenseRecordsPerPage;
+    const end = start + expenseRecordsPerPage;
+    const pageExpenses = dataArray.slice(start, end);
 
-    function displayExpenses(dataArray) {
-
-        const tableBody = document.getElementById('expenseTableBody');
-        tableBody.innerHTML = ''; // Clear existing rows
-
-        if (!Array.isArray(dataArray) || dataArray.length === 0) {
-            console.log("⚠️ No expenses found.");
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No expenses found</td></tr>';
-            document.getElementById("pageNumber").innerText = "Page 1";
-            return;
-        }
-
-        const start = (currentPageExpense - 1) * expenseRecordsPerPage;
-        const end = start + expenseRecordsPerPage;
-        const pageExpenses = dataArray.slice(start, end);
-
-        pageExpenses.forEach((exp, index) => {
-
-            const row = `<tr>
+    pageExpenses.forEach((exp, index) => {
+      const row = `<tr>
             <td>${exp[5]}</td>
             <td>${exp[1]}</td>
             <td>${exp[2]}</td>
             <td>${exp[3]}</td>
             <td>${exp[4]}</td>
             <td>
-                <button class="btn btn-sm btn-warning text-white" onclick="editExpense(${index + start})">Edit</button>
-                <button class="btn btn-sm btn-info text-white" onclick="previewExpense(${index + start})">Preview</button>
+                <button class="btn btn-sm btn-warning text-white" onclick="editExpense(${
+                  index + start
+                })">Edit</button>
+                <button class="btn btn-sm btn-info text-white" onclick="previewExpense(${
+                  index + start
+                })">Preview</button>
             </td>
         </tr>`;
-            tableBody.innerHTML += row;
-        });
+      tableBody.innerHTML += row;
+    });
+  }
+
+  // Save expense form submission
+  function saveExpenseForm(event) {
+    event.preventDefault();
+    $("#spinnerModal").modal("show"); // Show spinner
+
+    const expenseId = document.getElementById("expenseId").value;
+    const data = {
+      id: expenseId, // Use existing ID or generate new
+      container: document.getElementById("containerSelect").value,
+      type: document.getElementById("expenseType").value,
+      description: document.getElementById("description").value,
+      amount: document.getElementById("amount").value,
+    };
+
+    if (expenseId) {
+      console.log("Updating existing expense:", data);
+      google.script.run
+        .withSuccessHandler(() => {
+          $("#spinnerModal").modal("hide");
+          document.getElementById("expenseForm").reset();
+          document.getElementById("expenseId").value = ""; // Clear ID
+          loadExpenses();
+        })
+        .withFailureHandler((error) => {
+          $("#spinnerModal").modal("hide");
+          console.error("Error updating expense:", error);
+          alert("Failed to update expense.");
+        })
+        .updateExpense(data);
+    } else {
+      console.log("Creating new expense:", data);
+      google.script.run
+        .withSuccessHandler(() => {
+          $("#spinnerModal").modal("hide");
+          document.getElementById("expenseForm").reset();
+          loadExpenses();
+        })
+        .withFailureHandler((error) => {
+          $("#spinnerModal").modal("hide");
+          console.error("Error saving expense:", error);
+          alert("Failed to save expense.");
+        })
+        .saveExpense(data);
+    }
+  }
+
+  // Edit expense
+  function editExpense(index) {
+    const exp = expenses[index];
+
+    if (!exp) {
+      console.error(`❌ Expense at index ${index} not found.`);
+      return;
     }
 
-    // Save expense form submission
-    function saveExpenseForm(event) {
-        event.preventDefault();
-        $('#spinnerModal').modal('show'); // Show spinner
+    console.log("✏️ Editing Expense:", exp);
 
-        const expenseId = document.getElementById("expenseId").value;
-        const data = {
-            id: expenseId, // Use existing ID or generate new
-            container: document.getElementById("containerSelect").value,
-            type: document.getElementById("expenseType").value,
-            description: document.getElementById("description").value,
-            amount: document.getElementById("amount").value,
-        };
+    document.getElementById("expenseId").value = exp[0]; // Store ID for update
+    document.getElementById("containerSelect").value = exp[1];
+    document.getElementById("expenseType").value = exp[2];
+    document.getElementById("description").value = exp[3];
+    document.getElementById("amount").value = exp[4];
+  }
 
-        if (expenseId) {
-            console.log("Updating existing expense:", data);
-            google.script.run
-                .withSuccessHandler(() => {
-                    $('#spinnerModal').modal('hide');
-                    document.getElementById("expenseForm").reset();
-                    document.getElementById("expenseId").value = ""; // Clear ID
-                    loadExpenses();
-                })
-                .withFailureHandler((error) => {
-                    $('#spinnerModal').modal('hide');
-                    console.error("Error updating expense:", error);
-                    alert("Failed to update expense.");
-                })
-                .updateExpense(data);
+  // Preview expense
+  function previewExpense(index) {
+    const expense = expenses[index]; // Get the expense details
+    if (!expense) {
+      console.error("Expense not found at index:", index);
+      return;
+    }
+
+    // Populate the modal with expense details
+    document.getElementById("previewContainer").textContent = expense[1]; // Container
+    document.getElementById("previewType").textContent = expense[2]; // Type
+    document.getElementById("previewDescription").textContent = expense[3]; // Description
+    document.getElementById("previewAmount").textContent = expense[4]; // Amount
+
+    // Show the modal
+    const previewModal = new bootstrap.Modal(
+      document.getElementById("previewExpenseModal")
+    );
+    previewModal.show();
+  }
+
+  //PAGINATION
+
+  // UPDATE PAGINATION CONTROLS
+  function updatePaginationControls(totalRecords) {
+    const paginationControls = document.getElementById("paginationControls");
+    paginationControls.innerHTML = "";
+
+    const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement("li");
+      li.className = `page-item ${i === currentPage ? "active" : ""}`;
+      li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+      paginationControls.appendChild(li);
+    }
+  }
+
+  // CHANGE PAGE FUNCTION
+  function changePage(page) {
+    currentPage = page; // Update the current page
+    createClientBillTable(allData); // Re-render the table for the new page
+    updatePaginationControls(allData.length); // Update pagination controls to reflect the active page
+  }
+
+  // UPDATE PAGINATION CONTROLS EXPENSE
+  function updatePaginationControlsExpense(totalRecords) {
+    const paginationControls = document.getElementById(
+      "paginationControlsExpense"
+    );
+    paginationControls.innerHTML = "";
+
+    const totalPages = Math.ceil(totalRecords / expenseRecordsPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement("li");
+      li.className = `page-item ${i === currentPageExpense ? "active" : ""}`;
+      li.innerHTML = `<a class="page-link" href="#" onclick="changePageExpense(${i})">${i}</a>`;
+      paginationControls.appendChild(li);
+    }
+  }
+
+  // CHANGE PAGE FUNCTION
+  function changePageExpense(page) {
+    currentPageExpense = page; // Update the current page
+    displayExpenses(expenses); // Re-render the table for the new page
+    updatePaginationControlsExpense(expenses.length); // Update pagination controls to reflect the active page
+  }
+
+  // UPDATE PAGINATION CONTROLS FOR ABBREVIATIONS
+  function updateAbbreviationPaginationControls(totalRecords) {
+    const paginationControls = document.getElementById(
+      "abbreviationPaginationControls"
+    );
+    paginationControls.innerHTML = "";
+
+    const totalPages = Math.ceil(totalRecords / abbreviationsPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement("li");
+      li.className = `page-item ${
+        i === currentAbbreviationPage ? "active" : ""
+      }`;
+      li.innerHTML = `<a class="page-link" href="#" onclick="changeAbbreviationPage(${i})">${i}</a>`;
+      paginationControls.appendChild(li);
+    }
+  }
+
+  // CHANGE PAGE FUNCTION FOR ABBREVIATIONS
+  function changeAbbreviationPage(page) {
+    currentAbbreviationPage = page; // Update the current page
+    createAbbreviationsTable(allAbbreviationsData); // Re-render the table for the new page
+    updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
+  }
+
+  // RECEIPT
+
+  // GENERATE RECEIPT
+  function generateReceipt(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          // Set the iframe source to the preview URL
+          document.getElementById("receiptPreviewIframe").src = urls.previewUrl;
+          // Set the download button's href to the download URL
+          document.getElementById("downloadReceiptBtn").href = urls.downloadUrl;
+          // Show the preview modal
+          $("#receiptPreviewModal").modal("show");
         } else {
-            console.log("Creating new expense:", data);
-            google.script.run
-                .withSuccessHandler(() => {
-                    $('#spinnerModal').modal('hide');
-                    document.getElementById("expenseForm").reset();
-                    loadExpenses();
-                })
-                .withFailureHandler((error) => {
-                    $('#spinnerModal').modal('hide');
-                    console.error("Error saving expense:", error);
-                    alert("Failed to save expense.");
-                })
-                .saveExpense(data);
+          alert("Error: Unable to generate the receipt. Please try again.");
         }
-    }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating receipt:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        alert("Error generating receipt. Please try again.");
+      })
+      .generateReceipt(recId); // Call the Google Apps Script function
+  }
 
-    // Edit expense
-    function editExpense(index) {
-        const exp = expenses[index];
+  //HOUSE WAY BILL
 
-        if (!exp) {
-            console.error(`❌ Expense at index ${index} not found.`);
-            return;
+  function generateHouseWayBill(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          document.getElementById("houseWaybillPreviewIframe").src =
+            urls.previewUrl;
+          document.getElementById("downloadHouseWaybillBtn").href =
+            urls.downloadUrl;
+          $("#houseWaybillPreviewModal").modal("show");
+        } else {
+          alert("Error: Unable to generate the House Waybill.");
         }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating House Waybill:", error);
+        $("#spinnerModal").modal("hide");
+        alert("Error generating House Waybill. Please try again.");
+      })
+      .generateHouseWaybill(recId); // Call Google Apps Script function
+  }
 
-        console.log("✏️ Editing Expense:", exp);
+  // MANIFEST
 
-        document.getElementById("expenseId").value = exp[0]; // Store ID for update
-        document.getElementById("containerSelect").value = exp[1];
-        document.getElementById("expenseType").value = exp[2];
-        document.getElementById("description").value = exp[3];
-        document.getElementById("amount").value = exp[4];
-    }
-
-    // Preview expense
-    function previewExpense(index) {
-
-        const expense = expenses[index]; // Get the expense details
-        if (!expense) {
-            console.error("Expense not found at index:", index);
-            return;
+  function generateManifest(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          // Set the iframe source to the preview URL
+          document.getElementById("manifestPreviewIframe").src =
+            urls.previewUrl;
+          // Set the download button's href to the download URL
+          document.getElementById("downloadManifestBtn").href =
+            urls.downloadUrl;
+          // Show the preview modal
+          $("#manifestPreviewModal").modal("show");
+        } else {
+          alert("Error: Unable to generate the manifest. Please try again.");
         }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating manifest:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        alert("Error generating manifest. Please try again.");
+      })
+      .generateManifestList(recId); // Call the Google Apps Script function
+  }
 
-        // Populate the modal with expense details
-        document.getElementById("previewContainer").textContent = expense[1]; // Container
-        document.getElementById("previewType").textContent = expense[2]; // Type
-        document.getElementById("previewDescription").textContent = expense[3]; // Description
-        document.getElementById("previewAmount").textContent = expense[4]; // Amount
+  // LOADING LIST
 
-        // Show the modal
-        const previewModal = new bootstrap.Modal(document.getElementById('previewExpenseModal'));
-        previewModal.show();
-    }
-
-    //PAGINATION
-
-    // UPDATE PAGINATION CONTROLS
-    function updatePaginationControls(totalRecords) {
-        const paginationControls = document.getElementById('paginationControls');
-        paginationControls.innerHTML = '';
-
-        const totalPages = Math.ceil(totalRecords / recordsPerPage);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
-            paginationControls.appendChild(li);
+  function generateLoadingList(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          // Set the iframe source to the preview URL
+          document.getElementById("loadingListPreviewIframe").src =
+            urls.previewUrl;
+          // Set the download button's href to the download URL
+          document.getElementById("downloadLoadingListBtn").href =
+            urls.downloadUrl;
+          // Show the preview modal
+          $("#loadingListPreviewModal").modal("show");
+        } else {
+          alert(
+            "Error: Unable to generate the loading list. Please try again."
+          );
         }
-    }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating loading list:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        alert("Error generating Loading List. Please try again.");
+      })
+      .generateLoadingList(recId); // Call the Google Apps Script function
+  }
 
-    // CHANGE PAGE FUNCTION
-    function changePage(page) {
-        currentPage = page; // Update the current page
-        createClientBillTable(allData); // Re-render the table for the new page
-        updatePaginationControls(allData.length); // Update pagination controls to reflect the active page
-    }
+  // ITEM LIST COUNT
 
-    // UPDATE PAGINATION CONTROLS EXPENSE
-    function updatePaginationControlsExpense(totalRecords) {
-        const paginationControls = document.getElementById('paginationControlsExpense');
-        paginationControls.innerHTML = '';
-
-        const totalPages = Math.ceil(totalRecords / expenseRecordsPerPage);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPageExpense ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="changePageExpense(${i})">${i}</a>`;
-            paginationControls.appendChild(li);
+  function generateItemListCount(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          // Set the iframe source to the preview URL
+          document.getElementById("itemListPreviewIframe").src =
+            urls.previewUrl;
+          // Set the download button's href to the download URL
+          document.getElementById("downloadItemListBtn").href =
+            urls.downloadUrl;
+          // Show the preview modal
+          $("#itemListPreviewModal").modal("show");
+        } else {
+          alert("Error: Unable to generate the item List. Please try again.");
         }
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating item list:", error); // Debugging line
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        alert("Error generating Item List. Please try again.");
+      })
+      .generateItemList(recId); // Call the Google Apps Script function
+  }
+
+  // Report
+
+  // Enable/disable date fields based on container selection
+  document
+    .getElementById("containerSelect")
+    .addEventListener("change", function () {
+      const fromDate = document.getElementById("fromDate");
+      const toDate = document.getElementById("toDate");
+      if (this.value === "") {
+        fromDate.disabled = false;
+        toDate.disabled = false;
+      } else {
+        fromDate.disabled = true;
+        toDate.disabled = true;
+      }
+    });
+
+  // Generate report
+  function generateReport() {
+    const reportType = document.getElementById("reportType").value;
+    const container = document.getElementById("containerSelect").value;
+    const fromDate = document.getElementById("fromDate").value;
+    const toDate = document.getElementById("toDate").value;
+
+    if (!container && (!fromDate || !toDate)) {
+      alert("Please select a container or specify a date range.");
+      return;
     }
+    $("#spinnerModal").modal("show"); // Show spinner
 
-    // CHANGE PAGE FUNCTION
-    function changePageExpense(page) {
-        currentPageExpense = page; // Update the current page
-        displayExpenses(expenses); // Re-render the table for the new page
-        updatePaginationControlsExpense(expenses.length); // Update pagination controls to reflect the active page
-    }
-
-    // UPDATE PAGINATION CONTROLS FOR ABBREVIATIONS
-    function updateAbbreviationPaginationControls(totalRecords) {
-        const paginationControls = document.getElementById('abbreviationPaginationControls');
-        paginationControls.innerHTML = '';
-
-        const totalPages = Math.ceil(totalRecords / abbreviationsPerPage);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentAbbreviationPage ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="changeAbbreviationPage(${i})">${i}</a>`;
-            paginationControls.appendChild(li);
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          document.getElementById("reportPreviewIframe").src = urls.previewUrl;
+          document.getElementById("downloadReportBtn").href = urls.downloadUrl;
+          document.getElementById("previewSection").style.display = "block";
+          $("#spinnerModal").modal("hide"); // hide spinner
+        } else {
+          alert("Error generating report. Please try again.");
+          $("#spinnerModal").modal("hide"); // hide spinner
         }
-    }
-
-    // CHANGE PAGE FUNCTION FOR ABBREVIATIONS
-    function changeAbbreviationPage(page) {
-        currentAbbreviationPage = page; // Update the current page
-        createAbbreviationsTable(allAbbreviationsData); // Re-render the table for the new page
-        updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
-    }
-
-
-
-    // RECEIPT
-
-    // GENERATE RECEIPT
-    function generateReceipt(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    // Set the iframe source to the preview URL
-                    document.getElementById('receiptPreviewIframe').src = urls.previewUrl;
-                    // Set the download button's href to the download URL
-                    document.getElementById('downloadReceiptBtn').href = urls.downloadUrl;
-                    // Show the preview modal
-                    $('#receiptPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the receipt. Please try again.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating receipt:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-                alert("Error generating receipt. Please try again.");
-            })
-            .generateReceipt(recId); // Call the Google Apps Script function
-    }
-
-
-    //HOUSE WAY BILL
-
-    function generateHouseWayBill(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    document.getElementById('houseWaybillPreviewIframe').src = urls.previewUrl;
-                    document.getElementById('downloadHouseWaybillBtn').href = urls.downloadUrl;
-                    $('#houseWaybillPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the House Waybill.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating House Waybill:", error);
-                $('#spinnerModal').modal('hide');
-                alert("Error generating House Waybill. Please try again.");
-            })
-            .generateHouseWaybill(recId); // Call Google Apps Script function
-    }
-
-
-
-    // MANIFEST
-
-    function generateManifest(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    // Set the iframe source to the preview URL
-                    document.getElementById('manifestPreviewIframe').src = urls.previewUrl;
-                    // Set the download button's href to the download URL
-                    document.getElementById('downloadManifestBtn').href = urls.downloadUrl;
-                    // Show the preview modal
-                    $('#manifestPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the manifest. Please try again.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating manifest:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-                alert("Error generating manifest. Please try again.");
-            })
-            .generateManifestList(recId); // Call the Google Apps Script function
-    }
-
-
-    // LOADING LIST
-
-    function generateLoadingList(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    // Set the iframe source to the preview URL
-                    document.getElementById('loadingListPreviewIframe').src = urls.previewUrl;
-                    // Set the download button's href to the download URL
-                    document.getElementById('downloadLoadingListBtn').href = urls.downloadUrl;
-                    // Show the preview modal
-                    $('#loadingListPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the loading list. Please try again.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating loading list:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-                alert("Error generating Loading List. Please try again.");
-            })
-            .generateLoadingList(recId); // Call the Google Apps Script function
-    }
-
-    // ITEM LIST COUNT
-
-    function generateItemListCount(recId) {
-        $('#spinnerModal').modal('show'); // Show spinner while generating the receipt
-        google.script.run
-            .withSuccessHandler(function (urls) {
-                $('#spinnerModal').modal('hide'); // Hide spinner
-                if (urls && urls.previewUrl && urls.downloadUrl) {
-                    // Set the iframe source to the preview URL
-                    document.getElementById('itemListPreviewIframe').src = urls.previewUrl;
-                    // Set the download button's href to the download URL
-                    document.getElementById('downloadItemListBtn').href = urls.downloadUrl;
-                    // Show the preview modal
-                    $('#itemListPreviewModal').modal('show');
-                } else {
-                    alert("Error: Unable to generate the item List. Please try again.");
-                }
-            })
-            .withFailureHandler(function (error) {
-                console.error("Error generating item list:", error); // Debugging line
-                $('#spinnerModal').modal('hide'); // Hide spinner on error
-                alert("Error generating Item List. Please try again.");
-            })
-            .generateItemList(recId); // Call the Google Apps Script function  
-    }
-
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error generating report:", error);
+        alert("Error generating report. Please try again.");
+      })
+      .generateReport({ reportType, container, fromDate, toDate });
+  }
 </script>

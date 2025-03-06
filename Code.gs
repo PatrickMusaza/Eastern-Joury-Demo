@@ -16,6 +16,8 @@ const EXPENSES_SHEET_RANGE = "Expenses!A2:F";
 const USER_SHEET = "Users";
 const USER_SHEET_RANGE = "Users!A2:C";
 const LOGS_SHEET = "Logs";
+const REPORT_TEMPLATE_ID = "1X_P2IBPF93K-hnzaQjdoXweZuJUDGcKgrIHc5IHaxpY"; // Replace with your Google Docs template ID
+const REPORT_FOLDER_ID = "1tF1YwKsgzR9kYI1iWhB-NywThtbnP4sN"; // Replace with your target folder ID
 
 // Display HTML page
 function doGet(request) {
@@ -1237,6 +1239,158 @@ function generateItemList(recId) {
     DriveApp.Permission.VIEW
   );
 
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
+// Generate report
+function generateReport({ reportType, container, fromDate, toDate }) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const expensesSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+
+  // Fetch client bill data
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const expensesData = expensesSheet.getDataRange().getValues();
+
+  // Filter data based on container or date range
+  let filteredClientBills = [];
+  let filteredExpenses = [];
+
+  if (container) {
+    // Filter by container
+    filteredClientBills = clientBillData.filter((row) => row[8] === container); // Container No is in column I
+    filteredExpenses = expensesData.filter((row) => row[1] === container); // Container No is in column B
+  } else {
+    // Filter by date range
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    filteredClientBills = clientBillData.filter((row) => {
+      const date = new Date(row[19]); // Date is in column T
+      return date >= from && date <= to;
+    });
+
+    filteredExpenses = expensesData.filter((row) => {
+      const date = new Date(row[5]); // Date is in column F
+      return date >= from && date <= to;
+    });
+  }
+
+  // Calculate totals
+  const totalIncome = filteredClientBills.reduce(
+    (sum, row) => sum + parseFloat(row[16] || 0),
+    0
+  ); // Total Charges is in column Q
+  const totalExpenses = filteredExpenses.reduce(
+    (sum, row) => sum + parseFloat(row[4] || 0),
+    0
+  ); // Amount is in column E
+  const profitLoss = totalIncome - totalExpenses;
+
+  // Generate the report document
+  const templateId = REPORT_TEMPLATE_ID;
+  const folderId = REPORT_FOLDER_ID;
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `Report_${container || "All"}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Add a title to the report
+  body
+    .appendParagraph("Report Details")
+    .setHeading(DocumentApp.ParagraphHeading.HEADING1);
+
+  // Add a section for income (client bills) if report type is "All" or "Income"
+  if (reportType === "all" || reportType === "income") {
+    if (filteredClientBills.length > 0) {
+      body
+        .appendParagraph("Income (Client Bills)")
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      const clientBillTable = body.appendTable();
+      const headerRow = clientBillTable.appendTableRow();
+      headerRow.appendTableCell("Shipper Name");
+      headerRow.appendTableCell("Amount");
+
+      filteredClientBills.forEach((row) => {
+        const dataRow = clientBillTable.appendTableRow();
+        dataRow.appendTableCell(row[2]); // Shipper Name
+        dataRow.appendTableCell(row[16]); // Total Charges
+      });
+
+      // Add total income
+      body
+        .appendParagraph(`Total Income: ${totalIncome.toFixed(2)}`)
+        .setBold(true);
+    } else {
+      body
+        .appendParagraph("No income data found for the selected criteria.")
+        .setItalic(true);
+    }
+  }
+
+  // Add a section for expenses if report type is "All" or "Expense"
+  if (reportType === "all" || reportType === "expense") {
+    if (filteredExpenses.length > 0) {
+      body
+        .appendParagraph("Expenses")
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      const expenseTable = body.appendTable();
+      const headerRow = expenseTable.appendTableRow();
+      headerRow.appendTableCell("Container");
+      headerRow.appendTableCell("Type");
+      headerRow.appendTableCell("Description");
+      headerRow.appendTableCell("Amount");
+
+      filteredExpenses.forEach((row) => {
+        const dataRow = expenseTable.appendTableRow();
+        dataRow.appendTableCell(row[1]); // Container
+        dataRow.appendTableCell(row[2]); // Type
+        dataRow.appendTableCell(row[3]); // Description
+        dataRow.appendTableCell(row[4]); // Amount
+      });
+
+      // Add total expenses
+      body
+        .appendParagraph(`Total Expenses: ${totalExpenses.toFixed(2)}`)
+        .setBold(true);
+    } else {
+      body
+        .appendParagraph("No expense data found for the selected criteria.")
+        .setItalic(true);
+    }
+  }
+
+  // Add profit/loss section if report type is "All"
+  if (reportType === "all") {
+    body
+      .appendParagraph("Profit/Loss")
+      .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    body.appendParagraph(`Profit/Loss: ${profitLoss.toFixed(2)}`).setBold(true);
+  }
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById(folderId);
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newDocId).setTrashed(true);
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return preview and download URLs
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
     downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,

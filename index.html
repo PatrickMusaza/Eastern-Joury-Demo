@@ -1,232 +1,345 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Eastern Joury Est</title>
+    <?!= include('CSS'); ?>
+    <?!= include('SpinnerModal'); ?>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  </head>
 
-<head>
-  <title>Eastern Joury Est</title>
-  <?!= include('CSS'); ?>
-  <?!= include('SpinnerModal'); ?>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-</head>
-
-<body>
-  <!-- Login Form -->
-  <div class="container d-flex justify-content-center align-items-center vh-100" id="main_login">
-    <div class="card" style="width: 100%; max-width: 400px">
-      <div class="card-header">
-        <h3 class="text-center text-primary">LOGIN</h3>
-      </div>
-      <div class="card-body">
-        <form id="loginForm" autocomplete="off">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" class="form-control" id="username" required autocomplete="off" />
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" class="form-control" id="password" required autocomplete="off" />
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">
-            Login
-          </button>
-        </form>
+  <body>
+    <!-- Login Form -->
+    <div
+      class="container d-flex justify-content-center align-items-center vh-100"
+      id="main_login"
+    >
+      <div class="card" style="width: 100%; max-width: 400px">
+        <div class="card-header">
+          <h3 class="text-center text-primary">LOGIN</h3>
+        </div>
+        <div class="card-body">
+          <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+              Login
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Main Content (Dynamically Loaded After Login) -->
-  <div id="main_content" style="display: none">
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">Eastern Joury Est</a>
-        <div class="ml-auto d-flex align-items-center">
-          <span class="navbar-text me-3">Welcome, <span id="loggedInUsername"></span></span>
-          <button class="btn btn-outline-danger" onclick="logout()">
-            Logout
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Navbar-like Tabs -->
-    <div class="container">
-      <div class="row mb-4">
-        <div class="col">
-          <ul class="nav nav-tabs">
-            <li class="nav-item">
-              <a class="nav-link active" id="clientBillBtn" href="#" onclick="loadClientBillPage()"
-                aria-current="page">CLIENT BILL</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" id="expensesBtn" href="#" onclick="loadExpensesPage()">EXPENSES</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" id="abbreviationsBtn" href="#" onclick="loadAbbreviationsPage()">ABBREVIATIONS</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" id="containerBtn" href="#" onclick="loadContainerPage()">CONTAINER #</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Tab Content Sections -->
-      <div id="clientBillContent" class="tab-content">
-        <!-- Client Bill Form and Table -->
-        <div class="row">
-          <!-- Client Bill Form (Left) -->
-          <div class="col-lg-5">
-            <?!= include('FormClientBill'); ?>
-          </div>
-
-          <!-- Spacing Between Form and Table -->
-          <div class="col-lg-1"></div>
-
-          <!-- Client Bill Database Table (Right) -->
-          <div class="col-lg-6">
-            <?!= include('ClientBillTable'); ?>
-          </div>
-
-          <!-- Preview Changes -->
-          <div>
-            <?!= include('Preview'); ?>
+    <!-- Main Content (Dynamically Loaded After Login) -->
+    <div id="main_content" style="display: none">
+      <!-- Navigation Bar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Eastern Joury Est</a>
+          <div class="ml-auto d-flex align-items-center">
+            <span class="navbar-text me-3"
+              >Welcome, <span id="loggedInUsername"></span
+            ></span>
+            <button class="btn btn-outline-danger" onclick="logout()">
+              Logout
+            </button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <!-- Expenses Content -->
-      <div id="expensesContent" class="tab-content" style="display: none">
-        <?!= include('Expense'); ?>
-      </div>
-
-      <!-- Reports Content -->
-      <div id="reportsContent" class="tab-content" style="display: none">
-        <p>Reports content goes here.</p>
-      </div>
-
-      <!-- Abbreviations Content -->
-      <div id="abbreviationsContent" class="tab-content" style="display: none">
-        <!-- Abbreviation Form and Table -->
-        <div class="row">
-          <!-- Abbreviation Form (Left) -->
-          <div class="col-lg-3">
-            <?!= include('AbbreviationForm'); ?>
-          </div>
-
-          <!-- Spacing Between Form and Table -->
-          <div class="col-lg-2"></div>
-
-          <!-- Abbreviation Database Table (Right) -->
-          <div class="col-lg-7">
-            <?!= include('AbbreviationTable'); ?>
+      <!-- Navbar-like Tabs -->
+      <div class="container">
+        <div class="row mb-4">
+          <div class="col">
+            <ul class="nav nav-tabs">
+              <li class="nav-item">
+                <a
+                  class="nav-link active"
+                  id="clientBillBtn"
+                  href="#"
+                  onclick="loadClientBillPage()"
+                  aria-current="page"
+                  >CLIENT BILL</a
+                >
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link"
+                  id="expensesBtn"
+                  href="#"
+                  onclick="loadExpensesPage()"
+                  >EXPENSES</a
+                >
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="reportsBtn" href="#">REPORTS</a>
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link"
+                  id="abbreviationsBtn"
+                  href="#"
+                  onclick="loadAbbreviationsPage()"
+                  >ABBREVIATIONS</a
+                >
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link"
+                  id="containerBtn"
+                  href="#"
+                  onclick="loadContainerPage()"
+                  >CONTAINER #</a
+                >
+              </li>
+            </ul>
           </div>
         </div>
-      </div>
 
-      <!-- Container Content -->
-      <div id="containerContent" class="tab-content" style="display: none">
-        <?!= include('ContainerUpdate'); ?>
+        <!-- Tab Content Sections -->
+        <div id="clientBillContent" class="tab-content">
+          <!-- Client Bill Form and Table -->
+          <div class="row">
+            <!-- Client Bill Form (Left) -->
+            <div class="col-lg-5">
+              <?!= include('FormClientBill'); ?>
+            </div>
+
+            <!-- Spacing Between Form and Table -->
+            <div class="col-lg-1"></div>
+
+            <!-- Client Bill Database Table (Right) -->
+            <div class="col-lg-6">
+              <?!= include('ClientBillTable'); ?>
+            </div>
+
+            <!-- Preview Changes -->
+            <div>
+              <?!= include('Preview'); ?>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expenses Content -->
+        <div id="expensesContent" class="tab-content" style="display: none">
+          <?!= include('Expense'); ?>
+        </div>
+
+        <!-- Reports Content -->
+        <div id="reportsContent" class="tab-content" style="display: none">
+          <div class="container">
+            <h2 class="text-center text-primary">Report Generator</h2>
+            <form id="reportForm">
+              <!-- Row for Report Type and Container Select -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="reportType" class="form-label">Report Type</label>
+                  <select id="reportType" class="form-control">
+                    <option value="all">All</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="containerSelect" class="form-label"
+                    >Select Container:</label
+                  >
+                  <select id="containerSelect" class="form-control">
+                    <option value="">--Select the container no--</option>
+                    <!-- Options will be populated dynamically -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Row for From Date and To Date -->
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="fromDate" class="form-label">From Date</label>
+                  <input type="date" id="fromDate" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                  <label for="toDate" class="form-label">To Date</label>
+                  <input type="date" id="toDate" class="form-control" />
+                </div>
+              </div>
+
+              <!-- Generate Report Button -->
+              <div class="row mb-3">
+                <div class="col-md-12">
+                  <button
+                    type="button"
+                    class="btn btn-primary text-center"
+                    onclick="generateReport()"
+                  >
+                    Generate Report
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <!-- Preview Section -->
+            <div id="previewSection" style="display: none">
+              <h3>Report Preview</h3>
+              <iframe
+                id="reportPreviewIframe"
+                width="100%"
+                height="500px"
+                style="border: 1px solid #ccc"
+              ></iframe>
+              <a
+                id="downloadReportBtn"
+                class="btn btn-success mt-3"
+                target="_blank"
+                >Download Report</a
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Abbreviations Content -->
+        <div
+          id="abbreviationsContent"
+          class="tab-content"
+          style="display: none"
+        >
+          <!-- Abbreviation Form and Table -->
+          <div class="row">
+            <!-- Abbreviation Form (Left) -->
+            <div class="col-lg-3">
+              <?!= include('AbbreviationForm'); ?>
+            </div>
+
+            <!-- Spacing Between Form and Table -->
+            <div class="col-lg-2"></div>
+
+            <!-- Abbreviation Database Table (Right) -->
+            <div class="col-lg-7">
+              <?!= include('AbbreviationTable'); ?>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container Content -->
+        <div id="containerContent" class="tab-content" style="display: none">
+          <?!= include('ContainerUpdate'); ?>
+        </div>
       </div>
     </div>
-  </div>
 
-  <?!= include('JavaScript'); ?>
-  <script>
-    document
-      .getElementById("loginForm")
-      .addEventListener("submit", function (e) {
-        e.preventDefault();
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
+    <?!= include('JavaScript'); ?>
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
 
-        // Show spinner
-        $("#spinnerModalLogin").modal("show");
+          // Show spinner
+          $("#spinnerModalLogin").modal("show");
 
-        // Hash the password using SHA-256
-        const hashedPassword = CryptoJS.SHA256(password).toString();
+          // Hash the password using SHA-256
+          const hashedPassword = CryptoJS.SHA256(password).toString();
 
-        // Fetch user credentials from Google Sheets
-        google.script.run
-          .withSuccessHandler(function (users) {
-            const user = users.find(
-              (u) => u.username === username && u.password === hashedPassword
-            );
-            if (user) {
-              // Log successful login
-              google.script.run.logEvent(
-                username,
-                "Login Attempt",
-                "Successful Login"
+          // Fetch user credentials from Google Sheets
+          google.script.run
+            .withSuccessHandler(function (users) {
+              const user = users.find(
+                (u) => u.username === username && u.password === hashedPassword
               );
-              sessionStorage.setItem("role", user.role); // Store role in sessionStorage
-              sessionStorage.setItem("username", username); // Store username in sessionStorage
+              if (user) {
+                // Log successful login
+                google.script.run.logEvent(
+                  username,
+                  "Login Attempt",
+                  "Successful Login"
+                );
+                sessionStorage.setItem("role", user.role); // Store role in sessionStorage
+                sessionStorage.setItem("username", username); // Store username in sessionStorage
 
-              // Hide spinner and remove backdrop
-              $("#spinnerModalLogin").modal("hide");
-              $(".modal-backdrop").remove(); // Remove the backdrop
+                // Hide spinner and remove backdrop
+                $("#spinnerModalLogin").modal("hide");
+                $(".modal-backdrop").remove(); // Remove the backdrop
 
-              // Hide login form and show main content
-              document.getElementById("main_login").remove();
-              document.getElementById("main_content").style.display = "block";
-              document.getElementById("loggedInUsername").textContent =
-                username; // Display username
-              loadMainContent(user.role); // Load main content based on role
-            } else {
-              // Log failed login attempt
-              google.script.run.logEvent(
-                username,
-                "Login Attempt",
-                "Failed Login"
-              );
-              alert("Invalid username or password");
-              // Hide spinner and remove backdrop
-              $("#spinnerModalLogin").modal("hide");
-              $(".modal-backdrop").remove(); // Remove the backdrop
-            }
-          })
-          .getUserCredentials();
-      });
+                // Hide login form and show main content
+                document.getElementById("main_login").remove();
+                document.getElementById("main_content").style.display = "block";
+                document.getElementById("loggedInUsername").textContent =
+                  username; // Display username
+                loadMainContent(user.role); // Load main content based on role
+              } else {
+                // Log failed login attempt
+                google.script.run.logEvent(
+                  username,
+                  "Login Attempt",
+                  "Failed Login"
+                );
+                alert("Invalid username or password");
+                // Hide spinner and remove backdrop
+                $("#spinnerModalLogin").modal("hide");
+                $(".modal-backdrop").remove(); // Remove the backdrop
+              }
+            })
+            .getUserCredentials();
+        });
 
-    function loadMainContent(role) {
-      // Initialize functions
-      functionInit();
+      function loadMainContent(role) {
+        // Initialize functions
+        functionInit();
 
-      // Hide all tab contents
-      const tabContents = document.querySelectorAll(".tab-content");
-      tabContents.forEach((content) => {
-        content.style.display = "none";
-      });
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabContents.forEach((content) => {
+          content.style.display = "none";
+        });
 
-      // Show the Client Bill tab content by default
-      document.getElementById("clientBillContent").style.display = "block";
+        // Show the Client Bill tab content by default
+        document.getElementById("clientBillContent").style.display = "block";
 
-      // Deactivate all nav links
-      const navLinks = document.querySelectorAll(".nav-link");
-      navLinks.forEach((link) => {
-        link.classList.remove("active");
-      });
+        // Deactivate all nav links
+        const navLinks = document.querySelectorAll(".nav-link");
+        navLinks.forEach((link) => {
+          link.classList.remove("active");
+        });
 
-      // Activate the Client Bill nav link
-      document.getElementById("clientBillBtn").classList.add("active");
+        // Activate the Client Bill nav link
+        document.getElementById("clientBillBtn").classList.add("active");
 
-      // Hide Reports tab if the user is not an admin
-      if (role !== "admin") {
-        document.getElementById("reportsBtn").style.display = "none";
-      } else {
-        document.getElementById("reportsBtn").style.display = "block";
+        // Hide Reports tab if the user is not an admin
+        if (role !== "admin") {
+          document.getElementById("reportsBtn").style.display = "none";
+        } else {
+          document.getElementById("reportsBtn").style.display = "block";
+        }
       }
-    }
 
-    function logout() {
-      sessionStorage.clear(); // Clear session storage
-      document.body.innerHTML = ""; // Clear all content
+      function logout() {
+        sessionStorage.clear(); // Clear session storage
+        document.body.innerHTML = ""; // Clear all content
 
-      // Rebuild the login form with the same styles
-      document.body.innerHTML = `
+        // Rebuild the login form with the same styles
+        document.body.innerHTML = `
             <div class="container d-flex justify-content-center align-items-center vh-100" id="main_login_log">
                 <div class="card" style="width: 100%; max-width: 400px;">
                     <div class="card-header">
@@ -249,16 +362,16 @@
             </div>
             `;
 
-      // Re-attach the login form event listener
-      document
-        .getElementById("loginFormLog")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-          const username = document.getElementById("username").value;
-          const password = document.getElementById("password").value;
+        // Re-attach the login form event listener
+        document
+          .getElementById("loginFormLog")
+          .addEventListener("submit", function (e) {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
 
-          // Show spinner
-          document.body.append = `
+            // Show spinner
+            document.body.append = `
             <div class="modal fade" id="spinnerModalLogin" tabindex="-1" role="dialog" aria-labelledby="spinnerModalLabel"
 aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered" role="document">
@@ -273,36 +386,36 @@ aria-hidden="true">
 </div>
 </div>`;
 
-          $("#spinnerModalLogin").modal("show");
+            $("#spinnerModalLogin").modal("show");
 
-          // Hash the password using SHA-256
-          const hashedPassword = CryptoJS.SHA256(password).toString();
+            // Hash the password using SHA-256
+            const hashedPassword = CryptoJS.SHA256(password).toString();
 
-          // Fetch user credentials from Google Sheets
-          google.script.run
-            .withSuccessHandler(function (users) {
-              const user = users.find(
-                (u) =>
-                  u.username === username && u.password === hashedPassword
-              );
-              if (user) {
-                // Log successful login
-                google.script.run.logEvent(
-                  username,
-                  "Login Attempt",
-                  "Successful Login"
+            // Fetch user credentials from Google Sheets
+            google.script.run
+              .withSuccessHandler(function (users) {
+                const user = users.find(
+                  (u) =>
+                    u.username === username && u.password === hashedPassword
                 );
-                sessionStorage.setItem("role", user.role); // Store role in sessionStorage
-                sessionStorage.setItem("username", username); // Store username in sessionStorage
+                if (user) {
+                  // Log successful login
+                  google.script.run.logEvent(
+                    username,
+                    "Login Attempt",
+                    "Successful Login"
+                  );
+                  sessionStorage.setItem("role", user.role); // Store role in sessionStorage
+                  sessionStorage.setItem("username", username); // Store username in sessionStorage
 
-                // Hide spinner and remove backdrop
-                $("#spinnerModalLogin").modal("hide");
-                $(".modal-backdrop").remove(); // Remove the backdrop
+                  // Hide spinner and remove backdrop
+                  $("#spinnerModalLogin").modal("hide");
+                  $(".modal-backdrop").remove(); // Remove the backdrop
 
-                // Hide login form and show main content
-                document.getElementById("main_login_log").remove();
+                  // Hide login form and show main content
+                  document.getElementById("main_login_log").remove();
 
-                document.body.innerHTML = `
+                  document.body.innerHTML = `
             <!-- Main Content (Dynamically Loaded After Login) -->
             <div id="main_content" style="display: block;">
                 <!-- Navigation Bar -->
@@ -370,11 +483,58 @@ aria-hidden="true">
                     <div id="expensesContent" class="tab-content" style="display: none;">
                         <?!= include('Expense'); ?>
                     </div>
+<!-- Reports Content -->
+<div id="reportsContent" class="tab-content" style="display: none;">
+  <div class="container">
+    <h2 class="text-center text-primary">Report Generator</h2>
+    <form id="reportForm">
+      <!-- Row for Report Type and Container Select -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="reportType" class="form-label">Report Type</label>
+          <select id="reportType" class="form-control">
+            <option value="all">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="containerSelect" class="form-label">Select Container:</label>
+          <select id="containerSelect" class="form-control">
+            <option value="">--Select the container no--</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </div>
+      </div>
 
-                    <!-- Reports Content -->
-                    <div id="reportsContent" class="tab-content" style="display: none;">
-                        <p>Reports content goes here.</p>
-                    </div>
+      <!-- Row for From Date and To Date -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="fromDate" class="form-label">From Date</label>
+          <input type="date" id="fromDate" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label for="toDate" class="form-label">To Date</label>
+          <input type="date" id="toDate" class="form-control">
+        </div>
+      </div>
+
+      <!-- Generate Report Button -->
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <button type="button" class="btn btn-primary text-center" onclick="generateReport()">Generate Report</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Preview Section -->
+    <div id="previewSection" style="display: none;">
+      <h3>Report Preview</h3>
+      <iframe id="reportPreviewIframe" width="100%" height="500px" style="border: 1px solid #ccc;"></iframe>
+      <a id="downloadReportBtn" class="btn btn-success mt-3" target="_blank">Download Report</a>
+    </div>
+  </div>
+</div>
 
                     <!-- Abbreviations Content -->
                     <div id="abbreviationsContent" class="tab-content" style="display: none;">
@@ -403,26 +563,25 @@ aria-hidden="true">
             </div>
             `;
 
-                document.getElementById("loggedInUsername").textContent =
-                  username; // Display username
-                loadMainContent(user.role); // Load main content based on role
-              } else {
-                // Log failed login attempt
-                google.script.run.logEvent(
-                  username,
-                  "Login Attempt",
-                  "Failed Login"
-                );
-                alert("Invalid username or password");
-                // Hide spinner and remove backdrop
-                $("#spinnerModalLogin").modal("hide");
-                $(".modal-backdrop").remove(); // Remove the backdrop
-              }
-            })
-            .getUserCredentials();
-        });
-    }
-  </script>
-</body>
-
+                  document.getElementById("loggedInUsername").textContent =
+                    username; // Display username
+                  loadMainContent(user.role); // Load main content based on role
+                } else {
+                  // Log failed login attempt
+                  google.script.run.logEvent(
+                    username,
+                    "Login Attempt",
+                    "Failed Login"
+                  );
+                  alert("Invalid username or password");
+                  // Hide spinner and remove backdrop
+                  $("#spinnerModalLogin").modal("hide");
+                  $(".modal-backdrop").remove(); // Remove the backdrop
+                }
+              })
+              .getUserCredentials();
+          });
+      }
+    </script>
+  </body>
 </html>
