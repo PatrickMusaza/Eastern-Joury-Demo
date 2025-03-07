@@ -1304,10 +1304,39 @@ function generateReport({ reportType, container, fromDate, toDate }) {
   const doc = DocumentApp.openById(newDocId);
   const body = doc.getBody();
 
-  // Add a title to the report
-  body
-    .appendParagraph("Report Details")
-    .setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  // Clear the template body (remove placeholders)
+  body.clear();
+
+  // Add the title (centered and blue)
+  const title = body.appendParagraph("Eastern Joury Est - Report");
+  title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  title.setForegroundColor("#1a73e8"); // Blue color
+
+  // Add container info or date range (right-aligned)
+  const containerInfo = container
+    ? `Container: ${container}`
+    : `Date Range: ${fromDate} to ${toDate}`;
+  const infoParagraph = body.appendParagraph(containerInfo);
+  infoParagraph.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+
+  // Add totals and other details (left-aligned)
+  const totalsParagraph = body.appendParagraph(
+    `Total Income: ${totalIncome.toFixed(2)}\n` +
+      `Total Expenses: ${totalExpenses.toFixed(2)}`
+  );
+  totalsParagraph.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+
+  // Add profit or loss (green for profit, red for loss)
+  const profitLossParagraph = body.appendParagraph(
+    profitLoss >= 0
+      ? `Profit: ${profitLoss.toFixed(2)}`
+      : `Loss: ${Math.abs(profitLoss).toFixed(2)}`
+  );
+  profitLossParagraph.setForegroundColor(
+    profitLoss >= 0 ? "#0f9d58" : "#db4437"
+  ); // Green for profit, red for loss
+  profitLossParagraph.setBold(true);
 
   // Add a section for income (client bills) if report type is "All" or "Income"
   if (reportType === "all" || reportType === "income") {
@@ -1315,15 +1344,38 @@ function generateReport({ reportType, container, fromDate, toDate }) {
       body
         .appendParagraph("Income (Client Bills)")
         .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      // Create a table for client bills
       const clientBillTable = body.appendTable();
       const headerRow = clientBillTable.appendTableRow();
-      headerRow.appendTableCell("Shipper Name");
-      headerRow.appendTableCell("Amount");
+      headerRow
+        .appendTableCell("Bill No")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Shipper Name")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Tel No")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Total Weight")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Total Amount")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
 
       filteredClientBills.forEach((row) => {
         const dataRow = clientBillTable.appendTableRow();
-        dataRow.appendTableCell(row[2]); // Shipper Name
-        dataRow.appendTableCell(row[16]); // Total Charges
+        dataRow.appendTableCell(row[1]).setForegroundColor("#000000"); // Bill No (black)
+        dataRow.appendTableCell(row[2]).setForegroundColor("#000000"); // Shipper Name (black)
+        dataRow.appendTableCell(row[3]).setForegroundColor("#000000"); // Tel No (black)
+        dataRow.appendTableCell(row[10]).setForegroundColor("#000000"); // Total Weight (black)
+        dataRow.appendTableCell(row[16]).setForegroundColor("#000000"); // Total Charges (black)
       });
 
       // Add total income
@@ -1343,19 +1395,33 @@ function generateReport({ reportType, container, fromDate, toDate }) {
       body
         .appendParagraph("Expenses")
         .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      // Create a table for expenses
       const expenseTable = body.appendTable();
       const headerRow = expenseTable.appendTableRow();
-      headerRow.appendTableCell("Container");
-      headerRow.appendTableCell("Type");
-      headerRow.appendTableCell("Description");
-      headerRow.appendTableCell("Amount");
+      headerRow
+        .appendTableCell("Container")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Type")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Description")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Amount")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
 
       filteredExpenses.forEach((row) => {
         const dataRow = expenseTable.appendTableRow();
-        dataRow.appendTableCell(row[1]); // Container
-        dataRow.appendTableCell(row[2]); // Type
-        dataRow.appendTableCell(row[3]); // Description
-        dataRow.appendTableCell(row[4]); // Amount
+        dataRow.appendTableCell(row[1]).setForegroundColor("#000000"); // Container (black)
+        dataRow.appendTableCell(row[2]).setForegroundColor("#000000"); // Type (black)
+        dataRow.appendTableCell(row[3]).setForegroundColor("#000000"); // Description (black)
+        dataRow.appendTableCell(row[4]).setForegroundColor("#000000"); // Amount (black)
       });
 
       // Add total expenses
@@ -1367,14 +1433,6 @@ function generateReport({ reportType, container, fromDate, toDate }) {
         .appendParagraph("No expense data found for the selected criteria.")
         .setItalic(true);
     }
-  }
-
-  // Add profit/loss section if report type is "All"
-  if (reportType === "all") {
-    body
-      .appendParagraph("Profit/Loss")
-      .setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    body.appendParagraph(`Profit/Loss: ${profitLoss.toFixed(2)}`).setBold(true);
   }
 
   // Save and close the document

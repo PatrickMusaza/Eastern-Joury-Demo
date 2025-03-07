@@ -120,6 +120,7 @@
     loadContainerData();
     loadContainers();
     loadExpenses();
+    loadContainersReport();
   }
 
   //window.addEventListener("load", functionInit, true);
@@ -1000,6 +1001,28 @@
       .getContainers(); // Call the Google Apps Script function
   }
 
+  // Load container numbers for reports
+  function loadContainersReport() {
+    google.script.run
+      .withSuccessHandler(function (containers) {
+        const containerSelect = document.getElementById(
+          "containerSelectReport"
+        );
+        containerSelect.innerHTML =
+          '<option value="">--Select Container--</option>';
+        containers.forEach((container) => {
+          const option = document.createElement("option");
+          option.value = container;
+          option.text = container;
+          containerSelect.appendChild(option);
+        });
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error loading containers:", error);
+      })
+      .getContainers(); // Call the Google Apps Script function
+  }
+
   function loadExpenses() {
     //console.log("Requesting data from server...");
     google.script.run
@@ -1352,7 +1375,7 @@
 
   // Enable/disable date fields based on container selection
   document
-    .getElementById("containerSelect")
+    .getElementById("containerSelectReport")
     .addEventListener("change", function () {
       const fromDate = document.getElementById("fromDate");
       const toDate = document.getElementById("toDate");
@@ -1368,7 +1391,7 @@
   // Generate report
   function generateReport() {
     const reportType = document.getElementById("reportType").value;
-    const container = document.getElementById("containerSelect").value;
+    const container = document.getElementById("containerSelectReport").value;
     const fromDate = document.getElementById("fromDate").value;
     const toDate = document.getElementById("toDate").value;
 
@@ -1376,21 +1399,36 @@
       alert("Please select a container or specify a date range.");
       return;
     }
-    $("#spinnerModal").modal("show"); // Show spinner
+
+    // Clear the existing preview
+    const previewSection = document.getElementById("previewSection");
+    const reportPreviewIframe = document.getElementById("reportPreviewIframe");
+    const downloadReportBtn = document.getElementById("downloadReportBtn");
+
+    previewSection.style.display = "none"; // Hide the preview section
+    reportPreviewIframe.src = ""; // Clear the iframe source
+    downloadReportBtn.href = ""; // Clear the download link
+
+    // Show spinner while generating the report
+    $("#spinnerModal").modal("show");
 
     google.script.run
       .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+
         if (urls && urls.previewUrl && urls.downloadUrl) {
-          document.getElementById("reportPreviewIframe").src = urls.previewUrl;
-          document.getElementById("downloadReportBtn").href = urls.downloadUrl;
-          document.getElementById("previewSection").style.display = "block";
-          $("#spinnerModal").modal("hide"); // hide spinner
+          // Set the iframe source to the preview URL
+          reportPreviewIframe.src = urls.previewUrl;
+          // Set the download button's href to the download URL
+          downloadReportBtn.href = urls.downloadUrl;
+          // Show the preview section
+          previewSection.style.display = "block";
         } else {
           alert("Error generating report. Please try again.");
-          $("#spinnerModal").modal("hide"); // hide spinner
         }
       })
       .withFailureHandler(function (error) {
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
         console.error("Error generating report:", error);
         alert("Error generating report. Please try again.");
       })

@@ -165,7 +165,7 @@
                   <label for="containerSelect" class="form-label"
                     >Select Container:</label
                   >
-                  <select id="containerSelect" class="form-control">
+                  <select id="containerSelectReport" class="form-control">
                     <option value="">--Select the container no--</option>
                     <!-- Options will be populated dynamically -->
                   </select>
@@ -184,12 +184,12 @@
                 </div>
               </div>
 
-              <!-- Generate Report Button -->
-              <div class="row mb-3">
-                <div class="col-md-12">
+              <!-- Generate Report Button (Centered) -->
+              <div class="row mb-3 justify-content-center">
+                <div class="col-md-6 text-center">
                   <button
                     type="button"
-                    class="btn btn-primary text-center"
+                    class="btn btn-primary"
                     onclick="generateReport()"
                   >
                     Generate Report
@@ -200,19 +200,22 @@
 
             <!-- Preview Section -->
             <div id="previewSection" style="display: none">
-              <h3>Report Preview</h3>
+              <h3 class="text-center">Report Preview</h3>
               <iframe
                 id="reportPreviewIframe"
                 width="100%"
                 height="500px"
                 style="border: 1px solid #ccc"
               ></iframe>
-              <a
-                id="downloadReportBtn"
-                class="btn btn-success mt-3"
-                target="_blank"
-                >Download Report</a
-              >
+              <!-- Download Button (Centered) -->
+              <div class="text-center mt-3">
+                <a
+                  id="downloadReportBtn"
+                  class="btn btn-success"
+                  target="_blank"
+                  >Download Report</a
+                >
+              </div>
             </div>
           </div>
         </div>
@@ -483,6 +486,7 @@ aria-hidden="true">
                     <div id="expensesContent" class="tab-content" style="display: none;">
                         <?!= include('Expense'); ?>
                     </div>
+                    
 <!-- Reports Content -->
 <div id="reportsContent" class="tab-content" style="display: none;">
   <div class="container">
@@ -500,7 +504,7 @@ aria-hidden="true">
         </div>
         <div class="col-md-6">
           <label for="containerSelect" class="form-label">Select Container:</label>
-          <select id="containerSelect" class="form-control">
+          <select id="containerSelectReport" class="form-control">
             <option value="">--Select the container no--</option>
             <!-- Options will be populated dynamically -->
           </select>
@@ -519,23 +523,25 @@ aria-hidden="true">
         </div>
       </div>
 
-      <!-- Generate Report Button -->
-      <div class="row mb-3">
-        <div class="col-md-12">
-          <button type="button" class="btn btn-primary text-center" onclick="generateReport()">Generate Report</button>
+      <!-- Generate Report Button (Centered) -->
+      <div class="row mb-3 justify-content-center">
+        <div class="col-md-6 text-center">
+          <button type="button" class="btn btn-primary" onclick="generateReport()">Generate Report</button>
         </div>
       </div>
     </form>
 
     <!-- Preview Section -->
     <div id="previewSection" style="display: none;">
-      <h3>Report Preview</h3>
+      <h3 class="text-center">Report Preview</h3>
       <iframe id="reportPreviewIframe" width="100%" height="500px" style="border: 1px solid #ccc;"></iframe>
-      <a id="downloadReportBtn" class="btn btn-success mt-3" target="_blank">Download Report</a>
+      <!-- Download Button (Centered) -->
+      <div class="text-center mt-3">
+        <a id="downloadReportBtn" class="btn btn-success" target="_blank">Download Report</a>
+      </div>
     </div>
   </div>
 </div>
-
                     <!-- Abbreviations Content -->
                     <div id="abbreviationsContent" class="tab-content" style="display: none;">
                         <!-- Abbreviation Form and Table -->
