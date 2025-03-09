@@ -18,6 +18,7 @@ const USER_SHEET_RANGE = "Users!A2:C";
 const LOGS_SHEET = "Logs";
 const REPORT_TEMPLATE_ID = "1X_P2IBPF93K-hnzaQjdoXweZuJUDGcKgrIHc5IHaxpY"; // Replace with your Google Docs template ID
 const REPORT_FOLDER_ID = "1tF1YwKsgzR9kYI1iWhB-NywThtbnP4sN"; // Replace with your target folder ID
+const LOGS_SHEET_UPDATE = "LogFile";
 
 // Display HTML page
 function doGet(request) {
@@ -40,7 +41,7 @@ function getUserCredentials() {
   return users;
 }
 
-//LOGS
+//LOGS LOGIN
 function logEvent(username, event, details) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET);
@@ -48,13 +49,19 @@ function logEvent(username, event, details) {
   sheet.appendRow([timestamp, username, event, details]);
 }
 
+//LOGS UPDATE
+function logEventUpdate(username, event, details) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET_UPDATE);
+  const timestamp = new Date();
+  sheet.appendRow([timestamp, username, event, details]);
+}
+
 // PROCESS CLIENT BILL FORM SUBMISSION
 function processClientBill(formObject) {
-  console.log("Processing form with recId:", formObject.recId); // Debugging line
+  const username = formObject.username; // Assuming the username is included in the form object
 
   if (formObject.recId && checkClientBillId(formObject.recId)) {
-    console.log("Updating existing record"); // Debugging line
-    // Update existing record
     const values = [
       [
         formObject.recId,
@@ -80,7 +87,7 @@ function processClientBill(formObject) {
       ],
     ];
     const updateRange = getClientBillRangeById(formObject.recId);
-    updateClientBillRecord(values, updateRange);
+    updateClientBillRecord(values, updateRange, username); // Pass the username
   } else {
     console.log("Creating new record"); // Debugging line
     // Create new record
@@ -188,11 +195,30 @@ function readClientBillRecords(range) {
 }
 
 // UPDATE CLIENT BILL RECORD
-function updateClientBillRecord(values, range) {
+function updateClientBillRecord(values, range, username) {
   try {
     const sheet =
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-    sheet.getRange(range).setValues(values);
+    const oldValues = sheet.getRange(range).getValues()[0]; // Get the old values before updating
+    sheet.getRange(range).setValues(values); // Update the record
+
+    // Log the changes
+    const newValues = values[0]; // Get the new values
+    const changes = [];
+
+    // Compare old and new values to identify changes
+    for (let i = 0; i < oldValues.length; i++) {
+      if (oldValues[i] !== newValues[i]) {
+        changes.push(`Column ${i + 1}: ${oldValues[i]} -> ${newValues[i]}`);
+      }
+    }
+
+    if (changes.length > 0) {
+      const details = `Updated record ${newValues[0]} (Bill No: ${
+        newValues[1]
+      }). Changes: ${changes.join(", ")}`;
+      logEventUpdate(username, "Update", details);
+    }
   } catch (err) {
     console.log("Failed with error: " + err.message);
   }
@@ -385,7 +411,12 @@ function getAbbreviations() {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
   const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
-  return data.filter((row) => row[0] && row[1]); // Filter out empty rows
+  const filteredData = data.filter((row) => row[0] && row[1]); // Filter out empty rows
+
+  // Sort the abbreviations alphabetically by the abbreviation name (column A)
+  filteredData.sort((a, b) => a[0].localeCompare(b[0]));
+
+  return filteredData;
 }
 
 // GET ABBREVIATION BY NAME
@@ -468,19 +499,46 @@ function saveExpense(data) {
   return "Expense added successfully!";
 }
 
-function updateExpense(data) {
+function updateExpense(data, username) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
   const dataRange = sheet.getDataRange().getValues();
 
   for (let i = 1; i < dataRange.length; i++) {
     if (dataRange[i][0] === data.id) {
-      // Find matching ID
+      // Fetch the old values before updating
+      const oldValues = dataRange[i];
+
+      // Update the expense
       sheet
         .getRange(i + 1, 2, 1, 4)
         .setValues([
           [data.container, data.type, data.description, data.amount],
         ]);
+
+      // Compare old and new values to identify changes
+      const changes = [];
+      if (oldValues[1] !== data.container) {
+        changes.push(`Container: ${oldValues[1]} -> ${data.container}`);
+      }
+      if (oldValues[2] !== data.type) {
+        changes.push(`Type: ${oldValues[2]} -> ${data.type}`);
+      }
+      if (oldValues[3] !== data.description) {
+        changes.push(`Description: ${oldValues[3]} -> ${data.description}`);
+      }
+      if (oldValues[4] !== data.amount) {
+        changes.push(`Amount: ${oldValues[4]} -> ${data.amount}`);
+      }
+
+      // Log the changes
+      if (changes.length > 0) {
+        const details = `Updated expense ${data.id}. Changes: ${changes.join(
+          ", "
+        )}`;
+        logEventUpdate(username, "Update Expense", details);
+      }
+
       return "Expense updated successfully!";
     }
   }
@@ -1453,6 +1511,15 @@ function generateReport({ reportType, container, fromDate, toDate }) {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
     downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
   };
+}
+
+//LOGS
+
+function getLogs() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET_UPDATE);
+  const data = sheet.getDataRange().getValues(); // Fetch all rows
+  return data.slice(1); // Skip the header row
 }
 
 /*-------------------GENERAL-------------------------*/

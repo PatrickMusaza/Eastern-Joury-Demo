@@ -113,6 +113,11 @@
                   >CONTAINER #</a
                 >
               </li>
+              <li class="nav-item">
+                <a class="nav-link" id="logBtn" href="#" onclick="loadLogPage()"
+                  >LOGS</a
+                >
+              </li>
             </ul>
           </div>
         </div>
@@ -247,6 +252,11 @@
         <div id="containerContent" class="tab-content" style="display: none">
           <?!= include('ContainerUpdate'); ?>
         </div>
+
+        <!-- Logs Content -->
+        <div id="logContent" class="tab-content" style="display: none">
+          <?!= include('Logs'); ?>
+        </div>
       </div>
     </div>
 
@@ -332,7 +342,9 @@
         // Hide Reports tab if the user is not an admin
         if (role !== "admin") {
           document.getElementById("reportsBtn").style.display = "none";
+          document.getElementById("logBtn").style.display = "none";
         } else {
+          document.getElementById("logBtn").style.display = "block";
           document.getElementById("reportsBtn").style.display = "block";
         }
       }
@@ -454,6 +466,9 @@ aria-hidden="true">
                                 <li class="nav-item">
                                     <a class="nav-link" id="containerBtn" href="#" onclick="loadContainerPage()">CONTAINER #</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="logBtn" href="#" onclick="loadLogPage()">LOGS</a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -564,6 +579,11 @@ aria-hidden="true">
                     <!-- Container Content -->
                     <div id="containerContent" class="tab-content" style="display: none;">
                         <?!= include('ContainerUpdate'); ?>
+                    </div>
+
+                    <!-- Logs Content -->
+                    <div id="logContent" class="tab-content" style="display: none;">
+                        <?!= include('Logs'); ?>
                     </div>
                 </div>
             </div>

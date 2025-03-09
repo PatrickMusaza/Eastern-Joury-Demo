@@ -51,6 +51,10 @@
     switchTab(event, "containerContent");
   });
 
+  document.getElementById("logBtn").addEventListener("click", (event) => {
+    switchTab(event, "logContent");
+  });
+
   // Initialize the first tab as active
   window.addEventListener("load", () => {
     document.getElementById("clientBillBtn").click(); // Simulate click on the first tab
@@ -121,6 +125,7 @@
     loadContainers();
     loadExpenses();
     loadContainersReport();
+    fetchLogs();
   }
 
   //window.addEventListener("load", functionInit, true);
@@ -332,6 +337,7 @@
           generateBillNo(); // Generate new Bill No
           clearItemList(); // Clear the item list and reset counter
           loadClientBillData(); // Reload data
+          fetchLogs();
           document.getElementById("itemListContainer").style.display = "none";
         })
         .withFailureHandler(function (error) {
@@ -349,6 +355,7 @@
           generateBillNo(); // Generate new Bill No
           clearItemList(); // Clear the item list and reset counter
           loadClientBillData(); // Reload data
+          fetchLogs();
           document.getElementById("itemListContainer").style.display = "none";
         })
         .withFailureHandler(function (error) {
@@ -1096,6 +1103,7 @@
           document.getElementById("expenseForm").reset();
           document.getElementById("expenseId").value = ""; // Clear ID
           loadExpenses();
+          fetchLogs();
         })
         .withFailureHandler((error) => {
           $("#spinnerModal").modal("hide");
@@ -1433,5 +1441,50 @@
         alert("Error generating report. Please try again.");
       })
       .generateReport({ reportType, container, fromDate, toDate });
+  }
+
+  //LOAD LOGS PAGE
+
+  function loadLogPage() {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabContents.forEach((content) => {
+      content.style.display = "none";
+    });
+
+    // Show the Abbreviations tab content
+    document.getElementById("logContent").style.display = "block";
+
+    // Deactivate all nav links
+    const navLinks = document.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
+
+    // Activate the Abbreviations nav link
+    document.getElementById("logBtn").classList.add("active");
+  }
+
+  function fetchLogs() {
+    google.script.run.withSuccessHandler(updateLogsTable).getLogs();
+  }
+
+  function updateLogsTable(logs) {
+    const tbody = document
+      .getElementById("logsTable")
+      .getElementsByTagName("tbody")[0];
+    tbody.innerHTML = ""; // Clear existing rows
+
+    if (logs && Array.isArray(logs)) {
+      logs.forEach((log) => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = log[0]; // Timestamp
+        row.insertCell().textContent = log[1]; // Username
+        row.insertCell().textContent = log[2]; // Event
+        row.insertCell().textContent = log[3]; // Details
+      });
+    } else {
+      console.error("No logs found or logs is not an array:", logs);
+    }
   }
 </script>
