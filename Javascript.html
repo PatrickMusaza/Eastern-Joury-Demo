@@ -78,6 +78,8 @@
   let currentPageExpense = 1;
   const expenseRecordsPerPage = 20;
 
+  let username = sessionStorage.getItem("username");
+
   // Prevent forms from submitting.
   function preventFormSubmit() {
     var forms = document.querySelectorAll("form");
@@ -344,7 +346,7 @@
           console.error("Error updating record:", error); // Debugging line
           $("#spinnerModal").modal("hide"); // Hide spinner on error
         })
-        .updateClientBill(formObject); // Call Google Apps Script function
+        .updateClientBill(formObject, username); // Call Google Apps Script function
     } else {
       // Create new record
       google.script.run
@@ -1110,7 +1112,7 @@
           console.error("Error updating expense:", error);
           alert("Failed to update expense.");
         })
-        .updateExpense(data);
+        .updateExpense(data, username);
     } else {
       console.log("Creating new expense:", data);
       google.script.run
