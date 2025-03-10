@@ -1,75 +1,94 @@
 <div class="container mt-5">
-    <!-- Form Section -->
-    <h3 class="mb-4">Update Container</h3>
-    <form id="updateContainerForm" onsubmit="handleUpdateContainer(event)">
-        <div class="row mb-3">
-            <!-- Original Container -->
-            <div class="col-md-5">
-                <label for="originalContainer" class="form-label">Original Container</label>
-            </div>
+  <!-- Form Section -->
+  <h3 class="mb-4">Update Container</h3>
+  <form id="updateContainerForm" onsubmit="handleUpdateContainer(event)">
+    <div class="row mb-3">
+      <!-- Original Container -->
+      <div class="col-md-5">
+        <label for="originalContainer" class="form-label"
+          >Original Container</label
+        >
+      </div>
 
-            <!-- New Container -->
-            <div class="col-md-5">
-                <label for="newContainer" class="form-label">New Container</label>
-            </div>
+      <!-- New Container -->
+      <div class="col-md-5">
+        <label for="newContainer" class="form-label">New Container</label>
+      </div>
 
-            <!-- Update Button -->
-            <div class="col-md-2">
-                <label for="actionBtn" class="form-label">Action</label>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <!-- Original Container -->
-            <div class="col-md-5">
-                <select class="form-select" id="originalContainer" required>
-                    <option value="" disabled selected>Select Original Container</option>
-                    <option value="EJ001">EJ001</option>
-                    <option value="EJ002">EJ002</option>
-                    <option value="EJ003">EJ003</option>
-                </select>
-            </div>
-
-            <!-- New Container -->
-            <div class="col-md-5">
-                <input type="text" class="form-control" id="newContainer" placeholder="Enter New Container" required>
-            </div>
-
-            <!-- Update Button -->
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary">Update</button>
-            </div>
-        </div>
-    </form>
-
-    <!-- Search Section -->
-    <div class="mt-5">
-        <h3 class="mb-4">Search</h3>
-        <div class="input-group">
-            <input type="text" class="form-control" id="searchContainer" placeholder="Search by Container No"
-                aria-label="Search">
-            <button class="btn btn-sm btn-primary" type="button" onclick="handleSearchContainer()">Search</button>
-        </div>
+      <!-- Update Button -->
+      <div class="col-md-2">
+        <label for="actionBtn" class="form-label">Action</label>
+      </div>
     </div>
+    <div class="row mb-3">
+      <!-- Original Container -->
+      <div class="col-md-5">
+        <select class="form-select" id="originalContainer" required>
+          <option value="" disabled selected>Select Original Container</option>
+          <option value="EJ001">CN001</option>
+          <option value="EJ002">CN002</option>
+          <option value="EJ003">CN003</option>
+        </select>
+      </div>
 
-    <!-- Table Section -->
-    <div class="mt-5">
-        <h3 class="mb-4">Container Records</h3>
-        <div class="table-responsive">
-            <table class="table table-striped-custom">
-                <thead>
-                    <tr>
-                        <th>Bill No</th>
-                        <th>Shipper Name</th>
-                        <th>Telephone Number</th>
-                        <th>Container No</th>
-                        <th>Total Piece</th>
-                        <th>Total Weight</th>
-                    </tr>
-                </thead>
-                <tbody id="containerTable">
-                    <!-- Rows will be dynamically inserted here -->
-                </tbody>
-            </table>
-        </div>
+      <!-- New Container -->
+      <div class="col-md-5">
+        <input
+          type="text"
+          class="form-control"
+          id="newContainer"
+          placeholder="Enter New Container"
+          required
+        />
+      </div>
+
+      <!-- Update Button -->
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary">Update</button>
+      </div>
     </div>
+  </form>
+
+  <!-- Search Section -->
+  <div class="mt-5">
+    <h3 class="mb-4">Search</h3>
+    <div class="input-group">
+      <input
+        type="text"
+        class="form-control"
+        id="searchContainer"
+        placeholder="Search by Container No"
+        aria-label="Search"
+      />
+      <button
+        class="btn btn-sm btn-primary"
+        type="button"
+        onclick="handleSearchContainer()"
+      >
+        Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="mt-5">
+    <h3 class="mb-4">Container Records</h3>
+    <div class="table-responsive">
+      <table class="table table-striped-custom">
+        <thead>
+          <tr>
+            <th>Bill No</th>
+            <th>Shipper Name</th>
+            <th>Telephone Number</th>
+            <th>Container No</th>
+            <th>Total Piece</th>
+            <th>Total Weight</th>
+          </tr>
+        </thead>
+        <tbody id="containerTable">
+          <!-- Rows will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
