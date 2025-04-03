@@ -59,6 +59,7 @@
   window.addEventListener("load", () => {
     document.getElementById("clientBillBtn").click(); // Simulate click on the first tab
   });
+  document.getElementById('warning').style.display = 'none';
 </script>
 <script>
   // CONSTANTS
@@ -607,14 +608,14 @@
       .withFailureHandler((error) => {
         console.error("Error generating Bill No:", error); // Debugging line
         const billNoField = document.getElementById("billNo");
-        billNoField.value = "EJ001"; // Default if no data or error
+        billNoField.value = "EJ251"; // Default if no data or error
       })
       .getLastBillNo(); // Call Google Apps Script function
   }
 
   // HELPER FUNCTION TO INCREMENT BILL NO
   function incrementBillNo(billNo) {
-    if (!billNo) return "EJ001"; // Default if no Bill No exists
+    if (!billNo) return "EJ251"; // Default if no Bill No exists
     const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
     const number = parseInt(billNo.slice(2)); // Extract number
     return `${prefix}${String(number + 1).padStart(3, "0")}`; // Increment and return
