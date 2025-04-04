@@ -59,7 +59,7 @@
   window.addEventListener("load", () => {
     document.getElementById("clientBillBtn").click(); // Simulate click on the first tab
   });
-  document.getElementById('warning').style.display = 'none';
+  document.getElementById("warning").style.display = "none";
 </script>
 <script>
   // CONSTANTS
@@ -136,6 +136,17 @@
   // Initialize on page load
   window.addEventListener("load", () => {
     generateBillNo(); // Generate and display Bill No
+  });
+
+  // Add this to your script
+  function forceUppercase(e) {
+    e.target.value = e.target.value.toUpperCase();
+  }
+
+  // Apply to all text inputs
+  document.querySelectorAll('input[type="text"]').forEach((input) => {
+    input.addEventListener("input", forceUppercase);
+    input.addEventListener("blur", forceUppercase); // Handle paste operations
   });
 
   // LOAD ClientBill PAGE
@@ -1444,6 +1455,18 @@
         alert("Error generating report. Please try again.");
       })
       .generateReport({ reportType, container, fromDate, toDate });
+  }
+
+  //PRINT REPORT
+
+  function printIframe(iframeId) {
+    var iframe = document.getElementById(iframeId);
+    var iframeDocument = iframe.contentWindow.document;
+
+    // Ensure the iframe is loaded and ready
+    if (iframeDocument) {
+      iframe.contentWindow.print(); // Print the content of the iframe
+    }
   }
 
   //LOAD LOGS PAGE
