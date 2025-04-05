@@ -2,7 +2,7 @@
 
 <!-- Search Form -->
 <form id="searchClientBillForm" class="form-inline mb-4" onsubmit="handleClientBillSearch(event)">
-    <div class="input-group">
+    <div class="input-group w-100">
         <input type="text" class="form-control form-control-sm" id="searchText"
             placeholder="Search by Bill No, Shipper Name, Telephone No, Container No">
         <button type="submit" class="btn btn-sm btn-primary">Search</button>
@@ -53,6 +53,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="printIframe('receiptPreviewIframe')">Print</button>
                 <!-- Download button dynamically set -->
                 <a id="downloadReceiptBtn" class="btn btn-primary" download>Download Receipt</a>
             </div>
@@ -75,6 +76,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="printIframe('houseWaybillPreviewIframe')">Print</button>
                 <a id="downloadHouseWaybillBtn" class="btn btn-primary" download>Download House Waybill</a>
             </div>
         </div>
@@ -99,6 +101,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="printIframe('manifestPreviewIframe')">Print</button>
                 <!-- Download button dynamically set -->
                 <a id="downloadManifestBtn" class="btn btn-primary" download>Download Manifest</a>
             </div>
@@ -123,6 +126,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="printIframe('loadingListPreviewIframe')">Print</button>
                 <!-- Download button dynamically set -->
                 <a id="downloadLoadingListBtn" class="btn btn-primary" download>Download Loading List</a>
             </div>
@@ -147,6 +151,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="printIframe('itemListPreviewIframe')">Print</button>
                 <!-- Download button dynamically set -->
                 <a id="downloadItemListBtn" class="btn btn-primary" download>Download Item Piece Count</a>
             </div>
