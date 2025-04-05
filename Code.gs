@@ -1587,66 +1587,51 @@ function include(filename) {
 
 function numberToWords(num) {
   if (num === 0) return "ZERO";
+  
+  // Split into whole and decimal parts
+  const parts = num.toString().split('.');
+  let whole = parseInt(parts[0]);
+  let decimal = parts.length > 1 ? parseInt(parts[1].padEnd(2, '0').substring(0, 2)) : 0;
 
   const belowTwenty = [
-    "ONE",
-    "TWO",
-    "THREE",
-    "FOUR",
-    "FIVE",
-    "SIX",
-    "SEVEN",
-    "EIGHT",
-    "NINE",
-    "TEN",
-    "ELEVEN",
-    "TWELVE",
-    "THIRTEEN",
-    "FOURTEEN",
-    "FIFTEEN",
-    "SIXTEEN",
-    "SEVENTEEN",
-    "EIGHTEEN",
-    "NINETEEN",
+    "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN",
+    "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN",
+    "EIGHTEEN", "NINETEEN"
   ];
   const tens = [
-    "",
-    "",
-    "TWENTY",
-    "THIRTY",
-    "FORTY",
-    "FIFTY",
-    "SIXTY",
-    "SEVENTY",
-    "EIGHTY",
-    "NINETY",
+    "", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"
   ];
   const thousands = ["", "THOUSAND", "MILLION", "BILLION"];
 
   function helper(n) {
+    if (n === 0) return "";
     if (n < 20) return belowTwenty[n - 1];
-    if (n < 100)
-      return (
-        tens[Math.floor(n / 10)] +
-        (n % 10 === 0 ? "" : "-" + belowTwenty[(n % 10) - 1])
-      );
-    if (n < 1000)
-      return (
-        belowTwenty[Math.floor(n / 100) - 1] +
-        " HUNDRED" +
-        (n % 100 === 0 ? "" : " AND " + helper(n % 100))
-      );
+    if (n < 100) {
+      return tens[Math.floor(n / 10)] + 
+             (n % 10 === 0 ? "" : "-" + belowTwenty[(n % 10) - 1]);
+    }
+    if (n < 1000) {
+      return belowTwenty[Math.floor(n / 100) - 1] + 
+             " HUNDRED" + 
+             (n % 100 === 0 ? "" : " AND " + helper(n % 100));
+    }
     for (let i = 0; i < thousands.length; i++) {
       const unit = 1000 ** (i + 1);
-      if (n < unit)
-        return (
-          helper(Math.floor(n / 1000 ** i)) +
-          " " +
-          thousands[i] +
-          (n % 1000 ** i === 0 ? "" : " " + helper(n % 1000 ** i))
-        );
+      if (n < unit) {
+        return helper(Math.floor(n / (1000 ** i))) + 
+               " " + thousands[i] + 
+               (n % (1000 ** i) === 0 ? "" : " " + helper(n % (1000 ** i)));
+      }
     }
+    return "";
   }
 
-  return helper(num);
+  let wholeText = helper(whole) || "ZERO";
+  let decimalText = helper(decimal);
+  
+  if (decimal > 0) {
+    return wholeText + " POINT " + decimalText;
+  }
+  
+  return wholeText;
 }
