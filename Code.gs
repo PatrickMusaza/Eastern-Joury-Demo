@@ -982,194 +982,149 @@ function generateManifestList(recId) {
   };
 }
 
-
 // LOADING LIST
-
 function generateLoadingList(recId) {
-  const clientBillSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const itemsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const templateSheet = ss.getSheetByName("Loading List");
 
   const clientBillData = clientBillSheet.getDataRange().getValues();
   const itemsData = itemsSheet.getDataRange().getValues();
 
-  // Find the Container No for the given recId
   let containerNo = null;
   for (let i = 1; i < clientBillData.length; i++) {
     if (clientBillData[i][0] === recId) {
-      // Assuming recId is in Column A
-      containerNo = clientBillData[i][8]; // Assuming Container No is in Column I
+      containerNo = clientBillData[i][8];
       break;
     }
   }
-  if (!containerNo)
-    throw new Error("No Container No found for the provided RecId.");
+  if (!containerNo) throw new Error("No Container No found for the provided RecId.");
 
-  // Get all Bill Nos associated with the same Container No
-  let bills = clientBillData.filter((row) => row[8] === containerNo); // Filter rows by Container No (Column I)
-
+  const bills = clientBillData.filter(row => row[8] === containerNo);
   if (bills.length === 0) throw new Error("No bills found for the container.");
 
-  // Prepare Loading List data
   let loadingList = [];
   let totalPieces = 0;
   let totalWeight = 0;
 
-  bills.forEach((bill, index) => {
-    const billNo = bill[1]; // HWB No (Column B)
-    const totalPiecesForBill = bill[9]; // Total Pieces (Column J)
-    const totalWeightForBill = bill[10]; // Total Weight (Column K)
+  let rowIndex = 1;
+  bills.forEach((bill) => {
+    const billNo = bill[1];
+    const totalPiecesForBill = bill[9];
+    const totalWeightForBill = bill[10];
 
-    // Get items for the current bill and classify them
-    let classifiedItems = {};
+    // Get items of this bill
+    let billItems = [];
     for (let i = 1; i < itemsData.length; i++) {
       if (itemsData[i][3] === billNo) {
-        // Assuming Bill No is in Column D of Items sheet
-        let srNo = itemsData[i][0]; // SR NO (Column A in Items sheet)
-        let itemType = itemsData[i][1]; // Item Type (Column B in Items sheet)
-
-        if (!classifiedItems[srNo]) {
-          classifiedItems[srNo] = [];
-        }
-        classifiedItems[srNo].push(`${srNo} ${itemType}`);
+        billItems.push(itemsData[i][1]);
       }
     }
 
-    // Prepare loading list row
-    let row = [index + 1, billNo, totalPiecesForBill, totalWeightForBill];
-    for (let col = 1; col <= 20; col++) {
-      row.push(classifiedItems[col] ? classifiedItems[col].join(", ") : "");
+    const itemCount = billItems.length;
+    let position = 1;
+
+    for (let i = 0; i < itemCount; i += 20) {
+      const chunk = billItems.slice(i, i + 20);
+      let row = [];
+
+      if (i === 0) {
+        row = [rowIndex++, billNo, totalPiecesForBill, totalWeightForBill];
+        totalPieces += totalPiecesForBill;
+        totalWeight += totalWeightForBill;
+      } else {
+        row = ["", "", "", ""];
+      }
+
+      for (let j = 0; j < 20; j++) {
+        if (j < chunk.length) {
+          row.push(`${position} ${chunk[j]}`);
+          position++;
+        } else {
+          row.push("");
+        }
+      }
+
+      loadingList.push(row);
     }
-    loadingList.push(row);
-
-    totalPieces += totalPiecesForBill;
-    totalWeight += totalWeightForBill;
   });
 
-  // Generate the document
-  const templateId = "1deunNOVEO22mIaw-DsF33ul9YRthbUWF8WxQ1QIMSlI"; // Replace with your Loading List Template Doc ID
-  const folderId = "1TmbOGmOxcnfo5aiP6g7O50FmdznAEwhH"; // Replace with your target folder ID
-  const templateDoc = DriveApp.getFileById(templateId);
+  // Copy spreadsheet
+  const folder = DriveApp.getFolderById("1TmbOGmOxcnfo5aiP6g7O50FmdznAEwhH");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const newDoc = templateDoc.makeCopy(
-    `LoadingList_${containerNo}_${timestamp}`,
-    DriveApp.getFolderById(folderId)
-  );
-  const newDocId = newDoc.getId();
-  const doc = DocumentApp.openById(newDocId);
-  const body = doc.getBody();
+  const newSS = ss.copy(`LoadingList_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
 
-  // Replace placeholders in the template
-  body.replaceText("{{containerNo}}", containerNo);
-  body.replaceText("{{date}}", new Date().toLocaleDateString());
+  newSS.getSheets().forEach(sheet => {
+    if (sheet.getName() !== "Loading List") newSS.deleteSheet(sheet);
+  });
 
-  // Create the table
-  const table = body.appendTable();
+  const sheet = newSS.getSheetByName("Loading List");
 
-  // Add the header row
-  const headers = ["SR NO", "HWB NO", "TTL PCS", "TTL WEIGHT"];
-  for (let i = 1; i <= 20; i++) {
-    headers.push(i.toString());
+  // Replace placeholders
+  const dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
+  const headerRange = sheet.getDataRange();
+  const headerValues = headerRange.getValues();
+
+  for (let r = 0; r < headerValues.length; r++) {
+    for (let c = 0; c < headerValues[r].length; c++) {
+      if (typeof headerValues[r][c] === "string") {
+        headerValues[r][c] = headerValues[r][c]
+          .replace("{{ContainerNo}}", containerNo)
+          .replace("{{DATE}}", dateStr);
+      }
+    }
   }
-  const headerRow = table.appendTableRow();
-  headers.forEach((header) => {
-    const cell = headerRow.appendTableCell(header);
-    cell.setBackgroundColor("#1a73e8"); // Blue background for header
-    cell.setForegroundColor("#ffffff"); // White text for header
-    cell.setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    });
-  });
+  headerRange.setValues(headerValues);
 
-  // Add the data rows
-  loadingList.forEach((row) => {
-    const dataRow = table.appendTableRow();
-    row.forEach((cell) => {
-      const tableCell = dataRow.appendTableCell(cell.toString());
-      tableCell.setAttributes({
-        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-        [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-          DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-      });
+  // Write to sheet
+  const startRow = 9;
+  const numCols = 24;
+  if (loadingList.length > 0) {
+    sheet.getRange(startRow, 1, loadingList.length, numCols).setValues(loadingList);
+    sheet.getRange(startRow, 1, loadingList.length, numCols)
+      .setFontSize(12)
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle")
+      .setWrap(true);
 
-      // Simulate vertical alignment by adding spacing
-      const paragraph = tableCell.getChild(0).asParagraph();
-      paragraph.setSpacingBefore(10); // Add space before the text
-      paragraph.setSpacingAfter(10); // Add space after the text
-    });
-  });
+    // Add TOTAL row
+    const totalRow = startRow + loadingList.length;
+    sheet.getRange(totalRow, 1, 1, 2).merge();
+    sheet.getRange(totalRow, 1).setValue("TOTAL")
+      .setFontWeight("bold")
+      .setFontSize(14)
+      .setHorizontalAlignment("center");
+    sheet.getRange(totalRow, 3).setValue(totalPieces).setFontWeight("bold").setHorizontalAlignment("center");
+    sheet.getRange(totalRow, 4).setValue(totalWeight).setFontWeight("bold").setHorizontalAlignment("center");
 
-  // Add the total row
-  const totalRow = table.appendTableRow();
-  const totalCell = totalRow.appendTableCell("TOTAL");
-  totalCell.setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-  });
-
-  // Append empty cells to simulate colspan
-  for (let i = 0; i < 1; i++) {
-    const emptyCell = totalRow.appendTableCell("");
-    emptyCell.setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-    });
+    sheet.autoResizeRows(startRow, loadingList.length + 2);
   }
 
-  // Append total pieces and weight
-  totalRow.appendTableCell(totalPieces.toString()).setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-  });
-  totalRow.appendTableCell(totalWeight.toString()).setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-  });
-
-  // Append empty cells to simulate colspan
-  for (let i = 0; i < 20; i++) {
-    const emptyCell = totalRow.appendTableCell("");
-    emptyCell.setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-    });
+  // Remove excess rows
+  const lastUsedRow = sheet.getLastRow();
+  const maxRows = sheet.getMaxRows();
+  if (lastUsedRow < maxRows) {
+    sheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
   }
 
-  // Save and close the document
-  doc.saveAndClose();
+  // Export with reduced margins
+  const url = `https://docs.google.com/spreadsheets/d/${newSSId}/export?exportFormat=pdf&format=pdf&size=A4&portrait=true&fitw=true&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25&sheetnames=false&printtitle=false&pagenumbers=false&gridlines=false&fzr=false`;
 
-  // Export as PDF
-  const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const folder = DriveApp.getFolderById(folderId);
-  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const pdfBlob = response.getBlob().setName(`LoadingList_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newSSId).setTrashed(true);
 
-  // Delete the temporary document
-  DriveApp.getFileById(newDocId).setTrashed(true);
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-  // Set sharing permissions for the PDF
-  pdfFile.setSharing(
-    DriveApp.Access.ANYONE_WITH_LINK,
-    DriveApp.Permission.VIEW
-  );
-
-  // Return download link for the created document
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
-    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`
   };
 }
 
