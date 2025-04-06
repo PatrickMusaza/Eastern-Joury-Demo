@@ -836,209 +836,152 @@ function generateHouseWaybill(recId) {
 
 //funstion to generate the manifest list
 function generateManifestList(recId) {
-  const clientBillSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const itemsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
-  const abbreviationsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet = ss.getSheetByName(ABBREVIATIONS_SHEET);
+  const manifestTemplateSheet = ss.getSheetByName("Manifest");
 
   const clientBillData = clientBillSheet.getDataRange().getValues();
   const itemsData = itemsSheet.getDataRange().getValues();
   const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
 
-  // Create abbreviation dictionary
-  let abbreviationMap = {};
+  const abbreviationMap = {};
   for (let i = 1; i < abbreviationsData.length; i++) {
-    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
-    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
-    abbreviationMap[shortForm] = fullForm; // { "CT": "Carton" }
+    abbreviationMap[abbreviationsData[i][1]] = abbreviationsData[i][0];
   }
 
-  // Find the Container No associated with recId
   let containerNo = null;
   for (let i = 1; i < clientBillData.length; i++) {
     if (clientBillData[i][0] === recId) {
-      // Assuming recId is in Column A
-      containerNo = clientBillData[i][8]; // Assuming Container No is in Column I
+      containerNo = clientBillData[i][8];
       break;
     }
   }
-  if (!containerNo)
-    throw new Error("No Container No found for the provided RecId.");
+  if (!containerNo) throw new Error("No Container No found for the provided RecId.");
 
-  // Get all Bill Nos associated with the same Container No
-  let bills = clientBillData.filter((row) => row[8] === containerNo); // Filter rows by Container No (Column I)
-
+  const bills = clientBillData.filter(row => row[8] === containerNo);
   if (bills.length === 0) throw new Error("No bills found for the container.");
 
-  // Initialize Manifest List
   let manifestList = [];
   let totalPieces = 0;
   let totalWeight = 0;
 
   bills.forEach((bill, index) => {
-    const billNo = bill[1]; // Bill No (Column B)
-    const shipperName = bill[2]; // Shipper Name (Column C)
-    const shipperTel = bill[3]; // Tel No (Column D)
-    const receiverName = `${bill[4]} / ${bill[6]}`;
-    const receiverTel = `${bill[5]} / ${bill[7]}`;
-    const totalPiecesForBill = bill[9]; // Total Pieces (Column J)
-    const totalWeightForBill = bill[10]; // Total Weight (Column K)
+    const billNo = bill[1];
+    const shipperName = bill[2];
+    const shipperTel = bill[3];
+    const receiverName = bill[4];
+    const receiverTel = bill[5];
+    const receiverName2 = bill[6];
+    const receiverTel2 = bill[7];
+    const totalPiecesForBill = bill[9];
+    const totalWeightForBill = bill[10];
 
-    // Count item types for the Bill No
     let itemCountMap = {};
     for (let i = 1; i < itemsData.length; i++) {
       if (itemsData[i][3] === billNo) {
-        // Assuming Bill No is in Column D of Items sheet
-        let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
-        let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form
-        itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
+        const itemType = abbreviationMap[itemsData[i][1]] || itemsData[i][1];
+        itemCountMap[itemType] = (itemCountMap[itemType] || 0) + 1;
       }
     }
 
-    // Format item counts
-    let itemsFormatted = [];
-    for (let itemType in itemCountMap) {
-      let count = itemCountMap[itemType];
-      itemsFormatted.push(`${count} ${itemType}`);
-    }
-    let itemsList = itemsFormatted.join(", "); // Join item types with commas
+    const itemsList = Object.entries(itemCountMap)
+      .map(([type, count]) => `${count} ${type}`)
+      .join(", ");
 
-    // Add to Manifest List
     manifestList.push([
-      index + 1, // Serial Number
+      index + 1,
       billNo,
-      `${shipperName} \n${receiverName}`,
-      `${shipperTel} \n${receiverTel}`, // Shipper contact and Receiver contact
+      `${shipperName}\n${receiverName}${receiverName2 ? '\n' + receiverName2 : ''}`.replace(/\//g, ''),
+      `${shipperTel}\n${receiverTel}${receiverTel2 ? '\n' + receiverTel2 : ''}`.replace(/\//g, ''),
       itemsList,
       totalPiecesForBill,
-      totalWeightForBill,
+      totalWeightForBill
     ]);
 
     totalPieces += totalPiecesForBill;
     totalWeight += totalWeightForBill;
   });
 
-  // Generate the document
-  const templateId = "1QsOLWuwCBFjVP-KF71P6I4MCeJLCpVE2btIrsaTLlxM"; // Replace with your Manifest Template Doc ID
-  const folderId = "1PDPiUFkyO0vM0yM_0Gir4FU41PKZkEI1"; // Replace with your target folder ID
-  const templateDoc = DriveApp.getFileById(templateId);
+  const folder = DriveApp.getFolderById("1PDPiUFkyO0vM0yM_0Gir4FU41PKZkEI1");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const newDoc = templateDoc.makeCopy(
-    `ManifestList_${containerNo}_${timestamp}`,
-    DriveApp.getFolderById(folderId)
-  );
-  const newDocId = newDoc.getId();
-  const doc = DocumentApp.openById(newDocId);
-  const body = doc.getBody();
+  const newSS = ss.copy(`Manifest_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
 
-  // Replace placeholders for container-level details
-  body.replaceText("{{ContainerNo}}", containerNo);
-  body.replaceText("{{Date}}", new Date().toLocaleString());
-
-  // Create a simple table for manifest data
-  const table = body.appendTable();
-
-  // Add header row
-  const headerRow = table.appendTableRow();
-  const headers = [
-    "SR NO",
-    "HWB NO",
-    "SHIPPER / CONSIGNEE NAMES",
-    "CONTACT NO",
-    "DESCRIPTION OF GOODS",
-    "PCS",
-    "WEIGHT",
-  ];
-  headers.forEach((text) => {
-    const cell = headerRow.appendTableCell(text);
-    cell.setBackgroundColor("#1a73e8"); // Blue background
-    cell.setForegroundColor("#ffffff"); // White text for header
-    cell.setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    });
+  newSS.getSheets().forEach(sheet => {
+    if (sheet.getName() !== "Manifest") newSS.deleteSheet(sheet);
   });
 
-  // Add manifest data rows
-  manifestList.forEach((row, index) => {
-    const dataRow = table.appendTableRow();
-    row.forEach((cellText) => {
-      const cell = dataRow.appendTableCell(cellText.toString());
-      cell.setAttributes({
-        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-        [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-          DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-      });
+  const manifestSheet = newSS.getSheetByName("Manifest");
+  manifestSheet.getRange("E5").setValue(containerNo);
+  manifestSheet.getDataRange().createTextFinder("{{ContainerNo}}").replaceAllWith(containerNo);
 
-      // Simulate vertical alignment by adding padding
-      const paragraph = cell.getChild(0).asParagraph();
-      paragraph.setSpacingBefore(10); // Add space before the text
-      paragraph.setSpacingAfter(10); // Add space after the text
-    });
-  });
+  const startRow = 9;
+  const rowCount = manifestList.length;
+  const fontSize = 12;
 
-  // Add a total row
-  const totalRow = table.appendTableRow();
-  const totalCell = totalRow.appendTableCell("TOTAL");
-  totalCell.setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-  });
+  if (rowCount > 0) {
+    manifestSheet.getRange(startRow, 1, rowCount, 7).setValues(manifestList);
 
-  // Append empty cells to simulate colspan
-  for (let i = 0; i < 4; i++) {
-    const emptyCell = totalRow.appendTableCell("");
-    emptyCell.setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-      [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-        DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-    });
+    for (let col = 1; col <= 7; col++) {
+      manifestSheet.getRange(startRow, col, rowCount, 1)
+        .setHorizontalAlignment("center")
+        .setVerticalAlignment("middle")
+        .setWrap(true)
+        .setFontSize(fontSize);
+    }
+
+    const totalRow = startRow + rowCount;
+    manifestSheet.getRange(totalRow, 1, 1, 5).merge();
+    manifestSheet.getRange(totalRow, 1).setValue("TOTAL")
+      .setHorizontalAlignment("center")
+      .setFontWeight("bold")
+      .setFontSize(fontSize + 2);
+
+    manifestSheet.getRange(totalRow, 6).setValue(totalPieces)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+    manifestSheet.getRange(totalRow, 7).setValue(totalWeight)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+
+    manifestSheet.autoResizeRows(startRow, rowCount + 1);
   }
 
-  // Append total pieces and weight
-  totalRow.appendTableCell(totalPieces.toString()).setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
+  const lastUsedRow = manifestSheet.getLastRow();
+  const maxRows = manifestSheet.getMaxRows();
+  if (lastUsedRow < maxRows) {
+    manifestSheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
+  }
+
+  // Build custom PDF URL
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?format=pdf&size=A4&portrait=true&fitw=true` +
+                    `&top_margin=0.2&bottom_margin=0.4&left_margin=0.2&right_margin=0.2` +
+                    `&sheetnames=false&printtitle=false&gridlines=false`;
+
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
-  totalRow.appendTableCell(totalWeight.toString()).setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend", // Set font to Lexend
-    [DocumentApp.Attribute.HORIZONTAL_ALIGNMENT]:
-      DocumentApp.HorizontalAlignment.CENTER, // Center align horizontally
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000", // Set text color to black
-  });
 
-  // Save and close the document
-  doc.saveAndClose();
+  const pdfBlob = response.getBlob().setName(`Manifest_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = folder.createFile(pdfBlob);
 
-  // Export as PDF
-  const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const folder = DriveApp.getFolderById(folderId);
-  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+  // Trash the spreadsheet copy
+  DriveApp.getFileById(newSSId).setTrashed(true);
 
-  // Delete the temporary document
-  DriveApp.getFileById(newDocId).setTrashed(true);
+  // Make it viewable
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-  // Set sharing permissions for the PDF
-  pdfFile.setSharing(
-    DriveApp.Access.ANYONE_WITH_LINK,
-    DriveApp.Permission.VIEW
-  );
-
-  // Return preview & download links
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
-    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`
   };
 }
+
 
 // LOADING LIST
 
