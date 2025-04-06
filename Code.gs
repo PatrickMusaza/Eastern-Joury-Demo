@@ -1131,10 +1131,10 @@ function generateLoadingList(recId) {
 //ITEM LIST COUNT
 
 function generateItemList(recId) {
-  const clientBillSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
-  const itemsSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const templateSheet = ss.getSheetByName("Item List");
 
   const clientBillData = clientBillSheet.getDataRange().getValues();
   const itemsData = itemsSheet.getDataRange().getValues();
@@ -1146,10 +1146,9 @@ function generateItemList(recId) {
       break;
     }
   }
-  if (!containerNo)
-    throw new Error("No Container No found for the provided RecId.");
+  if (!containerNo) throw new Error("No Container No found for the provided RecId.");
 
-  let bills = clientBillData.filter((row) => row[8] === containerNo);
+  const bills = clientBillData.filter(row => row[8] === containerNo);
   if (bills.length === 0) throw new Error("No bills found for the container.");
 
   let itemCounts = {};
@@ -1161,99 +1160,86 @@ function generateItemList(recId) {
     const totalPiecesForBill = bill[9];
     totalPieces += totalPiecesForBill;
 
-    if (!itemCounts[billNo]) {
-      itemCounts[billNo] = { totalPieces: totalPiecesForBill };
-    }
+    if (!itemCounts[billNo]) itemCounts[billNo] = { totalPieces: totalPiecesForBill };
 
     for (let i = 1; i < itemsData.length; i++) {
       if (itemsData[i][3] === billNo) {
-        let itemType = itemsData[i][1];
+        const itemType = itemsData[i][1];
         itemCounts[billNo][itemType] = (itemCounts[billNo][itemType] || 0) + 1;
         totalItemCounts[itemType] = (totalItemCounts[itemType] || 0) + 1;
       }
     }
   });
 
-  const templateId = "1WxSqFcxdxSZEwmAKt83Ny5jDSRhPk16NahZqEUwIjdY";
   const folderId = "1l1n66G2MPgEmlFB5iHN7ZUbijgbx7k8y";
-  const templateDoc = DriveApp.getFileById(templateId);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const newDoc = templateDoc.makeCopy(
-    `ItemList_${containerNo}_${timestamp}`,
-    DriveApp.getFolderById(folderId)
-  );
-  const newDocId = newDoc.getId();
-  const doc = DocumentApp.openById(newDocId);
-  const body = doc.getBody();
+  const newSS = ss.copy(`ItemList_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
+  const sheet = newSS.getSheetByName("Item List");
 
-  body.replaceText("{{containerNo}}", containerNo);
-  body.replaceText("{{date}}", new Date().toLocaleDateString());
-
-  const table = body.appendTable();
-  let headers = ["HWB NO", "TTL PCS", ...Object.keys(totalItemCounts)];
-  const headerRow = table.appendTableRow();
-  headers.forEach((header) => {
-    const cell = headerRow.appendTableCell(header);
-    cell.setBackgroundColor("#1a73e8").setForegroundColor("#ffffff");
+  // Remove all other sheets
+  newSS.getSheets().forEach(s => {
+    if (s.getName() !== "Item List") newSS.deleteSheet(s);
   });
 
+  // Replace placeholders
+  sheet.createTextFinder("{{containerNo}}").matchCase(false).replaceAllWith(containerNo);
+  sheet.createTextFinder("{{date}}").matchCase(false).replaceAllWith(new Date().toLocaleDateString());
+
+  // Table generation
+  const itemTypes = Object.keys(totalItemCounts);
+  const headers = ["HWB NO", "TTL PCS", ...itemTypes];
+  sheet.getRange(7, 1, 1, headers.length).setValues([headers]).setFontSize(14).setFontWeight("bold");
+
+  const startRow = 9;
+  const data = [];
   Object.entries(itemCounts).forEach(([billNo, counts]) => {
-    const row = table.appendTableRow();
-    row.appendTableCell(billNo).setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-      [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
-    });
-    row
-      .appendTableCell(counts.totalPieces ? counts.totalPieces.toString() : "")
-      .setAttributes({
-        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-        [DocumentApp.Attribute.FOREGROUND_COLOR]: counts.totalPieces
-          ? "#FF0000"
-          : "#000000",
-      });
-    headers.slice(2).forEach((type) => {
-      row.appendTableCell((counts[type] || "").toString()).setAttributes({
-        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
-      });
-    });
+    const row = [billNo, counts.totalPieces];
+    itemTypes.forEach(type => row.push(counts[type] || ""));
+    data.push(row);
   });
 
-  const totalRow = table.appendTableRow();
-  totalRow.appendTableCell("TOTAL").setAttributes({
-    [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-    [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
-  });
-  totalRow
-    .appendTableCell(totalPieces ? totalPieces.toString() : "")
-    .setAttributes({
-      [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-      [DocumentApp.Attribute.FOREGROUND_COLOR]: totalPieces
-        ? "#FF0000"
-        : "#000000",
-    });
-  headers.slice(2).forEach((type) => {
-    totalRow
-      .appendTableCell((totalItemCounts[type] || "").toString())
-      .setAttributes({
-        [DocumentApp.Attribute.FONT_FAMILY]: "Lexend",
-        [DocumentApp.Attribute.FOREGROUND_COLOR]: "#000000",
-      });
+  if (data.length > 0) {
+    sheet.getRange(startRow, 1, data.length, headers.length).setValues(data).setFontSize(13);
+
+    const totalRowIdx = startRow + data.length;
+    const totalRow = ["TOTAL", totalPieces];
+    itemTypes.forEach(type => totalRow.push(totalItemCounts[type] || ""));
+    sheet.getRange(totalRowIdx, 1, 1, headers.length).setValues([totalRow]).setFontSize(13).setFontWeight("bold");
+
+    sheet.getRange(startRow, 1, data.length + 1, headers.length)
+      .setVerticalAlignment("middle")
+      .setHorizontalAlignment("center")
+      .setWrap(true);
+  }
+
+  // Delete extra rows to avoid white space
+  const lastRow = sheet.getLastRow();
+  const maxRows = sheet.getMaxRows();
+  if (lastRow < maxRows) sheet.deleteRows(lastRow + 1, maxRows - lastRow);
+
+  // Export the sheet to PDF with custom margins (top=0.2in, left=0.2in, right=0.2in)
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&portrait=true&sheetnames=false&printtitle=false&pagenumbers=false&` +
+    `gridlines=false&fzr=false&top_margin=0.2&bottom_margin=0.2&left_margin=0.2&right_margin=0.2&` +
+    `gid=${sheet.getSheetId()}`;
+
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
-  doc.saveAndClose();
-  const pdfBlob = newDoc.getAs(MimeType.PDF);
-  const folder = DriveApp.getFolderById(folderId);
-  const pdfFile = folder.createFile(pdfBlob);
-  DriveApp.getFileById(newDocId).setTrashed(true);
-  pdfFile.setSharing(
-    DriveApp.Access.ANYONE_WITH_LINK,
-    DriveApp.Permission.VIEW
-  );
+  const blob = response.getBlob().setName(`ItemList_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = DriveApp.getFolderById(folderId).createFile(blob);
+  DriveApp.getFileById(newSSId).setTrashed(true);
+
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
-    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
   };
 }
 
