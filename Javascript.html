@@ -580,11 +580,8 @@
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
-    );
-    const paidAmount = parseFloat(
-      document.getElementById("paidAmount").value || "0"
-    );
-
+    );   
+    
     // Calculate chargeable weight
     const chargeableWeight = Math.max(0, actualWeight - discountWeight);
     document.getElementById("chargeableWeight").value = chargeableWeight;
@@ -596,9 +593,23 @@
     // Calculate total charges
     const totalCharges = billCharge;
     document.getElementById("totalCharges").value = totalCharges.toFixed(2);
+    
+    let paidAmount = parseFloat(document.getElementById("paidAmount").value || "0");  
+    
+    // Ensure paid amount doesn't exceed total charges
+    if (paidAmount > totalCharges) {
+        paidAmount = totalCharges;
+        document.getElementById("paidAmount").value = paidAmount.toFixed(2);
+        alert("Paid amount cannot exceed total charges");
+    }
 
+    // Set paid amount to total charges if it's empty or 0
+    if (!document.getElementById("paidAmount").value || paidAmount === 0) {
+        document.getElementById("paidAmount").value = totalCharges.toFixed(2);
+    }
+    
     // Calculate outstanding balance
-    const outstandingBalance = Math.max(0, totalCharges - paidAmount);
+    const outstandingBalance = Math.max(0, totalCharges - document.getElementById("paidAmount").value || "0");
     document.getElementById("outstandingBalance").value =
       outstandingBalance.toFixed(2);
   }
