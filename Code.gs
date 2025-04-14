@@ -1453,6 +1453,205 @@ function generateReport({ reportType, container, fromDate, toDate }) {
   };
 }
 
+
+function generateContainerSummary(params) {
+  const { container, fromDate, toDate } = params;
+  
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const summaryTemplateSheet = ss.getSheetByName("Container Summary");
+  
+  if (!summaryTemplateSheet) {
+    throw new Error("Container Summary template sheet not found");
+  }
+
+  // Get all data including headers
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const headers = clientBillData[0];
+  console.log("Headers:", headers);
+  
+  // Filter bills (skip header row)
+  let bills = [];
+  let headerText = "";
+  
+  if (container) {
+    bills = clientBillData.slice(1).filter(row => row[8] && row[8].toString().trim() === container.toString().trim());
+    headerText = `CONTAINER NO: ${container}`;
+    console.log(`Found ${bills.length} bills for container ${container}`);
+  } else {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    
+    bills = clientBillData.slice(1).filter(row => {
+      try {
+        const billDate = row[19] ? new Date(row[19]) : (row[20] ? new Date(row[20]) : null);
+        return billDate && billDate >= from && billDate <= to;
+      } catch (e) {
+        console.warn("Date error:", e);
+        return false;
+      }
+    });
+    headerText = `DATE RANGE: ${formatDateForDisplay(fromDate)} TO ${formatDateForDisplay(toDate)}`;
+    console.log(`Found ${bills.length} bills for date range`);
+  }
+  
+  if (bills.length === 0) {
+    throw new Error(`No matching bills found`);
+  }
+
+  // CREATE NEW SPREADSHEET
+  const folder = DriveApp.getFolderById("1Mevmd81eoXttjgPMHKthOrI29hue0ng6");
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HHmmss");
+  const newSSName = `Container_Summary_${container || "DATERANGE"}_${timestamp}`;
+  const newSS = SpreadsheetApp.create(newSSName);
+  const newSSId = newSS.getId();
+  
+  // COPY TEMPLATE
+  const copiedSheet = summaryTemplateSheet.copyTo(newSS);
+  copiedSheet.setName("Container Summary");
+  newSS.deleteSheet(newSS.getSheets()[0]); // Remove default sheet
+  
+  // GET COPIED SHEET
+  const summarySheet = newSS.getSheetByName("Container Summary");
+  
+  // REPLACE PLACEHOLDER
+  summarySheet.getDataRange().createTextFinder("{{Placeholder}}").replaceAllWith(headerText);
+  
+  // PREPARE DATA
+  const summaryData = [];
+  let totals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // For pieces, kgs, charges, etc.
+  
+  bills.forEach((bill, index) => {
+    const rowData = [
+      index + 1,                           // SR NO
+      bill[8],                             // CONTAINER NO
+      bill[1],                             // HWB NO
+      bill[9],                             // TOTAL PCS
+      bill[10],                            // TOTAL KG'S
+      bill[16],                            // TOTAL CHARGES
+      bill[14],                            // BILL CHARGE
+      bill[21],                            // BAREL CHG (adjust if needed)
+      bill[16],                            // TOTAL CHARGE (duplicate)
+      bill[15],                            // DISCOUNT AMOUNT
+      bill[16],                            // TOTAL AMOUNT
+      bill[17],                            // PAID AMOUNT
+      bill[18],                            // DUE AMOUNT
+      bill[2]                              // CLIENT NAME
+    ];
+    
+    summaryData.push(rowData);
+    
+    // Update totals
+    totals[0] += bill[9] || 0;    // PCS
+    totals[1] += bill[10] || 0;   // KGS
+    totals[2] += bill[16] || 0;   // CHARGES
+    totals[3] += bill[14] || 0;   // BILL CHARGE
+    totals[4] += 0;               // BAREL CHG
+    totals[5] += bill[16] || 0;   // TOTAL
+    totals[6] += bill[15] || 0;   // DISCOUNT
+    totals[7] += bill[16] || 0;   // TOTAL
+    totals[8] += bill[17] || 0;   // PAID
+    totals[9] += bill[18] || 0;   // DUE
+  });
+  
+  // WRITE DATA TO SHEET (STARTING AT ROW 9)
+  if (summaryData.length > 0) {
+    const startRow = 9; // Data starts at row 9
+    const numCols = summaryData[0].length;
+    
+    // Clear any existing data below row 8
+    if (summarySheet.getLastRow() >= startRow) {
+      summarySheet.getRange(startRow, 1, summarySheet.getLastRow() - startRow + 1, numCols).clearContent();
+    }
+    
+    // Write new data starting at row 9
+    summarySheet.getRange(startRow, 1, summaryData.length, numCols).setValues(summaryData);
+    
+    // Add totals row
+    const totalsRow = startRow + summaryData.length;
+    summarySheet.getRange(totalsRow, 1).setValue("TOTAL")
+      .setFontWeight("bold")
+      .setFontSize(12); // Increased font size
+    
+    // Set totals values with formatting
+    const totalsColumns = [4,5,6,7,8,9,10,11,12,13]; // Columns to format
+    totalsColumns.forEach((col, idx) => {
+      if (idx < totals.length) {
+        summarySheet.getRange(totalsRow, col)
+          .setValue(totals[idx])
+          .setFontWeight("bold")
+          .setFontSize(12) // Increased font size
+          .setHorizontalAlignment("center");
+      }
+    });
+    
+    // Format totals row
+    summarySheet.getRange(totalsRow, 1, 1, numCols)
+      .setFontWeight("bold")
+      .setBackground("#f2f2f2");
+    
+    // Remove all empty rows below data
+    const maxRows = summarySheet.getMaxRows();
+    const lastUsedRow = summarySheet.getLastRow();
+    if (lastUsedRow < maxRows) {
+      summarySheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
+    }
+    
+    // Auto-resize columns
+    for (let i = 1; i <= numCols; i++) {
+      //summarySheet.autoResizeColumn(i);
+    }
+  }
+  
+  // GENERATE PDF WITH PROPER SETTINGS
+  const lastRow = summarySheet.getLastRow();
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&` +
+    `size=A4&` +
+    `portrait=true&` +
+    `fitw=true&` +
+    `top_margin=0.2&` +
+    `bottom_margin=0.4&` +
+    `left_margin=0.2&` +
+    `right_margin=0.2&` +
+    `sheetnames=false&` +
+    `printtitle=false&` +
+    `gridlines=false&` +
+    `range=A1:M${lastRow}`; // Explicitly include all rows
+  
+  let pdfBlob;
+  try {
+    const response = UrlFetchApp.fetch(exportUrl, {
+      headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
+      muteHttpExceptions: true
+    });
+    
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`PDF generation failed: ${response.getContentText()}`);
+    }
+    
+    pdfBlob = response.getBlob().setName(`${newSSName}.pdf`);
+  } catch (e) {
+    console.error("PDF generation error:", e);
+    throw new Error("Failed to generate PDF. Please try again.");
+  }
+  
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newSSId).setTrashed(true);
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`
+  };
+}
+
+function formatDateForDisplay(dateString) {
+  return Utilities.formatDate(new Date(dateString), Session.getScriptTimeZone(), "dd-MMM-yyyy");
+}
+
+
+
 //LOGS
 
 function getLogs() {

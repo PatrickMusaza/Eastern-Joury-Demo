@@ -1457,6 +1457,52 @@
       .generateReport({ reportType, container, fromDate, toDate });
   }
 
+  function generateContainerSummary() {
+  const container = document.getElementById("containerSelectReport").value;
+  const fromDate = document.getElementById("fromDate").value;
+  const toDate = document.getElementById("toDate").value;
+
+  if (!container && (!fromDate || !toDate)) {
+    alert("Please select a container or specify a date range.");
+    return;
+  }
+
+  // Clear the existing preview
+  const previewSection = document.getElementById("previewSection");
+  const reportPreviewIframe = document.getElementById("reportPreviewIframe");
+  const downloadReportBtn = document.getElementById("downloadReportBtn");
+
+  previewSection.style.display = "none"; // Hide the preview section
+  reportPreviewIframe.src = ""; // Clear the iframe source
+  downloadReportBtn.href = ""; // Clear the download link
+
+  // Show spinner while generating the report
+  $("#spinnerModal").modal("show");
+
+  google.script.run
+    .withSuccessHandler(function (urls) {
+      $("#spinnerModal").modal("hide"); // Hide spinner
+
+      if (urls && urls.previewUrl && urls.downloadUrl) {
+        // Set the iframe source to the preview URL
+        reportPreviewIframe.src = urls.previewUrl;
+        // Set the download button's href to the download URL
+        downloadReportBtn.href = urls.downloadUrl;
+        // Show the preview section
+        previewSection.style.display = "block";
+      } else {
+        alert("Error generating report. Please try again.");
+      }
+    })
+    .withFailureHandler(function (error) {
+      $("#spinnerModal").modal("hide"); // Hide spinner on error
+      console.error("Error generating report:", error);
+      alert("Error generating report. Please try again.");
+    })
+    .generateContainerSummary({ container, fromDate, toDate });
+}
+
+
   //PRINT REPORT
   
   function printIframe(iframeId) {
