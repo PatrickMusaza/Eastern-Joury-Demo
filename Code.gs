@@ -992,6 +992,7 @@ function generateLoadingList(recId) {
   const clientBillData = clientBillSheet.getDataRange().getValues();
   const itemsData = itemsSheet.getDataRange().getValues();
 
+  // Find container number
   let containerNo = null;
   for (let i = 1; i < clientBillData.length; i++) {
     if (clientBillData[i][0] === recId) {
@@ -1004,27 +1005,26 @@ function generateLoadingList(recId) {
   const bills = clientBillData.filter(row => row[8] === containerNo);
   if (bills.length === 0) throw new Error("No bills found for the container.");
 
+  // Prepare loading list data
   let loadingList = [];
   let totalPieces = 0;
   let totalWeight = 0;
-
   let rowIndex = 1;
+
   bills.forEach((bill) => {
     const billNo = bill[1];
     const totalPiecesForBill = bill[9];
     const totalWeightForBill = bill[10];
 
-    // Get items of this bill
-    let billItems = [];
-    for (let i = 1; i < itemsData.length; i++) {
-      if (itemsData[i][3] === billNo) {
-        billItems.push(itemsData[i][1]);
-      }
-    }
+    // Get items for this bill
+    const billItems = itemsData
+      .filter(item => item[3] === billNo)
+      .map(item => item[1]);
 
     const itemCount = billItems.length;
     let position = 1;
 
+    // Split into chunks of 20 items
     for (let i = 0; i < itemCount; i += 20) {
       const chunk = billItems.slice(i, i + 20);
       let row = [];
@@ -1037,25 +1037,26 @@ function generateLoadingList(recId) {
         row = ["", "", "", ""];
       }
 
-      for (let j = 0; j < 20; j++) {
-        if (j < chunk.length) {
-          row.push(`${position} ${chunk[j]}`);
-          position++;
-        } else {
-          row.push("");
-        }
-      }
-
+      // Add items to row
+      chunk.forEach(item => {
+        row.push(`${position} ${item}`);
+        position++;
+      });
+      
+      // Fill remaining columns if needed
+      while (row.length < 24) row.push("");
+      
       loadingList.push(row);
     }
   });
 
-  // Copy spreadsheet
+  // Create new spreadsheet
   const folder = DriveApp.getFolderById("1TmbOGmOxcnfo5aiP6g7O50FmdznAEwhH");
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HHmmss");
   const newSS = ss.copy(`LoadingList_${containerNo}_${timestamp}`);
   const newSSId = newSS.getId();
 
+  // Remove other sheets
   newSS.getSheets().forEach(sheet => {
     if (sheet.getName() !== "Loading List") newSS.deleteSheet(sheet);
   });
@@ -1064,41 +1065,66 @@ function generateLoadingList(recId) {
 
   // Replace placeholders
   const dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
-  const headerRange = sheet.getDataRange();
-  const headerValues = headerRange.getValues();
+  sheet.getDataRange().createTextFinder("{{ContainerNo}}").replaceAllWith(containerNo);
+  sheet.getDataRange().createTextFinder("{{DATE}}").replaceAllWith(dateStr);
 
-  for (let r = 0; r < headerValues.length; r++) {
-    for (let c = 0; c < headerValues[r].length; c++) {
-      if (typeof headerValues[r][c] === "string") {
-        headerValues[r][c] = headerValues[r][c]
-          .replace("{{ContainerNo}}", containerNo)
-          .replace("{{DATE}}", dateStr);
-      }
-    }
-  }
-  headerRange.setValues(headerValues);
-
-  // Write to sheet
+  // Write data with formatting
   const startRow = 9;
   const numCols = 24;
+  
   if (loadingList.length > 0) {
-    sheet.getRange(startRow, 1, loadingList.length, numCols).setValues(loadingList);
+    // Write data
     sheet.getRange(startRow, 1, loadingList.length, numCols)
+      .setValues(loadingList)
       .setFontSize(12)
       .setHorizontalAlignment("center")
       .setVerticalAlignment("middle")
       .setWrap(true);
 
+    // Set optimized column widths (in pixels)
+    const columnWidths = {
+      1: 30,    // SR NO (Column A)
+      2: 100,   // Bill No (Column B)
+      3: 70,    // Pieces (Column C)
+      4: 70,    // Weight (Column D)
+      5: 60,    // Column E (reduced width)
+      14: 60,   // Column N (reduced width)
+      19: 60    // Column S (reduced width)
+    };
+
+    // Apply specific column widths
+    Object.entries(columnWidths).forEach(([col, width]) => {
+      sheet.setColumnWidth(Number(col), width);
+    });
+
+    // Auto-resize other columns (excluding the ones we manually set)
+    const excludedCols = new Set(Object.keys(columnWidths).map(Number));
+    for (let col = 1; col <= numCols; col++) {
+      if (!excludedCols.has(col)) {
+        sheet.autoResizeColumn(col);
+      }
+    }
+
     // Add TOTAL row
     const totalRow = startRow + loadingList.length;
     sheet.getRange(totalRow, 1, 1, 2).merge();
-    sheet.getRange(totalRow, 1).setValue("TOTAL")
+    sheet.getRange(totalRow, 1)
+      .setValue("TOTAL")
       .setFontWeight("bold")
       .setFontSize(14)
       .setHorizontalAlignment("center");
-    sheet.getRange(totalRow, 3).setValue(totalPieces).setFontWeight("bold").setHorizontalAlignment("center");
-    sheet.getRange(totalRow, 4).setValue(totalWeight).setFontWeight("bold").setHorizontalAlignment("center");
+      
+    sheet.getRange(totalRow, 3)
+      .setValue(totalPieces)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+      
+    sheet.getRange(totalRow, 4)
+      .setValue(totalWeight)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
 
+    // Auto-resize rows
     sheet.autoResizeRows(startRow, loadingList.length + 2);
   }
 
@@ -1109,22 +1135,45 @@ function generateLoadingList(recId) {
     sheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
   }
 
-  // Export with reduced margins
-  const url = `https://docs.google.com/spreadsheets/d/${newSSId}/export?exportFormat=pdf&format=pdf&size=A4&portrait=true&fitw=true&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25&sheetnames=false&printtitle=false&pagenumbers=false&gridlines=false&fzr=false`;
+  // Generate PDF (Landscape)
+  const pdfUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&` +
+    `size=A4&` +
+    `portrait=false&` +
+    `fitw=true&` +
+    `top_margin=0.25&` +
+    `bottom_margin=0.25&` +
+    `left_margin=0.25&` +
+    `right_margin=0.25&` +
+    `sheetnames=false&` +
+    `printtitle=false&` +
+    `gridlines=false&` +
+    `range=A1:${sheet.getLastColumn()}${sheet.getLastRow()}`;
 
   const token = ScriptApp.getOAuthToken();
-  const response = UrlFetchApp.fetch(url, {
+  const pdfResponse = UrlFetchApp.fetch(pdfUrl, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  const pdfBlob = response.getBlob().setName(`LoadingList_${containerNo}_${timestamp}.pdf`);
+  const pdfBlob = pdfResponse.getBlob().setName(`LoadingList_${containerNo}_${timestamp}.pdf`);
   const pdfFile = folder.createFile(pdfBlob);
-  DriveApp.getFileById(newSSId).setTrashed(true);
 
+  // Generate XLS file
+  const xlsUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?format=xlsx`;
+  const xlsResponse = UrlFetchApp.fetch(xlsUrl, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const xlsBlob = xlsResponse.getBlob().setName(`LoadingList_${containerNo}_${timestamp}.xlsx`);
+  const xlsFile = folder.createFile(xlsBlob);
+
+  // Clean up
+  DriveApp.getFileById(newSSId).setTrashed(true);
   pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  xlsFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
   return {
     previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
-    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
+    xlsDownloadUrl: `https://drive.google.com/uc?id=${xlsFile.getId()}&export=download`
   };
 }
 
