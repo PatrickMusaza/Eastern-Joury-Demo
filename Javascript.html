@@ -1,9 +1,6 @@
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script
-  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
-  crossorigin="anonymous"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
 <script>
   // Function to handle tab switching
   function switchTab(event, tabId) {
@@ -1348,33 +1345,44 @@
 
   // LOADING LIST
 
-  function generateLoadingList(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
+function generateLoadingList(recId) {
+    $("#spinnerModal").modal("show"); // Show spinner while generating
     google.script.run
       .withSuccessHandler(function (urls) {
         $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl) {
+        if (urls && urls.previewUrl && urls.downloadUrl && urls.xlsDownloadUrl) {
           // Set the iframe source to the preview URL
-          document.getElementById("loadingListPreviewIframe").src =
-            urls.previewUrl;
-          // Set the download button's href to the download URL
-          document.getElementById("downloadLoadingListBtn").href =
-            urls.downloadUrl;
+          document.getElementById("loadingListPreviewIframe").src = urls.previewUrl;
+          
+          // Set the PDF download button's href
+          document.getElementById("downloadLoadingListBtn").href = urls.downloadUrl;
+          
+          // Set the Excel download button's href
+          document.getElementById("downloadExcelLoadingListBtn").href = urls.xlsDownloadUrl;
+          
           // Show the preview modal
           $("#loadingListPreviewModal").modal("show");
         } else {
-          alert(
-            "Error: Unable to generate the loading list. Please try again."
-          );
+          alert("Error: Unable to generate the loading list. Please try again.");
         }
       })
       .withFailureHandler(function (error) {
-        console.error("Error generating loading list:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        console.error("Error generating loading list:", error);
+        $("#spinnerModal").modal("hide");
         alert("Error generating Loading List. Please try again.");
       })
-      .generateLoadingList(recId); // Call the Google Apps Script function
-  }
+      .generateLoadingList(recId);
+}
+
+// Add this function to handle Excel download button click
+function downloadExcelLoadingList() {
+    const excelUrl = document.getElementById("downloadExcelLoadingListBtn").href;
+    if (excelUrl) {
+        window.open(excelUrl, '_blank');
+    } else {
+        alert("Excel download link not available. Please generate the loading list first.");
+    }
+}
 
   // ITEM LIST COUNT
 
