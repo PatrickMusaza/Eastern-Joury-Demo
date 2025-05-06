@@ -431,14 +431,14 @@
   }
 
   //Enter Key to addItem()
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const typeInput = document.getElementById("type");
-    const weightInput = document.getElementById("itemWeight");
+  
+  document.addEventListener('DOMContentLoaded', function () {
+    const typeInput = document.getElementById('type');
+    const weightInput = document.getElementById('itemWeight');
 
     [typeInput, weightInput].forEach((input) => {
-      input.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
           event.preventDefault(); // Prevent form submission
           //addItem(); // Call your function
           if (currentEditItemId) {
@@ -682,7 +682,7 @@
       document.getElementById("chargeableWeight").value || "0"
     );
     const ratePerKg = parseFloat(
-      document.getElementById("ratePerKg").value || "0"
+      (document.getElementById("ratePerKg").value || "0").replace(',', '.')
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
@@ -719,7 +719,7 @@
       document.getElementById("discountWeight").value || "0"
     );
     const ratePerKg = parseFloat(
-      document.getElementById("ratePerKg").value || "0"
+      (document.getElementById("ratePerKg").value || "0").replace(',', '.')
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
