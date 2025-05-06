@@ -431,14 +431,14 @@
   }
 
   //Enter Key to addItem()
-  
-  document.addEventListener('DOMContentLoaded', function () {
-    const typeInput = document.getElementById('type');
-    const weightInput = document.getElementById('itemWeight');
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const typeInput = document.getElementById("type");
+    const weightInput = document.getElementById("itemWeight");
 
     [typeInput, weightInput].forEach((input) => {
-      input.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
           event.preventDefault(); // Prevent form submission
           //addItem(); // Call your function
           if (currentEditItemId) {
@@ -682,7 +682,7 @@
       document.getElementById("chargeableWeight").value || "0"
     );
     const ratePerKg = parseFloat(
-      (document.getElementById("ratePerKg").value || "0").replace(',', '.')
+      (document.getElementById("ratePerKg").value || "0").replace(",", ".")
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
@@ -719,7 +719,7 @@
       document.getElementById("discountWeight").value || "0"
     );
     const ratePerKg = parseFloat(
-      (document.getElementById("ratePerKg").value || "0").replace(',', '.')
+      (document.getElementById("ratePerKg").value || "0").replace(",", ".")
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
@@ -731,12 +731,12 @@
 
     // Calculate bill charge
     const billCharge = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
-    //document.getElementById('billCharge').value = Math.max(0, billCharge).toFixed(2);
 
     // Calculate total charges
     const totalCharges = billCharge;
     document.getElementById("totalCharges").value = totalCharges.toFixed(2);
 
+    // Get and process paidAmount
     let paidAmount = parseFloat(
       document.getElementById("paidAmount").value || "0"
     );
@@ -748,16 +748,19 @@
       alert("Paid amount cannot exceed total charges");
     }
 
-    // Set paid amount to total charges if it's empty or 0
-    if (!document.getElementById("paidAmount").value || paidAmount === 0) {
-      document.getElementById("paidAmount").value = totalCharges.toFixed(2);
+    // If paidAmount is 0, no need to change it, just ensure it's valid.
+    if (isNaN(paidAmount)) {
+      paidAmount = 0; // fallback in case of invalid input
+      document.getElementById("paidAmount").value = "0";
     }
 
     // Calculate outstanding balance
     const outstandingBalance = Math.max(
-      0,
-      totalCharges - document.getElementById("paidAmount").value || "0"
+      0, // Ensure the outstanding balance is at least 0
+      totalCharges - paidAmount
     );
+
+    // Set outstanding balance value
     document.getElementById("outstandingBalance").value =
       outstandingBalance.toFixed(2);
   }
