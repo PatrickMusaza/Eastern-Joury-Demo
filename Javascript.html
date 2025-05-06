@@ -1,6 +1,9 @@
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+  crossorigin="anonymous"
+></script>
 <script>
   // Function to handle tab switching
   function switchTab(event, tabId) {
@@ -75,6 +78,8 @@
   let expenses = [];
   let currentPageExpense = 1;
   const expenseRecordsPerPage = 20;
+  let currentEditItemId = null;
+  let currentTotalWeight = 0;
 
   let username = sessionStorage.getItem("username");
 
@@ -290,6 +295,7 @@
                     <td>${item[1]}</td> <!-- Type -->
                     <td>${item[2]} KG</td> <!-- Weight -->
                     <td>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="editItem(this)">Edit</button>
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
                     </td>
                 `;
@@ -408,10 +414,27 @@
     });
   }
 
+  // Initialize form with Enter key support
+  function initializeForm() {
+    document
+      .getElementById("itemWeight")
+      .addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault(); // Prevent form submission
+          if (currentEditItemId) {
+            updateItem();
+          } else {
+            addItem();
+          }
+        }
+      });
+  }
+
+  // Add new item
   function addItem() {
     const typeDropdown = document.getElementById("type");
-    const type = typeDropdown.value; // Selected value (from Column B)
-    const itemWeight = parseFloat(document.getElementById("itemWeight").value); // Parse weight as a number
+    const type = typeDropdown.value;
+    const itemWeight = parseFloat(document.getElementById("itemWeight").value);
 
     if (!type || !itemWeight) {
       alert("Please fill in both Type and Item Weight.");
@@ -420,22 +443,19 @@
 
     const itemList = document.getElementById("itemList");
     const itemListContainer = document.getElementById("itemListContainer");
-    const row = document.createElement("tr"); // Use table row
+    const row = document.createElement("tr");
 
     row.innerHTML = `
-        <td>${itemCounter}</td>
-        <td>${
-          typeDropdown.options[typeDropdown.selectedIndex].text
-        }</td> <!-- Display label from Column A -->
-        <td>${itemWeight} KG</td>
-        <td>
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
-        </td>
-    `;
-
+    <td>${itemCounter}</td>
+    <td>${typeDropdown.options[typeDropdown.selectedIndex].text}</td>
+    <td>${itemWeight} KG</td>
+    <td>
+      <button type="button" class="btn btn-primary btn-sm" onclick="editItem(this)">Edit</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
+    </td>
+  `;
+    row.setAttribute("data-item-number", itemCounter);
     itemList.appendChild(row);
-
-    // Display table header and item details title if hidden
     itemListContainer.style.display = "block";
 
     // Save item to Google Sheets
@@ -446,31 +466,119 @@
       })
       .withFailureHandler((error) => {
         console.error("Error saving item:", error);
+        row.remove(); // Remove the row if save failed
       })
       .saveItem({
         number: itemCounter,
-        type: type, // Value from Column B
+        type: type,
         weight: itemWeight,
         bill: billNo,
       });
 
-    // Increment counter and clear fields
+    // Update UI and counters
     itemCounter++;
-    updateChargeDetails(itemWeight); // Update charge details
-    typeDropdown.value = ""; // Reset dropdown
-    document.getElementById("itemWeight").value = ""; // Clear weight field
+    updateChargeDetails(itemWeight);
+    typeDropdown.value = "";
+    document.getElementById("itemWeight").value = "";
   }
 
+  // Edit Item
+  function editItem(button) {
+    const row = button.closest("tr");
+    const cells = row.cells;
+    currentEditItemId = row.getAttribute("data-item-number");
+    const type = cells[1].textContent;
+    const weight = cells[2].textContent.replace(" KG", "");
+
+    // Fill the form with item data
+    const typeDropdown = document.getElementById("type");
+    for (let i = 0; i < typeDropdown.options.length; i++) {
+      if (typeDropdown.options[i].text === type) {
+        typeDropdown.selectedIndex = i;
+        break;
+      }
+    }
+    document.getElementById("itemWeight").value = weight;
+
+    // Change button to Update
+    const actionButton = document.querySelector('button[onclick="addItem()"]');
+    actionButton.textContent = "Update";
+    actionButton.classList.remove("btn-success");
+    actionButton.classList.add("btn-primary");
+    actionButton.onclick = function () {
+      updateItem();
+    };
+  }
+
+  // Update existing item
+  function updateItem() {
+    const typeDropdown = document.getElementById("type");
+    const type = typeDropdown.value;
+    const newWeight = parseFloat(document.getElementById("itemWeight").value);
+    const billNo = document.getElementById("billNo").value;
+
+    if (!type || !newWeight) {
+      alert("Please fill in both Type and Item Weight.");
+      return;
+    }
+
+    // Find the row being edited
+    const rows = document.getElementById("itemList").rows;
+    let row, oldWeight;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].getAttribute("data-item-number") == currentEditItemId) {
+        row = rows[i];
+        oldWeight = parseFloat(row.cells[2].textContent.replace(" KG", ""));
+        break;
+      }
+    }
+
+    if (!row) {
+      alert("Item not found for editing.");
+      return;
+    }
+
+    // Update the row in UI
+    row.cells[1].textContent =
+      typeDropdown.options[typeDropdown.selectedIndex].text;
+    row.cells[2].textContent = newWeight + " KG";
+
+    // Update in Google Sheets
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Item updated successfully.");
+        resetItemForm();
+        // Update charges with the difference
+        updateChargeDetails(newWeight - oldWeight);
+      })
+      .withFailureHandler((error) => {
+        console.error("Error updating item:", error);
+        // Revert UI changes if update failed
+        row.cells[1].textContent =
+          document.getElementById("type").options[
+            document.getElementById("type").selectedIndex
+          ].text;
+        row.cells[2].textContent = oldWeight + " KG";
+      })
+      .updateItem({
+        billNo: billNo,
+        itemNumber: currentEditItemId,
+        type: type,
+        weight: newWeight,
+      });
+  }
+
+  // Remove Item
   function removeItem(button) {
     const itemRow = button.parentElement.parentElement;
     const itemWeight = parseFloat(
       itemRow.querySelector("td:nth-child(3)").textContent.replace(" KG", "")
-    ); // Get the item weight
-    itemRow.remove(); // Remove the row from the UI
+    );
+    itemRow.remove();
 
-    // Delete the item from Google Sheets
+    // Delete from Google Sheets
     const billNo = document.getElementById("billNo").value;
-    const itemNumber = itemRow.querySelector("td:first-child").textContent; // Get the item number
+    const itemNumber = itemRow.getAttribute("data-item-number");
     google.script.run
       .withSuccessHandler(() => {
         console.log("Item removed successfully.");
@@ -478,19 +586,35 @@
       .withFailureHandler((error) => {
         console.error("Error removing item:", error);
       })
-      .deleteItem(billNo, itemNumber); // Call Google Apps Script function
+      .deleteItem(billNo, itemNumber);
 
-    // Update charge details
-    updateChargeDetails(-itemWeight); // Subtract the removed item's weight
+    // Update charges
+    updateChargeDetails(-itemWeight);
 
     // Hide table if empty
     const itemList = document.getElementById("itemList");
     if (!itemList.hasChildNodes()) {
       document.getElementById("itemListContainer").style.display = "none";
     }
-
-    itemCounter--;
   }
+
+  // Reset form after add/edit
+  function resetItemForm() {
+    document.getElementById("type").value = "";
+    document.getElementById("itemWeight").value = "";
+    currentEditItemId = null;
+
+    const actionButton =
+      document.querySelector('button[onclick="updateItem()"]') ||
+      document.querySelector('button[onclick="addItem()"]');
+    actionButton.textContent = "Add";
+    actionButton.classList.remove("btn-primary");
+    actionButton.classList.add("btn-success");
+    actionButton.onclick = function () {
+      addItem();
+    };
+  }
+
   /*
         // Calculate charges when discounts change
         document.getElementById('discountWeight').addEventListener('input', function () {
@@ -499,6 +623,7 @@
     
         document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
     */
+
   // Adjusted updateChargeDetails function
   function updateChargeDetails(weightChange) {
     const totalPieces = document.getElementById("totalPieces");
@@ -577,8 +702,8 @@
     );
     const discountCharge = parseFloat(
       document.getElementById("discountCharge").value || "0"
-    );   
-    
+    );
+
     // Calculate chargeable weight
     const chargeableWeight = Math.max(0, actualWeight - discountWeight);
     document.getElementById("chargeableWeight").value = chargeableWeight;
@@ -590,23 +715,28 @@
     // Calculate total charges
     const totalCharges = billCharge;
     document.getElementById("totalCharges").value = totalCharges.toFixed(2);
-    
-    let paidAmount = parseFloat(document.getElementById("paidAmount").value || "0");  
-    
+
+    let paidAmount = parseFloat(
+      document.getElementById("paidAmount").value || "0"
+    );
+
     // Ensure paid amount doesn't exceed total charges
     if (paidAmount > totalCharges) {
-        paidAmount = totalCharges;
-        document.getElementById("paidAmount").value = paidAmount.toFixed(2);
-        alert("Paid amount cannot exceed total charges");
+      paidAmount = totalCharges;
+      document.getElementById("paidAmount").value = paidAmount.toFixed(2);
+      alert("Paid amount cannot exceed total charges");
     }
 
     // Set paid amount to total charges if it's empty or 0
     if (!document.getElementById("paidAmount").value || paidAmount === 0) {
-        document.getElementById("paidAmount").value = totalCharges.toFixed(2);
+      document.getElementById("paidAmount").value = totalCharges.toFixed(2);
     }
-    
+
     // Calculate outstanding balance
-    const outstandingBalance = Math.max(0, totalCharges - document.getElementById("paidAmount").value || "0");
+    const outstandingBalance = Math.max(
+      0,
+      totalCharges - document.getElementById("paidAmount").value || "0"
+    );
     document.getElementById("outstandingBalance").value =
       outstandingBalance.toFixed(2);
   }
@@ -1329,6 +1459,9 @@
           // Set the download button's href to the download URL
           document.getElementById("downloadManifestBtn").href =
             urls.downloadUrl;
+          //Set the download for excel
+          document.getElementById("downloadExcelManifestBtn").href =
+            urls.xlsDownloadUrl;
           // Show the preview modal
           $("#manifestPreviewModal").modal("show");
         } else {
@@ -1343,27 +1476,48 @@
       .generateManifestList(recId); // Call the Google Apps Script function
   }
 
+  function downloadExcelManifest() {
+    const excelUrl = document.getElementById("downloadExcelManifestBtn").href;
+    if (excelUrl) {
+      window.open(excelUrl, "_blank");
+    } else {
+      alert(
+        "Excel download link not available. Please generate the manifest first."
+      );
+    }
+  }
+
   // LOADING LIST
 
-function generateLoadingList(recId) {
+  function generateLoadingList(recId) {
     $("#spinnerModal").modal("show"); // Show spinner while generating
     google.script.run
       .withSuccessHandler(function (urls) {
         $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl && urls.xlsDownloadUrl) {
+        if (
+          urls &&
+          urls.previewUrl &&
+          urls.downloadUrl &&
+          urls.xlsDownloadUrl
+        ) {
           // Set the iframe source to the preview URL
-          document.getElementById("loadingListPreviewIframe").src = urls.previewUrl;
-          
+          document.getElementById("loadingListPreviewIframe").src =
+            urls.previewUrl;
+
           // Set the PDF download button's href
-          document.getElementById("downloadLoadingListBtn").href = urls.downloadUrl;
-          
+          document.getElementById("downloadLoadingListBtn").href =
+            urls.downloadUrl;
+
           // Set the Excel download button's href
-          document.getElementById("downloadExcelLoadingListBtn").href = urls.xlsDownloadUrl;
-          
+          document.getElementById("downloadExcelLoadingListBtn").href =
+            urls.xlsDownloadUrl;
+
           // Show the preview modal
           $("#loadingListPreviewModal").modal("show");
         } else {
-          alert("Error: Unable to generate the loading list. Please try again.");
+          alert(
+            "Error: Unable to generate the loading list. Please try again."
+          );
         }
       })
       .withFailureHandler(function (error) {
@@ -1372,17 +1526,21 @@ function generateLoadingList(recId) {
         alert("Error generating Loading List. Please try again.");
       })
       .generateLoadingList(recId);
-}
+  }
 
-// Add this function to handle Excel download button click
-function downloadExcelLoadingList() {
-    const excelUrl = document.getElementById("downloadExcelLoadingListBtn").href;
+  // Add this function to handle Excel download button click
+  function downloadExcelLoadingList() {
+    const excelUrl = document.getElementById(
+      "downloadExcelLoadingListBtn"
+    ).href;
     if (excelUrl) {
-        window.open(excelUrl, '_blank');
+      window.open(excelUrl, "_blank");
     } else {
-        alert("Excel download link not available. Please generate the loading list first.");
+      alert(
+        "Excel download link not available. Please generate the loading list first."
+      );
     }
-}
+  }
 
   // ITEM LIST COUNT
 
@@ -1477,65 +1635,64 @@ function downloadExcelLoadingList() {
   }
 
   function generateContainerSummary() {
-  const container = document.getElementById("containerSelectReport").value;
-  const fromDate = document.getElementById("fromDate").value;
-  const toDate = document.getElementById("toDate").value;
+    const container = document.getElementById("containerSelectReport").value;
+    const fromDate = document.getElementById("fromDate").value;
+    const toDate = document.getElementById("toDate").value;
 
-  if (!container && (!fromDate || !toDate)) {
-    alert("Please select a container or specify a date range.");
-    return;
+    if (!container && (!fromDate || !toDate)) {
+      alert("Please select a container or specify a date range.");
+      return;
+    }
+
+    // Clear the existing preview
+    const previewSection = document.getElementById("previewSection");
+    const reportPreviewIframe = document.getElementById("reportPreviewIframe");
+    const downloadReportBtn = document.getElementById("downloadReportBtn");
+
+    previewSection.style.display = "none"; // Hide the preview section
+    reportPreviewIframe.src = ""; // Clear the iframe source
+    downloadReportBtn.href = ""; // Clear the download link
+
+    // Show spinner while generating the report
+    $("#spinnerModal").modal("show");
+
+    google.script.run
+      .withSuccessHandler(function (urls) {
+        $("#spinnerModal").modal("hide"); // Hide spinner
+
+        if (urls && urls.previewUrl && urls.downloadUrl) {
+          // Set the iframe source to the preview URL
+          reportPreviewIframe.src = urls.previewUrl;
+          // Set the download button's href to the download URL
+          downloadReportBtn.href = urls.downloadUrl;
+          // Show the preview section
+          previewSection.style.display = "block";
+        } else {
+          alert("Error generating report. Please try again.");
+        }
+      })
+      .withFailureHandler(function (error) {
+        $("#spinnerModal").modal("hide"); // Hide spinner on error
+        console.error("Error generating report:", error);
+        alert("Error generating report. Please try again.");
+      })
+      .generateContainerSummary({ container, fromDate, toDate });
   }
 
-  // Clear the existing preview
-  const previewSection = document.getElementById("previewSection");
-  const reportPreviewIframe = document.getElementById("reportPreviewIframe");
-  const downloadReportBtn = document.getElementById("downloadReportBtn");
-
-  previewSection.style.display = "none"; // Hide the preview section
-  reportPreviewIframe.src = ""; // Clear the iframe source
-  downloadReportBtn.href = ""; // Clear the download link
-
-  // Show spinner while generating the report
-  $("#spinnerModal").modal("show");
-
-  google.script.run
-    .withSuccessHandler(function (urls) {
-      $("#spinnerModal").modal("hide"); // Hide spinner
-
-      if (urls && urls.previewUrl && urls.downloadUrl) {
-        // Set the iframe source to the preview URL
-        reportPreviewIframe.src = urls.previewUrl;
-        // Set the download button's href to the download URL
-        downloadReportBtn.href = urls.downloadUrl;
-        // Show the preview section
-        previewSection.style.display = "block";
-      } else {
-        alert("Error generating report. Please try again.");
-      }
-    })
-    .withFailureHandler(function (error) {
-      $("#spinnerModal").modal("hide"); // Hide spinner on error
-      console.error("Error generating report:", error);
-      alert("Error generating report. Please try again.");
-    })
-    .generateContainerSummary({ container, fromDate, toDate });
-}
-
-
   //PRINT REPORT
-  
+
   function printIframe(iframeId) {
-  const iframe = document.getElementById(iframeId);
-  
-  // 1. Open the iframe URL in a new tab
-  const printWindow = window.open(iframe.src, '_blank');
-  
-  // 2. Add a print button to the new window
-  printWindow.onload = function() {
-    // Create print button
-    const printBtn = printWindow.document.createElement('button');
-    printBtn.textContent = 'Print Document';
-    printBtn.style.cssText = `
+    const iframe = document.getElementById(iframeId);
+
+    // 1. Open the iframe URL in a new tab
+    const printWindow = window.open(iframe.src, "_blank");
+
+    // 2. Add a print button to the new window
+    printWindow.onload = function () {
+      // Create print button
+      const printBtn = printWindow.document.createElement("button");
+      printBtn.textContent = "Print Document";
+      printBtn.style.cssText = `
       position: fixed;
       bottom: 20px;
       right: 20px;
@@ -1547,16 +1704,16 @@ function downloadExcelLoadingList() {
       cursor: pointer;
       z-index: 9999;
     `;
-    
-    // Add print functionality
-    printBtn.onclick = function() {
-      printWindow.print();
-    };
-    
-    // Create close button
-    const closeBtn = printWindow.document.createElement('button');
-    closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = `
+
+      // Add print functionality
+      printBtn.onclick = function () {
+        printWindow.print();
+      };
+
+      // Create close button
+      const closeBtn = printWindow.document.createElement("button");
+      closeBtn.textContent = "Close";
+      closeBtn.style.cssText = `
       position: fixed;
       bottom: 20px;
       right: 120px;
@@ -1568,24 +1725,24 @@ function downloadExcelLoadingList() {
       cursor: pointer;
       z-index: 9999;
     `;
-    closeBtn.onclick = function() {
-      printWindow.close();
+      closeBtn.onclick = function () {
+        printWindow.close();
+      };
+
+      // Add buttons to the document
+      printWindow.document.body.appendChild(closeBtn);
+      printWindow.document.body.appendChild(printBtn);
+
+      // Optional: Try to auto-print
+      setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch (e) {
+          console.log("Auto-print failed, using manual button");
+        }
+      }, 1000);
     };
-    
-    // Add buttons to the document
-    printWindow.document.body.appendChild(closeBtn);
-    printWindow.document.body.appendChild(printBtn);
-    
-    // Optional: Try to auto-print
-    setTimeout(() => {
-      try {
-        printWindow.print();
-      } catch (e) {
-        console.log('Auto-print failed, using manual button');
-      }
-    }, 1000);
-  };
-}
+  }
 
   //LOAD LOGS PAGE
 

@@ -145,11 +145,11 @@ function processClientBill(formObject, username) {
 }
 
 // GET ITEMS FOR A SPECIFIC BILL NO
-function getItemsForBill(billNo) {
+/*function getItemsForBill(billNo) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
   const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
   return data.filter((row) => row[3] === billNo); // Filter rows with matching Bill No
-}
+}*/
 
 // GET NEXT BILL NO
 function getNextBillNo() {
@@ -189,11 +189,65 @@ function createClientBillRecord(values) {
   }
 }
 
-// SAVE ITEM TO ITEM SHEET
+// Save new item
 function saveItem(item) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  sheet.appendRow([item.number, item.type, item.weight, item.bill]);
+}
+
+// Update existing item
+function updateItem(itemData) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues();
+
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][3] === itemData.billNo && data[i][0] == itemData.itemNumber) {
+      sheet.getRange(i + 2, 2).setValue(itemData.type); // Update type (column B)
+      sheet.getRange(i + 2, 3).setValue(itemData.weight); // Update weight (column C)
+      return true;
+    }
+  }
+  throw new Error("Item not found");
+}
+
+// Delete item
+function deleteItem(billNo, itemNumber) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues();
+
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][3] === billNo && data[i][0] == itemNumber) {
+      sheet.deleteRow(i + 2); // +2 for header and 0-based index
+      return true;
+    }
+  }
+  throw new Error("Item not found");
+}
+
+// Get all items for a bill
+function getItemsForBill(billNo) {
   const sheet =
     SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
-  sheet.appendRow([item.number, item.type, item.weight, item.bill]);
+  const data = sheet.getDataRange().getValues();
+  const billNoCol = 3; // Column D
+
+  try {
+    const items = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][billNoCol] === billNo) {
+        items.push({
+          id: i - 1,
+          number: data[i][0],
+          type: data[i][1],
+          weight: data[i][2],
+          bill: data[i][3],
+        });
+      }
+    }
+    return items;
+  } catch (e) {
+    throw new Error("Failed to get items: " + e.message);
+  }
 }
 
 // CLEAR ITEMS FOR CURRENT BILL NO
@@ -394,7 +448,7 @@ function getRecordByIds(recId) {
   return record ? [record] : null; // Return the record as an array (to match the expected format)
 }
 
-// DELETE ITEM FROM ITEM SHEET
+/* DELETE ITEM FROM ITEM SHEET
 function deleteItem(billNo, itemNumber) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
   const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
@@ -405,6 +459,7 @@ function deleteItem(billNo, itemNumber) {
     sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
   }
 }
+*/
 
 // GET FIRST 20 CLIENT BILL RECORDS
 function getFirstTwentyRecords() {
