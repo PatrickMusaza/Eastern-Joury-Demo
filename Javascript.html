@@ -430,6 +430,27 @@
       });
   }
 
+  //Enter Key to addItem()
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const typeInput = document.getElementById("type");
+    const weightInput = document.getElementById("itemWeight");
+
+    [typeInput, weightInput].forEach((input) => {
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault(); // Prevent form submission
+          //addItem(); // Call your function
+          if (currentEditItemId) {
+            updateItem();
+          } else {
+            addItem();
+          }
+        }
+      });
+    });
+  });
+
   // Add new item
   function addItem() {
     const typeDropdown = document.getElementById("type");
