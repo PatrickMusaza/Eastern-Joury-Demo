@@ -1,1814 +1,1984 @@
-<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script
-  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
-  crossorigin="anonymous"
-></script>
-<script>
-  // Function to handle tab switching
-  function switchTab(event, tabId) {
-    event.preventDefault(); // Prevent default link behavior
+/**
+ * Google Apps Script for Client Bill Management
+ * Handles CRUD operations and integrates with Google Sheets
+ */
 
-    // Remove active class from all tabs
-    document.querySelectorAll(".nav-link").forEach((link) => {
-      link.classList.remove("active");
-    });
+// CONSTANTS
+const SPREADSHEET_ID = "1hoiskygCvco34k1pLNllvBXR9MBdf9aEjs07YGHnJ2I"; // Replace with your Google Sheets ID
+const CLIENT_BILL_SHEET = "ClientBill"; // Name of the sheet for Client Bill data
+const CLIENT_BILL_RANGE = "ClientBill!A2:S"; // Range for Client Bill data (adjust columns as needed)
+const ABBREVIATIONS_SHEET = "Abbreviations"; // Name of the sheet for Abbreviations
+const ABBREVIATIONS_RANGE = "Abbreviations!A2:B"; // Range for Abbreviations data
+const ITEM_DATA_SHEET = "Item";
+const ITEM_DATA_RANGE = "Item!A2:D";
+const EXPENSES_SHEET = "Expenses";
+const EXPENSES_SHEET_RANGE = "Expenses!A2:F";
+const USER_SHEET = "Users";
+const USER_SHEET_RANGE = "Users!A2:C";
+const LOGS_SHEET = "Logs";
+const REPORT_TEMPLATE_ID = "1X_P2IBPF93K-hnzaQjdoXweZuJUDGcKgrIHc5IHaxpY"; // Replace with your Google Docs template ID
+const REPORT_FOLDER_ID = "1tF1YwKsgzR9kYI1iWhB-NywThtbnP4sN"; // Replace with your target folder ID
+const LOGS_SHEET_UPDATE = "LogFile";
 
-    // Add active class to the clicked tab
-    event.target.classList.add("active");
+const COLUMN_NAMES = {
+  recId: 0,
+  billNo: 1,
+  shipperName: 2,
+  telephoneNo: 3,
+  receiverName1: 4,
+  phoneNo1: 5,
+  receiverName2: 6,
+  phoneNo2: 7,
+  containerNo: 8,
+  totalPieces: 9,
+  actualWeight: 10,
+  discountWeight: 11,
+  chargeableWeight: 12,
+  ratePerKg: 13,
+  billCharge: 14,
+  discountCharge: 15,
+  totalCharges: 16,
+  paidAmount: 17,
+  outstandingBalance: 18,
+  dateUpdated: 19,
+  dateCreated: 20,
+};
 
-    // Hide all content sections
-    document.querySelectorAll(".tab-content").forEach((content) => {
-      content.style.display = "none";
-    });
+// Display HTML page
+function doGet(request) {
+  let html = HtmlService.createTemplateFromFile("Index").evaluate();
+  let htmlOutput = HtmlService.createHtmlOutput(html);
+  htmlOutput.addMetaTag("viewport", "width=device-width, initial-scale=1");
+  return htmlOutput;
+}
 
-    // Show the selected content section
-    document.getElementById(tabId).style.display = "block";
+//LOGIN
+function getUserCredentials() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
+  const data = sheet.getRange(USER_SHEET_RANGE).getValues();
+  const users = data.map((row) => ({
+    username: row[0],
+    password: row[1],
+    role: row[2],
+  }));
+  return users;
+}
+
+//LOGS LOGIN
+function logEvent(username, event, details) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET);
+  const timestamp = new Date();
+  sheet.appendRow([timestamp, username, event, details]);
+}
+
+//LOGS UPDATE
+function logEventUpdate(username, event, details) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET_UPDATE);
+  const timestamp = new Date().toString();
+  sheet.appendRow([timestamp, username, event, details]);
+}
+
+// PROCESS CLIENT BILL FORM SUBMISSION
+function processClientBill(formObject, username) {
+  if (formObject.recId && checkClientBillId(formObject.recId)) {
+    const values = [
+      [
+        formObject.recId,
+        formObject.billNo,
+        formObject.shipperName,
+        formObject.telephoneNo,
+        formObject.receiverName1,
+        formObject.phoneNo1,
+        formObject.receiverName2,
+        formObject.phoneNo2,
+        formObject.containerNo,
+        formObject.totalPieces,
+        formObject.actualWeight,
+        formObject.discountWeight,
+        formObject.chargeableWeight,
+        formObject.ratePerKg,
+        formObject.billCharge,
+        formObject.discountCharge,
+        formObject.totalCharges,
+        formObject.paidAmount,
+        formObject.outstandingBalance,
+        new Date().toLocaleString(),
+      ],
+    ];
+    const updateRange = getClientBillRangeById(formObject.recId);
+    console.log("updated");
+    updateClientBillRecord(values, updateRange, username); // Pass the username
+  } else {
+    console.log("Creating new record"); // Debugging line
+    // Create new record
+    const values = [
+      [
+        generateUniqueId(),
+        formObject.billNo,
+        formObject.shipperName,
+        formObject.telephoneNo,
+        formObject.receiverName1,
+        formObject.phoneNo1,
+        formObject.receiverName2,
+        formObject.phoneNo2,
+        formObject.containerNo,
+        formObject.totalPieces,
+        formObject.actualWeight,
+        formObject.discountWeight,
+        formObject.chargeableWeight,
+        formObject.ratePerKg,
+        formObject.billCharge,
+        formObject.discountCharge,
+        formObject.totalCharges,
+        formObject.paidAmount,
+        formObject.outstandingBalance,
+        new Date().toLocaleString(),
+        new Date().toLocaleString(),
+      ],
+    ];
+    createClientBillRecord(values);
   }
+  return getClientBillData();
+}
 
-  // Add event listeners to tabs
-  document
-    .getElementById("clientBillBtn")
-    .addEventListener("click", (event) => {
-      switchTab(event, "clientBillContent");
-    });
+// GET ITEMS FOR A SPECIFIC BILL NO
+function getItemsForBill(billNo) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  return data.filter((row) => row[3] === billNo); // Filter rows with matching Bill No
+}
 
-  document.getElementById("expensesBtn").addEventListener("click", (event) => {
-    switchTab(event, "expensesContent");
-  });
+// GET NEXT BILL NO
+function getNextBillNo() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const lastRow = sheet.getLastRow();
+  const lastBillNo = sheet.getRange(lastRow, 2).getValue(); // Assuming Bill No is in column B
+  const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
+  return nextBillNo;
+}
 
-  document.getElementById("reportsBtn").addEventListener("click", (event) => {
-    switchTab(event, "reportsContent");
-  });
+// HELPER FUNCTION TO INCREMENT BILL NO
+function incrementBillNo(billNo) {
+  const prefix = billNo.split("-")[0]; // Extract prefix (e.g., "BILL")
+  const number = parseInt(billNo.split("-")[1]); // Extract number
+  return `${prefix}-${number + 1}`; // Increment and return
+}
 
-  document
-    .getElementById("abbreviationsBtn")
-    .addEventListener("click", (event) => {
-      switchTab(event, "abbreviationsContent");
-    });
+// GET LAST BILL NO
+function getLastBillNo() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null; // No data
+  const lastBillNo = sheet.getRange(lastRow, 2).getValue(); // Fetch from Column B
+  return lastBillNo;
+}
 
-  document.getElementById("containerBtn").addEventListener("click", (event) => {
-    switchTab(event, "containerContent");
-  });
+// CREATE CLIENT BILL RECORD
+function createClientBillRecord(values) {
+  try {
+    const sheet =
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+    sheet.appendRow(values[0]);
+  } catch (err) {
+    console.log("Failed with error: " + err.message);
+  }
+}
 
-  document.getElementById("logBtn").addEventListener("click", (event) => {
-    switchTab(event, "logContent");
-  });
+// Save new item
+function saveItem(item) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  sheet.appendRow([item.number, item.type, item.weight, item.bill]);
+}
 
-  // Initialize the first tab as active
-  window.addEventListener("load", () => {
-    document.getElementById("clientBillBtn").click(); // Simulate click on the first tab
-  });
-  document.getElementById("warning").style.display = "none";
-</script>
-<script>
-  // CONSTANTS
-  let currentPage = 1;
-  const recordsPerPage = 20;
-  let allData = []; // This will store all records fetched from the server
-  let itemCounter = 1; // Counter for item numbers
-  const RATE_PER_KG = 3.9; // Fixed rate per KG
-  const BILL_CHARGE = 100; // Fixed bill charge
-  let currentAbbreviationPage = 1;
-  const abbreviationsPerPage = 5; // Number of records per page
-  let allAbbreviationsData = []; // This will store all abbreviations fetched from the server
-  let allContainerData = [];
-  let allExpensesData = [];
-  let allContainers = [];
-  let expenses = [];
-  let currentPageExpense = 1;
-  const expenseRecordsPerPage = 20;
-  let currentEditItemId = null;
-  let currentTotalWeight = 0;
+// Update existing item
+function updateItem(itemData) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues();
 
-  let username = sessionStorage.getItem("username");
-
-  // Prevent forms from submitting.
-  function preventFormSubmit() {
-    var forms = document.querySelectorAll("form");
-    for (var i = 0; i < forms.length; i++) {
-      forms[i].addEventListener("submit", function (event) {
-        event.preventDefault();
-      });
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][3] === itemData.billNo && data[i][0] == itemData.itemNumber) {
+      sheet.getRange(i + 2, 2).setValue(itemData.type); // Update type (column B)
+      sheet.getRange(i + 2, 3).setValue(itemData.weight); // Update weight (column C)
+      return true;
     }
   }
+  throw new Error("Item not found");
+}
 
-  //LOGS
+// Delete item
+function deleteItem(billNo, itemNumber) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues();
 
-  function checkRole() {
-    const role = sessionStorage.getItem("role");
-    const username = sessionStorage.getItem("username"); // Store username during login
-    if (role === "admin") {
-      // Log access to reports page
-      google.script.run.logEvent(
-        username,
-        "Page Access",
-        "Accessed Reports Page"
-      );
-      loadReportsPage();
-    } else {
-      // Log denied access to reports page
-      google.script.run.logEvent(
-        username,
-        "Page Access",
-        "Access Denied to Reports Page"
-      );
-      alert("You do not have permission to access this page.");
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][3] === billNo && data[i][0] == itemNumber) {
+      sheet.deleteRow(i + 2); // +2 for header and 0-based index
+      return true;
     }
   }
+  throw new Error("Item not found");
+}
 
-  // INITIALIZE FUNCTIONS ONLOAD
-  function functionInit() {
-    $("#spinnerModal").modal("show"); // Show spinner on load
-    preventFormSubmit();
-    loadClientBillPage();
-    generateBillNo(); // Generate and display Bill No
-    fetchTypeData(); // Fetch Type data for dropdown
-    loadClientBillData(); // Load client bill data
-    loadAbbreviations(); //load abbreviation data
-    loadContainerData();
-    loadContainers();
-    loadExpenses();
-    loadContainersReport();
-    fetchLogs();
-  }
+/* Get all items for a bill
+function getItemsForBill(billNo) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const data = sheet.getDataRange().getValues();
+  const billNoCol = 3; // Column D
 
-  //window.addEventListener("load", functionInit, true);
-
-  // Initialize on page load
-  window.addEventListener("load", () => {
-    generateBillNo(); // Generate and display Bill No
-  });
-
-  // Add this to your script
-  function forceUppercase(e) {
-    e.target.value = e.target.value.toUpperCase();
-  }
-
-  // Apply to all text inputs
-  document.querySelectorAll('input[type="text"]').forEach((input) => {
-    input.addEventListener("input", forceUppercase);
-    input.addEventListener("blur", forceUppercase); // Handle paste operations
-  });
-
-  // LOAD ClientBill PAGE
-  function loadClientBillPage() {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabContents.forEach((content) => {
-      content.style.display = "none";
-    });
-
-    // Show the Abbreviations tab content
-    document.getElementById("clientBillContent").style.display = "block";
-
-    // Deactivate all nav links
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.classList.remove("active");
-    });
-
-    // Activate the Abbreviations nav link
-    document.getElementById("clientBillBtn").classList.add("active");
-  }
-
-  // LOAD CLIENT BILL DATA
-  function loadClientBillData() {
-    //console.log("Loading client bill data..."); // Debugging line
-    google.script.run
-      .withSuccessHandler(function (data) {
-        //console.log("Data received:", data); // Debugging line
-        allData = data; // Store all records
-        createClientBillTable(allData); // Render the first page of records
-        updatePaginationControls(allData.length); // Update pagination controls
-        $("#spinnerModal").modal("hide"); // Hide spinner after data is loaded
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading data:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getAllClientBillRecords(); // Call Google Apps Script function
-  }
-
-  function createClientBillTable(dataArray) {
-    const tableBody = document.getElementById("clientBillTable");
-    tableBody.innerHTML = ""; // Clear existing rows
-
-    if (dataArray && dataArray.length) {
-      const startIndex = (currentPage - 1) * recordsPerPage;
-      const endIndex = startIndex + recordsPerPage;
-      const paginatedData = dataArray.slice(startIndex, endIndex);
-
-      paginatedData.forEach((row, index) => {
-        // Skip empty rows
-        if (row.every((cell) => cell === "")) return;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                <td>${row[1]}</td>
-                <td>${row[2]}</td>
-                <td>${row[3]}</td>
-                <td>${row[8]}</td>
-                <td>
-                    <div class="actions-dropdown">
-                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            &#8942; <!-- Three vertical dots -->
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="editRecord('${row[0]}')">Edit</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="previewRecord('${row[0]}')">Preview</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateReceipt('${row[0]}')">Receipt</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateHouseWayBill('${row[0]}')">House Way</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateManifest('${row[0]}')">Manifest</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateLoadingList('${row[0]}')">Loading List</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="generateItemListCount('${row[0]}')">Item Piece Count</a></li>
-                        </ul>
-                    </div>
-                </td>
-            `;
-        tableBody.appendChild(tr);
-      });
-
-      // If no valid rows were added, show "No data found"
-      if (tableBody.children.length === 0) {
-        tableBody.innerHTML =
-          '<tr><td colspan="5" class="text-center">No data found</td></tr>';
-      }
-    } else {
-      tableBody.innerHTML =
-        '<tr><td colspan="5" class="text-center">No data found</td></tr>';
-    }
-  }
-
-  // EDIT RECORD
-  function editRecord(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        populateForm(data); // Populate the form with the record data
-        $("#spinnerModal").modal("hide"); // Hide spinner
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching record:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getRecordByIds(recId); // Call Google Apps Script function
-  }
-
-  // POPULATE FORM WITH RECORD DATA
-  function populateForm(data) {
-    // Basic details
-    document.getElementById("recId").value = data[0][0]; // Set recId (hidden field)
-    document.getElementById("billNo").value = data[0][1]; // Set Bill No
-    document.getElementById("shipperName").value = data[0][2]; // Set Shipper Name
-    document.getElementById("telephoneNo").value = data[0][3]; // Set Shipper Tel
-    document.getElementById("receiverName1").value = data[0][4]; // Set Receiver Name 1
-    document.getElementById("phoneNo1").value = data[0][5]; // Set Phone No 1
-    document.getElementById("receiverName2").value = data[0][6]; // Set Receiver Name 2
-    document.getElementById("phoneNo2").value = data[0][7]; // Set Phone No 2
-    document.getElementById("containerNo").value = data[0][8]; // Set Container No
-
-    // Populate additional fields
-    document.getElementById("totalPieces").value = data[0][9]; // Set Total Pieces
-    document.getElementById("actualWeight").value = data[0][10]; // Set Actual Weight
-    document.getElementById("discountWeight").value = data[0][11]; // Set Discount Weight
-    document.getElementById("chargeableWeight").value = data[0][12]; // Set Chargeable Weight
-    document.getElementById("ratePerKg").value = data[0][13]; // Set Rate Per KG
-    document.getElementById("billCharge").value = data[0][14]; // Set Bill Charge
-    document.getElementById("discountCharge").value = data[0][15]; // Set Discount Charge
-    document.getElementById("totalCharges").value = data[0][16]; // Set Total Charges
-    document.getElementById("paidAmount").value = data[0][17]; // Set Paid Amount
-    document.getElementById("outstandingBalance").value = data[0][18]; // Set Outstanding Balance
-
-    // Fetch and display items for the current Bill No
-    const billNo = data[0][1]; // Get the Bill No
-    document.getElementById("itemListContainer").style.display = "block";
-    google.script.run
-      .withSuccessHandler(function (items) {
-        const itemList = document.getElementById("itemList"); // Table body
-        itemList.innerHTML = ""; // Clear existing rows
-
-        items.forEach((item, index) => {
-          const row = document.createElement("tr"); // Create table row
-          row.innerHTML = `
-                    <td>${index + 1}</td> <!-- Item Number -->
-                    <td>${item[1]}</td> <!-- Type -->
-                    <td>${item[2]} KG</td> <!-- Weight -->
-                    <td>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="editItem(this)">Edit</button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
-                    </td>
-                `;
-          itemList.appendChild(row); // Append row to table body
+  try {
+    const items = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][billNoCol] === billNo) {
+        items.push({
+          id: i - 1,
+          number: data[i][0],
+          type: data[i][1],
+          weight: data[i][2],
+          bill: data[i][3],
         });
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching items:", error); // Debugging line
-      })
-      .getItemsForBill(billNo); // Call Google Apps Script function
-  }
-
-  // LOAD ALL RECORDS
-  function loadAllRecords() {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        allData = data; // Store all records
-        createClientBillTable(allData); // Render the first page of records
-        updatePaginationControls(allData.length); // Update pagination controls
-        $("#spinnerModal").modal("hide"); // Hide spinner
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading all records:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getAllClientBillRecords(); // Call Google Apps Script function
-  }
-
-  //SERIAZE DATA
-  function serializeFormAndSubmit(form) {
-    const formData = new FormData(form);
-    const formObject = {};
-
-    for (const [key, value] of formData.entries()) {
-      formObject[key] = value;
-    }
-
-    console.log("Serialized Form Object:", formObject); // Debugging line
-    handleClientBillSubmit(formObject);
-  }
-
-  // HANDLE FORM SUBMISSION (UPDATE EXISTING RECORD)
-  function handleClientBillSubmit(formObject) {
-    $("#spinnerModal").modal("show"); // Show spinner
-    calculateOutstandingBalance();
-
-    if (formObject.recId) {
-      console.log("Updating existing record with recId:", formObject.recId); // Debugging line
-      // Update existing record
-      google.script.run
-        .withSuccessHandler(function () {
-          $("#spinnerModal").modal("hide"); // Hide spinner
-          document.getElementById("ClientBillForm").reset(); // Reset form
-          document.getElementById("recId").value = ""; // Clear recId for new records
-          generateBillNo(); // Generate new Bill No
-          clearItemList(); // Clear the item list and reset counter
-          loadClientBillData(); // Reload data
-          fetchLogs();
-          document.getElementById("itemListContainer").style.display = "none";
-        })
-        .withFailureHandler(function (error) {
-          console.error("Error updating record:", error); // Debugging line
-          $("#spinnerModal").modal("hide"); // Hide spinner on error
-        })
-        .updateClientBill(formObject, username); // Call Google Apps Script function
-    } else {
-      // Create new record
-      google.script.run
-        .withSuccessHandler(function () {
-          $("#spinnerModal").modal("hide"); // Hide spinner
-          document.getElementById("ClientBillForm").reset(); // Reset form
-          document.getElementById("recId").value = ""; // Clear recId for new records
-          generateBillNo(); // Generate new Bill No
-          clearItemList(); // Clear the item list and reset counter
-          loadClientBillData(); // Reload data
-          fetchLogs();
-          document.getElementById("itemListContainer").style.display = "none";
-        })
-        .withFailureHandler(function (error) {
-          console.error("Error creating record:", error); // Debugging line
-          $("#spinnerModal").modal("hide"); // Hide spinner on error
-        })
-        .processClientBill(formObject); // Call Google Apps Script function
-    }
-  }
-
-  // CLEAR ITEM LIST AND RESET COUNTER
-  function clearItemList() {
-    const itemList = document.getElementById("itemList");
-    itemList.innerHTML = ""; // Clear all items from the list
-    itemCounter = 1; // Reset the item counter
-  }
-
-  // FETCH TYPE DATA FROM ABBREVIATIONS SHEET
-  function fetchTypeData() {
-    google.script.run
-      .withSuccessHandler(function (data) {
-        populateTypeDropdown(data);
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching type data:", error); // Debugging line
-      })
-      .getAbbreviations();
-  }
-
-  // Populate Type dropdown
-  function populateTypeDropdown(data) {
-    const typeDropdown = document.getElementById("type");
-    typeDropdown.innerHTML = '<option value="">--Select Type--</option>';
-    data.forEach((row) => {
-      const option = document.createElement("option");
-      option.value = row[1]; // Value from Column B
-      option.text = row[0]; // Label from Column A
-      typeDropdown.appendChild(option);
-    });
-  }
-
-  // Initialize form with Enter key support
-  function initializeForm() {
-    document
-      .getElementById("itemWeight")
-      .addEventListener("keypress", function (e) {
-        if (e.key === "Enter") {
-          e.preventDefault(); // Prevent form submission
-          if (currentEditItemId) {
-            updateItem();
-          } else {
-            addItem();
-          }
-        }
-      });
-  }
-
-  //Enter Key to addItem()
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const typeInput = document.getElementById("type");
-    const weightInput = document.getElementById("itemWeight");
-
-    [typeInput, weightInput].forEach((input) => {
-      input.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-          event.preventDefault(); // Prevent form submission
-          //addItem(); // Call your function
-          if (currentEditItemId) {
-            updateItem();
-          } else {
-            addItem();
-          }
-        }
-      });
-    });
-  });
-
-  // Add new item
-  function addItem() {
-    const typeDropdown = document.getElementById("type");
-    const type = typeDropdown.value;
-    const itemWeight = parseFloat(document.getElementById("itemWeight").value);
-
-    if (!type || !itemWeight) {
-      alert("Please fill in both Type and Item Weight.");
-      return;
-    }
-
-    const itemList = document.getElementById("itemList");
-    const itemListContainer = document.getElementById("itemListContainer");
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-    <td>${itemCounter}</td>
-    <td>${typeDropdown.options[typeDropdown.selectedIndex].text}</td>
-    <td>${itemWeight} KG</td>
-    <td>
-      <button type="button" class="btn btn-primary btn-sm" onclick="editItem(this)">Edit</button>
-      <button type="button" class="btn btn-danger btn-sm" onclick="removeItem(this)">Remove</button>
-    </td>
-  `;
-    row.setAttribute("data-item-number", itemCounter);
-    itemList.appendChild(row);
-    itemListContainer.style.display = "block";
-
-    // Save item to Google Sheets
-    const billNo = document.getElementById("billNo").value;
-    google.script.run
-      .withSuccessHandler(() => {
-        console.log("Item saved successfully.");
-      })
-      .withFailureHandler((error) => {
-        console.error("Error saving item:", error);
-        row.remove(); // Remove the row if save failed
-      })
-      .saveItem({
-        number: itemCounter,
-        type: type,
-        weight: itemWeight,
-        bill: billNo,
-      });
-
-    // Update UI and counters
-    itemCounter++;
-    updateChargeDetails(itemWeight);
-    typeDropdown.value = "";
-    document.getElementById("itemWeight").value = "";
-  }
-
-  // Edit Item
-  function editItem(button) {
-    const row = button.closest("tr");
-    const cells = row.cells;
-    currentEditItemId = row.getAttribute("data-item-number");
-    const type = cells[1].textContent;
-    const weight = cells[2].textContent.replace(" KG", "");
-
-    // Fill the form with item data
-    const typeDropdown = document.getElementById("type");
-    for (let i = 0; i < typeDropdown.options.length; i++) {
-      if (typeDropdown.options[i].text === type) {
-        typeDropdown.selectedIndex = i;
-        break;
       }
     }
-    document.getElementById("itemWeight").value = weight;
-
-    // Change button to Update
-    const actionButton = document.querySelector('button[onclick="addItem()"]');
-    actionButton.textContent = "Update";
-    actionButton.classList.remove("btn-success");
-    actionButton.classList.add("btn-primary");
-    actionButton.onclick = function () {
-      updateItem();
-    };
+    return items;
+  } catch (e) {
+    throw new Error("Failed to get items: " + e.message);
   }
+}
+*/
 
-  // Update existing item
-  function updateItem() {
-    const typeDropdown = document.getElementById("type");
-    const type = typeDropdown.value;
-    const newWeight = parseFloat(document.getElementById("itemWeight").value);
-    const billNo = document.getElementById("billNo").value;
+// CLEAR ITEMS FOR CURRENT BILL NO
+function clearItemsForBill(billNo) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues(); // Assuming columns: Number, Type, Weight, Bill
+  const rowsToDelete = data
+    .map((row, index) => (row[3] === billNo ? index + 2 : null))
+    .filter((index) => index !== null); // Find rows with matching Bill No
+  rowsToDelete.reverse().forEach((rowIndex) => sheet.deleteRow(rowIndex)); // Delete rows (reverse to avoid index issues)
+}
 
-    if (!type || !newWeight) {
-      alert("Please fill in both Type and Item Weight.");
-      return;
-    }
+// READ CLIENT BILL RECORDS
+function readClientBillRecords(range) {
+  try {
+    const sheet =
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+    return sheet.getRange(range).getValues();
+  } catch (err) {
+    console.log("Failed with error: " + err.message);
+  }
+}
 
-    // Find the row being edited
-    const rows = document.getElementById("itemList").rows;
-    let row, oldWeight;
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].getAttribute("data-item-number") == currentEditItemId) {
-        row = rows[i];
-        oldWeight = parseFloat(row.cells[2].textContent.replace(" KG", ""));
-        break;
+// UPDATE CLIENT BILL RECORD
+function updateClientBillRecord(values, range, username) {
+  try {
+    const sheet =
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+    const oldValues = sheet.getRange(range).getValues()[0]; // Get the old values before updating
+    sheet.getRange(range).setValues(values); // Update the record
+
+    // Log the changes
+    const newValues = values[0]; // Get the new values
+    const changes = [];
+
+    // Compare old and new values to identify changes
+    for (let i = 0; i < oldValues.length; i++) {
+      if (oldValues[i] !== newValues[i]) {
+        changes.push(`Column ${i + 1}: ${oldValues[i]} -> ${newValues[i]}`);
       }
     }
 
-    if (!row) {
-      alert("Item not found for editing.");
-      return;
+    if (changes.length > 0) {
+      const details = `Updated record ${newValues[0]} (Bill No: ${
+        newValues[1]
+      }). Changes: ${changes.join(", ")}`;
+      console.log("logs insert");
+      logEventUpdate(username, "Update", details);
     }
-
-    // Update the row in UI
-    row.cells[1].textContent =
-      typeDropdown.options[typeDropdown.selectedIndex].text;
-    row.cells[2].textContent = newWeight + " KG";
-
-    // Update in Google Sheets
-    google.script.run
-      .withSuccessHandler(() => {
-        console.log("Item updated successfully.");
-        resetItemForm();
-        // Update charges with the difference
-        updateChargeDetails(newWeight - oldWeight);
-      })
-      .withFailureHandler((error) => {
-        console.error("Error updating item:", error);
-        // Revert UI changes if update failed
-        row.cells[1].textContent =
-          document.getElementById("type").options[
-            document.getElementById("type").selectedIndex
-          ].text;
-        row.cells[2].textContent = oldWeight + " KG";
-      })
-      .updateItem({
-        billNo: billNo,
-        itemNumber: currentEditItemId,
-        type: type,
-        weight: newWeight,
-      });
+  } catch (err) {
+    console.log("Failed with error: " + err.message);
   }
+}
 
-  // Remove Item
-  function removeItem(button) {
-    const itemRow = button.parentElement.parentElement;
-    const itemWeight = parseFloat(
-      itemRow.querySelector("td:nth-child(3)").textContent.replace(" KG", "")
-    );
-    itemRow.remove();
-
-    // Delete from Google Sheets
-    const billNo = document.getElementById("billNo").value;
-    const itemNumber = itemRow.getAttribute("data-item-number");
-    google.script.run
-      .withSuccessHandler(() => {
-        console.log("Item removed successfully.");
-      })
-      .withFailureHandler((error) => {
-        console.error("Error removing item:", error);
-      })
-      .deleteItem(billNo, itemNumber);
-
-    // Update charges
-    updateChargeDetails(-itemWeight);
-
-    // Hide table if empty
-    const itemList = document.getElementById("itemList");
-    if (!itemList.hasChildNodes()) {
-      document.getElementById("itemListContainer").style.display = "none";
-    }
+// DELETE CLIENT BILL RECORD
+function deleteClientBillRecord(id) {
+  try {
+    const rowIndex = getClientBillRowIndexById(id);
+    const sheet =
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+    sheet.deleteRow(rowIndex);
+  } catch (err) {
+    console.log("Failed with error: " + err.message);
   }
+  return getClientBillData();
+}
 
-  // Reset form after add/edit
-  function resetItemForm() {
-    document.getElementById("type").value = "";
-    document.getElementById("itemWeight").value = "";
-    currentEditItemId = null;
+// GET ALL CLIENT BILL RECORDS
+function getAllClientBillRecords() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
 
-    const actionButton =
-      document.querySelector('button[onclick="updateItem()"]') ||
-      document.querySelector('button[onclick="addItem()"]');
-    actionButton.textContent = "Add";
-    actionButton.classList.remove("btn-primary");
-    actionButton.classList.add("btn-success");
-    actionButton.onclick = function () {
-      addItem();
-    };
-  }
+// GET ALL CLIENT BILL DATA
+function getClientBillData() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues();
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
 
-  /*
-        // Calculate charges when discounts change
-        document.getElementById('discountWeight').addEventListener('input', function () {
-            updateChargeDetails(0); // Recalculate weights and charges without adding/removing items
-        });
-    
-        document.getElementById('discountCharge').addEventListener('input', calculateBillCharge);
-    */
+// UPDATE CLIENT BILL RECORD
+function updateClientBill(formObject, username) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch all rows
+  const rowIndex = data.findIndex(
+    (row) => row[COLUMN_NAMES.recId] === formObject.recId
+  ); // Find the row with the matching recId
 
-  // Adjusted updateChargeDetails function
-  function updateChargeDetails(weightChange) {
-    const totalPieces = document.getElementById("totalPieces");
-    const actualWeight = document.getElementById("actualWeight");
-    const chargeableWeight = document.getElementById("chargeableWeight");
+  if (rowIndex !== -1) {
+    // Fetch the old values before updating
+    const oldValues = data[rowIndex];
 
-    // Update total pieces
-    totalPieces.value = Math.max(
-      0,
-      parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1)
-    );
+    // Prepare the new values
+    const newValues = [
+      formObject.recId,
+      formObject.billNo,
+      formObject.shipperName,
+      formObject.telephoneNo,
+      formObject.receiverName1,
+      formObject.phoneNo1,
+      formObject.receiverName2,
+      formObject.phoneNo2,
+      formObject.containerNo,
+      formObject.totalPieces,
+      formObject.actualWeight,
+      formObject.discountWeight,
+      formObject.chargeableWeight,
+      formObject.ratePerKg,
+      formObject.billCharge,
+      formObject.discountCharge,
+      formObject.totalCharges,
+      formObject.paidAmount,
+      formObject.outstandingBalance,
+      new Date().toLocaleString(), // Update the "Date Updated" field
+      oldValues[COLUMN_NAMES.dateCreated], // Keep the original "Date Created" value
+    ];
 
-    // Update actual weight
-    actualWeight.value = Math.max(
-      0,
-      parseFloat(actualWeight.value || "0") + weightChange
-    );
+    // Update the row in the sheet
+    sheet.getRange(rowIndex + 2, 1, 1, newValues.length).setValues([newValues]);
 
-    // Calculate chargeable weight
-    const discountWeight = parseFloat(
-      document.getElementById("discountWeight").value || "0"
-    );
-    chargeableWeight.value = Math.max(
-      0,
-      parseFloat(actualWeight.value) - discountWeight
-    );
-
-    // Update bill charge
-    calculateBillCharge();
-  }
-
-  // Calculate bill charge
-  function calculateBillCharge() {
-    const chargeableWeight = parseFloat(
-      document.getElementById("chargeableWeight").value || "0"
-    );
-    const ratePerKg = parseFloat(
-      (document.getElementById("ratePerKg").value || "0").replace(",", ".")
-    );
-    const discountCharge = parseFloat(
-      document.getElementById("discountCharge").value || "0"
-    );
-
-    // Calculate total charges
-    const totalCharges = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
-    const billCharge = document.getElementById("billCharge");
-    //billCharge.value = Math.max(0, totalCharges).toFixed(2); // Ensure non-negative total
-  }
-
-  // Ensure all numeric fields are >= 0
-  function validateInputs() {
-    const numericFields = document.querySelectorAll('input[type="number"]');
-    numericFields.forEach((field) => {
-      if (parseFloat(field.value) <= 0) {
-        field.value = 0; // Set to zero if below zero
-      }
-    });
-  }
-
-  // Function to calculate all fields based on input logic
-  function calculateOutstandingBalance() {
-    validateInputs(); // Ensure inputs are valid
-
-    // Get required fields
-    const totalPieces = parseFloat(
-      document.getElementById("totalPieces").value || "0"
-    );
-    const actualWeight = parseFloat(
-      document.getElementById("actualWeight").value || "0"
-    );
-    const discountWeight = parseFloat(
-      document.getElementById("discountWeight").value || "0"
-    );
-    const ratePerKg = parseFloat(
-      (document.getElementById("ratePerKg").value || "0").replace(",", ".")
-    );
-    const discountCharge = parseFloat(
-      document.getElementById("discountCharge").value || "0"
-    );
-
-    // Calculate chargeable weight
-    const chargeableWeight = Math.max(0, actualWeight - discountWeight);
-    document.getElementById("chargeableWeight").value = chargeableWeight;
-
-    // Calculate bill charge
-    const billCharge = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
-
-    // Calculate total charges
-    const totalCharges = billCharge;
-    document.getElementById("totalCharges").value = totalCharges.toFixed(2);
-
-    // Get and process paidAmount
-    let paidAmount = parseFloat(
-      document.getElementById("paidAmount").value || "0"
-    );
-
-    // Ensure paid amount doesn't exceed total charges
-    if (paidAmount > totalCharges) {
-      paidAmount = totalCharges;
-      document.getElementById("paidAmount").value = paidAmount.toFixed(2);
-      alert("Paid amount cannot exceed total charges");
-    }
-
-    // Set paid amount to total charges if it's empty or 0
-    if (!document.getElementById("paidAmount").value) {
-        document.getElementById("paidAmount").value = totalCharges.toFixed(2);
-    }
-
-    // Calculate outstanding balance
-    const outstandingBalance = Math.max(
-      0, // Ensure the outstanding balance is at least 0
-      totalCharges - document.getElementById("paidAmount").value || "0"
-    );
-
-    // Set outstanding balance value
-    document.getElementById("outstandingBalance").value =
-      outstandingBalance.toFixed(2);
-  }
-
-  /* Trigger calculations on relevant input changes
-    ['discountWeight', 'ratePerKg', 'discountCharge', 'paidAmount'].forEach(id => {
-        document.getElementById(id).addEventListener('input', calculateOutstandingBalance);
-    });*/
-
-  // GENERATE AND DISPLAY BILL NO
-  function generateBillNo() {
-    google.script.run
-      .withSuccessHandler((lastBillNo) => {
-        const billNoField = document.getElementById("billNo");
-        const nextBillNo = incrementBillNo(lastBillNo); // Increment the last Bill No
-        billNoField.value = nextBillNo; // Set the value of the Bill No field
-      })
-      .withFailureHandler((error) => {
-        console.error("Error generating Bill No:", error); // Debugging line
-        const billNoField = document.getElementById("billNo");
-        billNoField.value = "EJ251"; // Default if no data or error
-      })
-      .getLastBillNo(); // Call Google Apps Script function
-  }
-
-  // HELPER FUNCTION TO INCREMENT BILL NO
-  function incrementBillNo(billNo) {
-    if (!billNo) return "EJ251"; // Default if no Bill No exists
-    const prefix = billNo.slice(0, 2); // Extract prefix (e.g., "EJ")
-    const number = parseInt(billNo.slice(2)); // Extract number
-    return `${prefix}${String(number + 1).padStart(3, "0")}`; // Increment and return
-  }
-
-  // HANDLE SEARCH
-  function handleClientBillSearch(event) {
-    event.preventDefault(); // Prevent form submission
-    const searchText = document
-      .getElementById("searchText")
-      .value.toLowerCase();
-    google.script.run
-      .withSuccessHandler(function (data) {
-        createClientBillTable(data); // Render filtered records
-        const filteredData = allData.filter(
-          (row) =>
-            row[1].toLowerCase().includes(searchText) ||
-            row[2].toLowerCase().includes(searchText) ||
-            row[3].toLowerCase().includes(searchText) ||
-            row[8].toLowerCase().includes(searchText)
+    // Compare old and new values to identify changes
+    const changes = [];
+    for (const [columnName, columnIndex] of Object.entries(COLUMN_NAMES)) {
+      if (oldValues[columnIndex] !== newValues[columnIndex]) {
+        changes.push(
+          `${columnName}: ${oldValues[columnIndex]} -> ${newValues[columnIndex]}`
         );
-        currentPage = 1; // Reset to the first page when searching
-        createClientBillTable(filteredData); // Render the filtered data
-        updatePaginationControls(filteredData.length); // Update pagination controls
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error searching records:", error); // Debugging line
-      })
-      .searchClientBill(searchText); // Call Google Apps Script function
-  }
-
-  // PREVIEW RECORD
-  function previewRecord(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        populatePreviewModal(data); // Populate the preview modal with the record data
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        $("#previewModal").modal("show"); // Show the preview modal
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching record:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getRecordById(recId); // Call Google Apps Script function
-  }
-
-  // POPULATE PREVIEW MODAL
-  function populatePreviewModal(data) {
-    // Populate client bill details
-    document.getElementById("previewBillNo").textContent = data.clientBill[1];
-    document.getElementById("previewShipperName").textContent =
-      data.clientBill[2];
-    document.getElementById("previewTelephoneNo").textContent =
-      data.clientBill[3];
-    document.getElementById("previewReceiverName1").textContent =
-      data.clientBill[4];
-    document.getElementById("previewPhoneNo1").textContent = data.clientBill[5];
-    document.getElementById("previewReceiverName2").textContent =
-      data.clientBill[6];
-    document.getElementById("previewPhoneNo2").textContent = data.clientBill[7];
-    document.getElementById("previewContainerNo").textContent =
-      data.clientBill[8];
-
-    // Populate charge details
-    document.getElementById("previewTotalPieces").textContent =
-      data.clientBill[9];
-    document.getElementById("previewActualWeight").textContent =
-      data.clientBill[10];
-    document.getElementById("previewDiscountWeight").textContent =
-      data.clientBill[11];
-    document.getElementById("previewChargeableWeight").textContent =
-      data.clientBill[12];
-    document.getElementById("previewRatePerKg").textContent =
-      data.clientBill[13];
-    document.getElementById("previewBillCharge").textContent =
-      data.clientBill[14];
-    document.getElementById("previewDiscountCharge").textContent =
-      data.clientBill[15];
-    document.getElementById("previewTotalCharges").textContent =
-      data.clientBill[16];
-    document.getElementById("previewPaidAmount").textContent =
-      data.clientBill[17];
-    document.getElementById("previewOutstandingBalance").textContent =
-      data.clientBill[18];
-    //document.getElementById('previewDate').textContent = data.clientBill[19]; // Date
-
-    // Populate items
-    const itemsTableBody = document.getElementById("previewItems");
-    itemsTableBody.innerHTML = ""; // Clear existing items
-    data.items.forEach((item) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-            <td>${item[0]}</td> <!-- Number -->
-            <td>${item[1]}</td> <!-- Type -->
-            <td>${item[2]}</td> <!-- Weight -->
-        `;
-      itemsTableBody.appendChild(tr);
-    });
-  }
-
-  // ABBREVIATIONS
-
-  // LOAD ABBREVIATIONS PAGE
-  function loadAbbreviationsPage() {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabContents.forEach((content) => {
-      content.style.display = "none";
-    });
-
-    // Show the Abbreviations tab content
-    document.getElementById("abbreviationsContent").style.display = "block";
-
-    // Deactivate all nav links
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.classList.remove("active");
-    });
-
-    // Activate the Abbreviations nav link
-    document.getElementById("abbreviationsBtn").classList.add("active");
-  }
-
-  // HANDLE ABBREVIATION FORM SUBMISSION
-  function handleAbbreviationSubmit(event) {
-    event.preventDefault(); // Prevent form submission
-    const formObject = {
-      name: document.getElementById("abbreviationName").value,
-      value: document.getElementById("abbreviationValue").value,
-    };
-
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function () {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        alert("Abbreviation saved successfully!");
-        document.getElementById("AbbreviationsForm").reset(); // Reset form
-        loadAbbreviations(); // Reload data
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error saving abbreviation:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .saveAbbreviation(formObject); // Call Google Apps Script function
-  }
-
-  // LOAD ABBREVIATIONS
-  function loadAbbreviations() {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        allAbbreviationsData = data; // Store all abbreviations data
-        createAbbreviationsTable(allAbbreviationsData); // Render the first page of abbreviations
-        updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
-        $("#spinnerModal").modal("hide"); // Hide spinner
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading abbreviations:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getAbbreviations(); // Call Google Apps Script function
-  }
-
-  // CREATE THE ABBREVIATIONS TABLE
-  function createAbbreviationsTable(dataArray) {
-    const tableBody = document.getElementById("abbreviationsTable");
-    tableBody.innerHTML = ""; // Clear existing rows
-
-    if (dataArray && dataArray.length) {
-      const startIndex = (currentAbbreviationPage - 1) * abbreviationsPerPage;
-      const endIndex = startIndex + abbreviationsPerPage;
-      const paginatedData = dataArray.slice(startIndex, endIndex);
-
-      paginatedData.forEach((row, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                <td>${row[0]}</td> <!-- Name -->
-                <td>${row[1]}</td> <!-- Abbreviation -->
-                <td>
-                    <button type="button" class="btn btn-warning btn-sm" onclick="editAbbreviation('${row[0]}')">Edit</button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteAbbreviation('${row[0]}')">Delete</button>
-                </td>
-            `;
-        tableBody.appendChild(tr);
-      });
-
-      // If no valid rows were added, show "No data found"
-      if (tableBody.children.length === 0) {
-        tableBody.innerHTML =
-          '<tr><td colspan="3" class="text-center">No data found</td></tr>';
       }
-    } else {
-      tableBody.innerHTML =
-        '<tr><td colspan="3" class="text-center">No data found</td></tr>';
+    }
+
+    // Log the changes
+    if (changes.length > 0) {
+      const details = `Updated client bill: (Bill No: ${
+        formObject.billNo
+      }). Changes: ${changes.join(", ")}`;
+      logEventUpdate(username, "Update Client Bill", details);
+    }
+  }
+}
+
+// GET CLIENT BILL RECORD BY ID
+function getClientBillRecordById(id) {
+  const range = getClientBillRangeById(id);
+  if (!range) return null;
+  return readClientBillRecords(range);
+}
+
+// GET ROW INDEX BY CLIENT BILL ID
+function getClientBillRowIndexById(id) {
+  const idList = readClientBillRecords("ClientBill!A2:A");
+  for (let i = 0; i < idList.length; i++) {
+    if (id === idList[i][0]) {
+      return i + 2; // +2 to account for header row and 0-based index
+    }
+  }
+  return -1;
+}
+
+// VALIDATE CLIENT BILL ID
+function checkClientBillId(id) {
+  const idList = readClientBillRecords("ClientBill!A2:A").flat();
+  return idList.includes(id);
+}
+
+// GET RANGE IN A1 NOTATION FOR CLIENT BILL ID
+function getClientBillRangeById(id) {
+  const rowIndex = getClientBillRowIndexById(id);
+  if (rowIndex === -1) return null;
+  return `ClientBill!A${rowIndex}:O${rowIndex}`; // Adjust columns as needed
+}
+
+// GENERATE UNIQUE ID
+function generateUniqueId() {
+  return Utilities.getUuid();
+}
+
+// SEARCH CLIENT BILL RECORDS
+function searchClientBill(searchText) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  return data.filter(
+    (row) =>
+      row.some((cell) => cell.toString().toLowerCase().includes(searchText)) // Filter rows that match the search text
+  );
+}
+
+// GET RECORD BY ID
+function getRecordByIds(recId) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  const record = data.find((row) => row[0] === recId); // Find the record with the matching recId
+  return record ? [record] : null; // Return the record as an array (to match the expected format)
+}
+
+/* DELETE ITEM FROM ITEM SHEET
+function deleteItem(billNo, itemNumber) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+  const data = sheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  const rowIndex = data.findIndex(
+    (row) => row[3] === billNo && row[0] == itemNumber
+  ); // Find the row with matching Bill No and item number
+  if (rowIndex !== -1) {
+    sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
+  }
+}
+*/
+
+// GET FIRST 20 CLIENT BILL RECORDS
+function getFirstTwentyRecords() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  const filteredData = data.filter((row) => row.some((cell) => cell !== "")); // Filter out empty rows
+  return filteredData.slice(0, 20); // Return only the first 20 records
+}
+
+// GET RECORD BY ID (WITH ITEMS)
+function getRecordById(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const itemSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Item");
+
+  // Fetch client bill details
+  const clientBillData = clientBillSheet
+    .getRange(CLIENT_BILL_RANGE)
+    .getValues(); // Fetch columns A to I
+  const clientBill = clientBillData.find((row) => row[0] === recId); // Find the record with the matching recId
+
+  // Fetch associated items
+  const itemData = itemSheet.getRange("A2:D").getValues(); // Fetch columns A to D
+  const items = itemData.filter((row) => row[3] === clientBill[1]); // Filter items with matching Bill No
+
+  return {
+    clientBill: clientBill,
+    items: items,
+  };
+}
+
+//ABBREVIATIONS
+
+// SAVE ABBREVIATION
+function saveAbbreviation(formObject) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const rowIndex = data.findIndex((row) => row[0] === formObject.name); // Find the row with the matching name
+
+  if (rowIndex !== -1) {
+    // Update existing abbreviation
+    sheet
+      .getRange(rowIndex + 2, 1, 1, 2)
+      .setValues([[formObject.name, formObject.value]]);
+  } else {
+    // Create new abbreviation
+    sheet.appendRow([formObject.name, formObject.value]);
+  }
+}
+
+// GET ABBREVIATIONS
+function getAbbreviations() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues();
+  const filteredData = data.filter((row) => row[0] && row[1]);
+
+  const uniqueData = Array.from(new Set(filteredData.map(JSON.stringify))).map(
+    JSON.parse
+  );
+
+  uniqueData.sort((a, b) => a[0].localeCompare(b[0]));
+
+  Logger.log(uniqueData);
+  return uniqueData;
+}
+
+// GET ABBREVIATION BY NAME
+function getAbbreviationByName(name) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const abbreviation = data.find((row) => row[0] === name); // Find the abbreviation with the matching name
+  return abbreviation ? [abbreviation] : null; // Return the abbreviation as an array
+}
+
+// DELETE ABBREVIATION
+function deleteAbbreviation(name) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+  const data = sheet.getRange(ABBREVIATIONS_RANGE).getValues(); // Fetch columns A and B
+  const rowIndex = data.findIndex((row) => row[0] === name); // Find the row with the matching name
+  if (rowIndex !== -1) {
+    sheet.deleteRow(rowIndex + 2); // +2 to account for header row and 0-based index
+  }
+}
+
+//CONTAINER NO
+
+function getAllContainerRecords() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange(CLIENT_BILL_RANGE).getValues();
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
+
+function updateContainer(originalContainer, newContainer) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const expenseSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const expenseData = expenseSheet.getDataRange().getValues();
+
+  // Update Client Bill Sheet
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][8] === originalContainer) {
+      // Assuming container number is at index 8
+      clientBillSheet.getRange(i + 1, 9).setValue(newContainer); // Update container number (column index 9)
     }
   }
 
-  // EDIT ABBREVIATION
-  function editAbbreviation(name) {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        populateAbbreviationForm(data); // Populate the form with the abbreviation data
-        $("#spinnerModal").modal("hide"); // Hide spinner
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching abbreviation:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getAbbreviationByName(name); // Call Google Apps Script function
+  // Update Expense Sheet
+  for (let i = 1; i < expenseData.length; i++) {
+    if (expenseData[i][1] === originalContainer) {
+      // Assuming container number is at index 1
+      expenseSheet.getRange(i + 1, 2).setValue(newContainer); // Update container number (column index 2)
+    }
+  }
+}
+
+//EXPENSES
+
+// Fetch unique container numbers from ClientBill sheet
+function getContainers() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = sheet.getRange("I2:I").getValues().flat().filter(String);
+  return [...new Set(data)]; // Remove duplicates
+}
+
+// Save new expense entry
+function saveExpense(data) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  sheet.appendRow([
+    generateUniqueId(),
+    data.container,
+    data.type,
+    data.description,
+    data.amount,
+    new Date().toString(),
+  ]);
+  return "Expense added successfully!";
+}
+
+function updateExpense(data, username) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const dataRange = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][0] === data.id) {
+      // Fetch the old values before updating
+      const oldValues = dataRange[i];
+
+      // Update the expense
+      sheet
+        .getRange(i + 1, 2, 1, 4)
+        .setValues([
+          [data.container, data.type, data.description, data.amount],
+        ]);
+
+      // Compare old and new values to identify changes
+      const changes = [];
+      if (oldValues[1] !== data.container) {
+        changes.push(`Container: ${oldValues[1]} -> ${data.container}`);
+      }
+      if (oldValues[2] !== data.type) {
+        changes.push(`Type: ${oldValues[2]} -> ${data.type}`);
+      }
+      if (oldValues[3] !== data.description) {
+        changes.push(`Description: ${oldValues[3]} -> ${data.description}`);
+      }
+      if (oldValues[4] !== data.amount) {
+        changes.push(`Amount: ${oldValues[4]} -> ${data.amount}`);
+      }
+
+      // Log the changes
+      if (changes.length > 0) {
+        const details = `Updated expense ${
+          data.container
+        }. Changes: ${changes.join(", ")}`;
+        logEventUpdate(username, "Update Expense", details);
+      }
+
+      return "Expense updated successfully!";
+    }
+  }
+  return "Expense not found.";
+}
+
+// Fetch expenses with optional container filter
+function getExpenses() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const data = sheet.getRange(EXPENSES_SHEET_RANGE).getValues(); // Fetch columns A to F
+  return data.filter((row) => row.some((cell) => cell !== "")); // Filter out completely empty rows
+}
+
+// Edit an existing expense
+function editExpense(index, updatedData) {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+  const row = index + 2; // Adjust for header row
+  sheet
+    .getRange(row, 2, 1, 3)
+    .setValues([
+      [
+        updatedData.container,
+        updatedData.type,
+        updatedData.description,
+        updatedData.amount,
+      ],
+    ]);
+  return "Expense updated!";
+}
+
+//RECEIPT
+
+// GENERATE RECEIPT
+function generateReceipt(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues(); // Fetch columns A to I
+  const record = data.find((row) => row[0] === recId); // Find the record with the matching recId
+
+  if (!record) {
+    throw new Error("Record not found");
   }
 
-  // POPULATE ABBREVIATION FORM
-  function populateAbbreviationForm(data) {
-    document.getElementById("abbreviationName").value = data[0][0]; // Set Name
-    document.getElementById("abbreviationValue").value = data[0][1]; // Set Abbreviation
+  // Template ID (replace with your Google Docs template ID)
+  const templateId = "1XI-qUgaCUWdP5J4RSSgbvBK4Ndycu-LuRbW8GjPnlWQ";
+
+  // Create a copy of the template
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `Receipt_${record[1]}_${timestamp}`,
+    DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_")
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders with actual values
+  body.replaceText("{{BillNo}}", record[1]);
+  body.replaceText("{{ShipperName}}", record[2]);
+  body.replaceText("{{ShipperTel}}", record[3]);
+  body.replaceText("{{ReceiverName1}}", record[4]);
+  body.replaceText("{{PhoneNo1}}", record[5]);
+  body.replaceText("{{ReceiverName2}}", record[6]);
+  body.replaceText("{{PhoneNo2}}", record[7]);
+  body.replaceText("{{ContainerNo}}", record[8]);
+  body.replaceText("{{TotalPieces}}", record[9]);
+  body.replaceText("{{ActualWeight}}", record[10]);
+  body.replaceText("{{DiscountWeight}}", record[11]);
+  body.replaceText("{{ChargeableWeight}}", record[12]);
+  body.replaceText("{{RatePerKg}}", record[13]);
+  body.replaceText("{{BillCharge}}", record[14]);
+  body.replaceText("{{DiscountCharge}}", record[15]);
+  body.replaceText("{{TotalCharges}}", record[16]);
+  body.replaceText("{{PaidAmount}}", record[17]);
+  body.replaceText("{{OutstandingBalance}}", record[18]);
+
+  const currentDate = new Date();
+  const date = currentDate.toLocaleDateString(); // Get the date part
+  const time = currentDate.toLocaleTimeString(); // Get the time part
+
+  // Replace the {{Date}} placeholder with the formatted string
+  body.replaceText("{{Date}}", date + "\n" + time);
+  body.replaceText("{{AMOUNTWORDS}}", numberToWords(record[16]));
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById("1RDX1N7o6RPFx6pr_bVwiduQSMYaD-F2_"); // Desired folder
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Generate preview and download links for the PDF
+  const pdfPreviewUrl = `https://drive.google.com/file/d/${pdfFile.getId()}/preview`;
+  const pdfDownloadUrl = `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`;
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  // Return both links as an object
+  return {
+    previewUrl: pdfPreviewUrl,
+    downloadUrl: pdfDownloadUrl,
+  };
+}
+
+//HOUSE WAY BILL
+
+// GENERATE HOUSE WAY
+function generateHouseWaybill(recId) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const data = clientBillSheet.getRange(CLIENT_BILL_RANGE).getValues();
+
+  // Find the record matching recId
+  const record = data.find((row) => row[0] === recId); // recId is in column A
+
+  if (!record) {
+    throw new Error("Record not found");
   }
 
-  // DELETE ABBREVIATION
-  function deleteAbbreviation(name) {
-    if (confirm("Are you sure you want to delete this abbreviation?")) {
-      $("#spinnerModal").modal("show"); // Show spinner
-      google.script.run
-        .withSuccessHandler(function () {
-          $("#spinnerModal").modal("hide"); // Hide spinner
-          alert("Abbreviation deleted successfully!");
-          loadAbbreviations(); // Reload data
-        })
-        .withFailureHandler(function (error) {
-          console.error("Error deleting abbreviation:", error); // Debugging line
-          $("#spinnerModal").modal("hide"); // Hide spinner on error
-        })
-        .deleteAbbreviation(name); // Call Google Apps Script function
+  const billNo = record[1]; // BillNo is in column B
+
+  // Fetch Items Data
+  const itemsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(ABBREVIATIONS_SHEET);
+
+  const itemsData = itemsSheet.getDataRange().getValues();
+  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
+
+  // Create abbreviation dictionary to map short form to full form
+  let abbreviationMap = {};
+  for (let i = 1; i < abbreviationsData.length; i++) {
+    let shortForm = abbreviationsData[i][1]; // Short form in Column B of Abbreviations
+    let fullForm = abbreviationsData[i][0]; // Full form in Column A of Abbreviations
+    abbreviationMap[shortForm] = fullForm; // { "Short Form": "Full Form" }
+  }
+
+  // Count occurrences of each item type
+  let itemCountMap = {};
+  for (let i = 1; i < itemsData.length; i++) {
+    if (itemsData[i][3] === billNo) {
+      // Assuming Bill No is in Column D (Index 3)
+      let itemType = itemsData[i][1]; // Item Type (short form in Column B of Items sheet)
+      let fullItemType = abbreviationMap[itemType] || itemType; // Convert short form to full form if found
+      itemCountMap[fullItemType] = (itemCountMap[fullItemType] || 0) + 1; // Count item type
     }
   }
 
-  // SWITCH TO ABBREVIATIONS PAGE
-  document
-    .getElementById("abbreviationsBtn")
-    .addEventListener("click", function (event) {
-      event.preventDefault(); // Prevent default link behavior
-      google.script.run
-        .withSuccessHandler(function (html) {
-          document.body.innerHTML = html; // Load the Abbreviations page
-        })
-        .include("Abbreviations"); // Include the Abbreviations.html file
-    });
-
-  //CONTAINER
-
-  // LOAD CONTAINER PAGE
-  function loadContainerPage() {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabContents.forEach((content) => {
-      content.style.display = "none";
-    });
-
-    // Show the Abbreviations tab content
-    document.getElementById("containerContent").style.display = "block";
-
-    // Deactivate all nav links
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.classList.remove("active");
-    });
-
-    // Activate the Abbreviations nav link
-    document.getElementById("containerBtn").classList.add("active");
+  // Format Items List based on the count
+  let itemsList = [];
+  for (let itemType in itemCountMap) {
+    let count = itemCountMap[itemType];
+    itemsList.push(`${count} ${itemType}`); // Display number of items and their full form
   }
 
-  // LOAD CONTAINER DATA
-  function loadContainerData() {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (data) {
-        allContainerData = data; // Store all container records
-        createContainerTable(data); // Render the container table
-        $("#spinnerModal").modal("hide"); // Hide spinner
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading container data:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .getAllContainerRecords(); // Call Google Apps Script function
+  if (itemsList.length === 0) {
+    throw new Error("No items found for the selected Bill No.");
   }
 
-  // CREATE THE CONTAINER TABLE
-  function createContainerTable(dataArray) {
-    const tableBody = document.getElementById("containerTable");
-    tableBody.innerHTML = ""; // Clear existing rows
+  // Join items list into a single formatted string
+  let itemsFormatted = itemsList.join("\n");
 
-    if (dataArray && dataArray.length) {
-      dataArray.forEach((row, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                <td>${row[1]}</td> <!-- Bill No -->
-                <td>${row[2]}</td> <!-- Shipper Name -->
-                <td>${row[3]}</td> <!-- Telephone Number -->
-                <td>${row[8]}</td> <!-- Container No -->
-                <td>${row[9]}</td> <!-- Total Piece -->
-                <td>${row[10]}</td> <!-- Total Weight -->
-            `;
-        tableBody.appendChild(tr);
-      });
-    } else {
-      tableBody.innerHTML =
-        '<tr><td colspan="6" class="text-center">No data found</td></tr>';
+  // House Waybill Template
+  const templateId = "1pVQdnDmbE0OHMd5ElzOPx2lshECyIyz13cevk3iCOd4"; // Template Doc ID
+  const folderId = "1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"; // Drive Folder ID
+
+  // Copy Template
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `HouseWaybill_${billNo}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Replace placeholders
+  body.replaceText("{{BillNo}}", billNo);
+  body.replaceText("{{ItemsList}}", itemsFormatted);
+  body.replaceText("{{Date}}", new Date().toLocaleString());
+
+  // Other fields from Client Bill
+  body.replaceText("{{ShipperName}}", record[2]);
+  body.replaceText("{{ShipperTel}}", record[3]);
+  body.replaceText("{{ReceiverName1}}", record[4]);
+  body.replaceText("{{PhoneNo1}}", record[5]);
+  body.replaceText("{{ReceiverName2}}", record[6]);
+  body.replaceText("{{PhoneNo2}}", record[7]);
+  body.replaceText("{{ContainerNo}}", record[8]);
+  body.replaceText("{{TotalPieces}}", record[9]);
+  body.replaceText("{{ActualWeight}}", record[10]);
+  body.replaceText("{{DiscountWeight}}", record[11]);
+  body.replaceText("{{ChargeableWeight}}", record[12]);
+  body.replaceText("{{RatePerKg}}", record[13]);
+  body.replaceText("{{BillCharge}}", record[14]);
+  body.replaceText("{{DiscountCharge}}", record[15]);
+  body.replaceText("{{TotalCharges}}", record[16]);
+  body.replaceText("{{PaidAmount}}", record[17]);
+  body.replaceText("{{OutstandingBalance}}", record[18]);
+
+  // Save and Close Doc
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById("1Co0m5ScDdtoRNn2KysMC46O7YlZyoyF9"); // Desired folder
+  const pdfFile = folder.createFile(pdfBlob); // Save the PDF in the specific folder
+
+  // Delete the temporary document
+  DriveApp.getFileById(newDocId).setTrashed(true);
+
+  // Set sharing permissions for the PDF
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return preview & download links
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
+//MANIFEST
+
+//funstion to generate the manifest list
+function generateManifestList(recId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const abbreviationsSheet = ss.getSheetByName(ABBREVIATIONS_SHEET);
+  const manifestTemplateSheet = ss.getSheetByName("Manifest");
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+  const abbreviationsData = abbreviationsSheet.getDataRange().getValues();
+
+  const abbreviationMap = {};
+  for (let i = 1; i < abbreviationsData.length; i++) {
+    abbreviationMap[abbreviationsData[i][1]] = abbreviationsData[i][0];
+  }
+
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      containerNo = clientBillData[i][8];
+      break;
     }
   }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
 
-  // HANDLE UPDATE CONTAINER
-  function handleUpdateContainer(event) {
-    event.preventDefault(); // Prevent form submission
+  const bills = clientBillData.filter((row) => row[8] === containerNo);
+  if (bills.length === 0) throw new Error("No bills found for the container.");
 
-    const originalContainer =
-      document.getElementById("originalContainer").value;
-    const newContainer = document.getElementById("newContainer").value;
+  let manifestList = [];
+  let totalPieces = 0;
+  let totalWeight = 0;
 
-    if (!originalContainer || !newContainer) {
-      alert("Please fill in both Original Container and New Container.");
-      return;
+  bills.forEach((bill, index) => {
+    const billNo = bill[1];
+    const shipperName = bill[2];
+    const shipperTel = bill[3];
+    const receiverName = bill[4];
+    const receiverTel = bill[5];
+    const receiverName2 = bill[6];
+    const receiverTel2 = bill[7];
+    const totalPiecesForBill = bill[9];
+    const totalWeightForBill = bill[10];
+
+    let itemCountMap = {};
+    for (let i = 1; i < itemsData.length; i++) {
+      if (itemsData[i][3] === billNo) {
+        const itemType = abbreviationMap[itemsData[i][1]] || itemsData[i][1];
+        itemCountMap[itemType] = (itemCountMap[itemType] || 0) + 1;
+      }
     }
 
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function () {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        alert("Container updated successfully!");
-        loadContainerData(); // Reload data
-        originalContainer.value = "";
-        newContainer.value = "";
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error updating container:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-      })
-      .updateContainer(originalContainer, newContainer); // Call Google Apps Script function
-  }
+    const itemsList = Object.entries(itemCountMap)
+      .map(([type, count]) => `${count} ${type}`)
+      .join(", ");
 
-  // HANDLE SEARCH CONTAINER
-  function handleSearchContainer() {
-    const searchText = document
-      .getElementById("searchContainer")
-      .value.toLowerCase();
-    const filteredData = allContainerData.filter(
-      (row) => row[8].toLowerCase().includes(searchText) // Assuming container number is at index 3
-    );
-    createContainerTable(filteredData); // Render the filtered data
-  }
+    manifestList.push([
+      index + 1,
+      billNo,
+      `${shipperName}\n${receiverName}${
+        receiverName2 ? "\n" + receiverName2 : ""
+      }`.replace(/\//g, ""),
+      `${shipperTel}\n${receiverTel}${
+        receiverTel2 ? "\n" + receiverTel2 : ""
+      }`.replace(/\//g, ""),
+      itemsList,
+      totalPiecesForBill,
+      totalWeightForBill,
+    ]);
 
-  //EXPENSES
+    totalPieces += totalPiecesForBill;
+    totalWeight += totalWeightForBill;
+  });
 
-  // LOAD Expense PAGE
-  function loadExpensesPage() {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabContents.forEach((content) => {
-      content.style.display = "none";
-    });
+  const folder = DriveApp.getFolderById("1PDPiUFkyO0vM0yM_0Gir4FU41PKZkEI1");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newSS = ss.copy(`Manifest_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
 
-    // Show the Abbreviations tab content
-    document.getElementById("expensesContent").style.display = "block";
+  newSS.getSheets().forEach((sheet) => {
+    if (sheet.getName() !== "Manifest") newSS.deleteSheet(sheet);
+  });
 
-    // Deactivate all nav links
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.classList.remove("active");
-    });
+  const manifestSheet = newSS.getSheetByName("Manifest");
+  manifestSheet.getRange("E5").setValue(containerNo);
+  manifestSheet
+    .getDataRange()
+    .createTextFinder("{{ContainerNo}}")
+    .replaceAllWith(containerNo);
 
-    // Activate the Abbreviations nav link
-    document.getElementById("expensesBtn").classList.add("active");
-  }
+  const startRow = 9;
+  const rowCount = manifestList.length;
+  const fontSize = 14; // Increased from 12 to 14
 
-  // Load container numbers
-  function loadContainers() {
-    google.script.run
-      .withSuccessHandler(function (containers) {
-        const containerSelect = document.getElementById("containerSelect");
-        containerSelect.innerHTML =
-          '<option value="">--Select Container--</option>';
-        containers.forEach((container) => {
-          const option = document.createElement("option");
-          option.value = container;
-          option.text = container;
-          containerSelect.appendChild(option);
-        });
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading containers:", error);
-      })
-      .getContainers(); // Call the Google Apps Script function
-  }
+  if (rowCount > 0) {
+    manifestSheet.getRange(startRow, 1, rowCount, 7).setValues(manifestList);
 
-  // Load container numbers for reports
-  function loadContainersReport() {
-    google.script.run
-      .withSuccessHandler(function (containers) {
-        const containerSelect = document.getElementById(
-          "containerSelectReport"
-        );
-        containerSelect.innerHTML =
-          '<option value="">--Select Container--</option>';
-        containers.forEach((container) => {
-          const option = document.createElement("option");
-          option.value = container;
-          option.text = container;
-          containerSelect.appendChild(option);
-        });
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error loading containers:", error);
-      })
-      .getContainers(); // Call the Google Apps Script function
-  }
-
-  function loadExpenses() {
-    //console.log("Requesting data from server...");
-    google.script.run
-      .withSuccessHandler(function (data) {
-        currentPageExpense = 1;
-        expenses = data;
-        displayExpenses(expenses);
-        updatePaginationControlsExpense(expenses.length); // Update pagination controls
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error fetching expenses:", error);
-      })
-      .getExpenses();
-  }
-
-  function displayExpenses(dataArray) {
-    const tableBody = document.getElementById("expenseTableBody");
-    tableBody.innerHTML = ""; // Clear existing rows
-
-    if (!Array.isArray(dataArray) || dataArray.length === 0) {
-      console.log("⚠️ No expenses found.");
-      tableBody.innerHTML =
-        '<tr><td colspan="6" class="text-center">No expenses found</td></tr>';
-      document.getElementById("pageNumber").innerText = "Page 1";
-      return;
+    for (let col = 1; col <= 7; col++) {
+      manifestSheet
+        .getRange(startRow, col, rowCount, 1)
+        .setHorizontalAlignment("center")
+        .setVerticalAlignment("middle")
+        .setWrap(true)
+        .setFontSize(fontSize);
     }
 
-    const start = (currentPageExpense - 1) * expenseRecordsPerPage;
-    const end = start + expenseRecordsPerPage;
-    const pageExpenses = dataArray.slice(start, end);
+    const totalRow = startRow + rowCount;
+    manifestSheet.getRange(totalRow, 1, 1, 5).merge();
+    manifestSheet
+      .getRange(totalRow, 1)
+      .setValue("TOTAL")
+      .setHorizontalAlignment("center")
+      .setFontWeight("bold")
+      .setFontSize(fontSize + 2); // Now 16pt
 
-    pageExpenses.forEach((exp, index) => {
-      const row = `<tr>
-            <td>${exp[5]}</td>
-            <td>${exp[1]}</td>
-            <td>${exp[2]}</td>
-            <td>${exp[3]}</td>
-            <td>${exp[4]}</td>
-            <td>
-                <button class="btn btn-sm btn-warning text-white" onclick="editExpense(${
-                  index + start
-                })">Edit</button>
-                <button class="btn btn-sm btn-info text-white" onclick="previewExpense(${
-                  index + start
-                })">Preview</button>
-            </td>
-        </tr>`;
-      tableBody.innerHTML += row;
-    });
+    manifestSheet
+      .getRange(totalRow, 6)
+      .setValue(totalPieces)
+      .setFontWeight("bold")
+      .setFontSize(fontSize + 2) // Added font size increase
+      .setHorizontalAlignment("center");
+    manifestSheet
+      .getRange(totalRow, 7)
+      .setValue(totalWeight)
+      .setFontWeight("bold")
+      .setFontSize(fontSize + 2) // Added font size increase
+      .setHorizontalAlignment("center");
+
+    manifestSheet.autoResizeRows(startRow, rowCount + 1);
   }
 
-  // Save expense form submission
-  function saveExpenseForm(event) {
-    event.preventDefault();
-    $("#spinnerModal").modal("show"); // Show spinner
+  const lastUsedRow = manifestSheet.getLastRow();
+  const maxRows = manifestSheet.getMaxRows();
+  if (lastUsedRow < maxRows) {
+    manifestSheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
+  }
 
-    const expenseId = document.getElementById("expenseId").value;
-    const data = {
-      id: expenseId, // Use existing ID or generate new
-      container: document.getElementById("containerSelect").value,
-      type: document.getElementById("expenseType").value,
-      description: document.getElementById("description").value,
-      amount: document.getElementById("amount").value,
-    };
+  // Generate PDF (Landscape mode)
+  const pdfExportUrl =
+    `https://docs.google.com/spreadsheets/d/${newSSId}/export?format=pdf&size=A4&portrait=false&fitw=true` +
+    `&top_margin=0.2&bottom_margin=0.4&left_margin=0.2&right_margin=0.2` +
+    `&sheetnames=false&printtitle=false&gridlines=false`;
 
-    if (expenseId) {
-      console.log("Updating existing expense:", data);
-      google.script.run
-        .withSuccessHandler(() => {
-          $("#spinnerModal").modal("hide");
-          document.getElementById("expenseForm").reset();
-          document.getElementById("expenseId").value = ""; // Clear ID
-          loadExpenses();
-          fetchLogs();
-        })
-        .withFailureHandler((error) => {
-          $("#spinnerModal").modal("hide");
-          console.error("Error updating expense:", error);
-          alert("Failed to update expense.");
-        })
-        .updateExpense(data, username);
-    } else {
-      console.log("Creating new expense:", data);
-      google.script.run
-        .withSuccessHandler(() => {
-          $("#spinnerModal").modal("hide");
-          document.getElementById("expenseForm").reset();
-          loadExpenses();
-        })
-        .withFailureHandler((error) => {
-          $("#spinnerModal").modal("hide");
-          console.error("Error saving expense:", error);
-          alert("Failed to save expense.");
-        })
-        .saveExpense(data);
+  const token = ScriptApp.getOAuthToken();
+  const pdfResponse = UrlFetchApp.fetch(pdfExportUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const pdfBlob = pdfResponse
+    .getBlob()
+    .setName(`Manifest_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = folder.createFile(pdfBlob);
+
+  // Generate Excel file
+  const xlsExportUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?format=xlsx`;
+  const xlsResponse = UrlFetchApp.fetch(xlsExportUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const xlsBlob = xlsResponse
+    .getBlob()
+    .setName(`Manifest_${containerNo}_${timestamp}.xlsx`);
+  const xlsFile = folder.createFile(xlsBlob);
+
+  // Trash the spreadsheet copy
+  DriveApp.getFileById(newSSId).setTrashed(true);
+
+  // Make files viewable
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+  xlsFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
+    xlsDownloadUrl: `https://drive.google.com/uc?id=${xlsFile.getId()}&export=download`,
+  };
+}
+
+// LOADING LIST
+function generateLoadingList(recId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const templateSheet = ss.getSheetByName("Loading List");
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+
+  // Find container number
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      containerNo = clientBillData[i][8];
+      break;
     }
   }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
 
-  // Edit expense
-  function editExpense(index) {
-    const exp = expenses[index];
+  const bills = clientBillData.filter((row) => row[8] === containerNo);
+  if (bills.length === 0) throw new Error("No bills found for the container.");
 
-    if (!exp) {
-      console.error(`❌ Expense at index ${index} not found.`);
-      return;
-    }
+  // Prepare loading list data
+  let loadingList = [];
+  let totalPieces = 0;
+  let totalWeight = 0;
+  let rowIndex = 1;
 
-    console.log("✏️ Editing Expense:", exp);
+  bills.forEach((bill) => {
+    const billNo = bill[1];
+    const totalPiecesForBill = bill[9];
+    const totalWeightForBill = bill[10];
 
-    document.getElementById("expenseId").value = exp[0]; // Store ID for update
-    document.getElementById("containerSelect").value = exp[1];
-    document.getElementById("expenseType").value = exp[2];
-    document.getElementById("description").value = exp[3];
-    document.getElementById("amount").value = exp[4];
-  }
+    // Get items for this bill
+    const billItems = itemsData
+      .filter((item) => item[3] === billNo)
+      .map((item) => item[1]);
 
-  // Preview expense
-  function previewExpense(index) {
-    const expense = expenses[index]; // Get the expense details
-    if (!expense) {
-      console.error("Expense not found at index:", index);
-      return;
-    }
+    const itemCount = billItems.length;
+    let position = 1;
 
-    // Populate the modal with expense details
-    document.getElementById("previewContainer").textContent = expense[1]; // Container
-    document.getElementById("previewType").textContent = expense[2]; // Type
-    document.getElementById("previewDescription").textContent = expense[3]; // Description
-    document.getElementById("previewAmount").textContent = expense[4]; // Amount
+    // Split into chunks of 20 items
+    for (let i = 0; i < itemCount; i += 20) {
+      const chunk = billItems.slice(i, i + 20);
+      let row = [];
 
-    // Show the modal
-    const previewModal = new bootstrap.Modal(
-      document.getElementById("previewExpenseModal")
-    );
-    previewModal.show();
-  }
-
-  //PAGINATION
-
-  // UPDATE PAGINATION CONTROLS
-  function updatePaginationControls(totalRecords) {
-    const paginationControls = document.getElementById("paginationControls");
-    paginationControls.innerHTML = "";
-
-    const totalPages = Math.ceil(totalRecords / recordsPerPage);
-
-    for (let i = 1; i <= totalPages; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${i === currentPage ? "active" : ""}`;
-      li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
-      paginationControls.appendChild(li);
-    }
-  }
-
-  // CHANGE PAGE FUNCTION
-  function changePage(page) {
-    currentPage = page; // Update the current page
-    createClientBillTable(allData); // Re-render the table for the new page
-    updatePaginationControls(allData.length); // Update pagination controls to reflect the active page
-  }
-
-  // UPDATE PAGINATION CONTROLS EXPENSE
-  function updatePaginationControlsExpense(totalRecords) {
-    const paginationControls = document.getElementById(
-      "paginationControlsExpense"
-    );
-    paginationControls.innerHTML = "";
-
-    const totalPages = Math.ceil(totalRecords / expenseRecordsPerPage);
-
-    for (let i = 1; i <= totalPages; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${i === currentPageExpense ? "active" : ""}`;
-      li.innerHTML = `<a class="page-link" href="#" onclick="changePageExpense(${i})">${i}</a>`;
-      paginationControls.appendChild(li);
-    }
-  }
-
-  // CHANGE PAGE FUNCTION
-  function changePageExpense(page) {
-    currentPageExpense = page; // Update the current page
-    displayExpenses(expenses); // Re-render the table for the new page
-    updatePaginationControlsExpense(expenses.length); // Update pagination controls to reflect the active page
-  }
-
-  // UPDATE PAGINATION CONTROLS FOR ABBREVIATIONS
-  function updateAbbreviationPaginationControls(totalRecords) {
-    const paginationControls = document.getElementById(
-      "abbreviationPaginationControls"
-    );
-    paginationControls.innerHTML = "";
-
-    const totalPages = Math.ceil(totalRecords / abbreviationsPerPage);
-
-    for (let i = 1; i <= totalPages; i++) {
-      const li = document.createElement("li");
-      li.className = `page-item ${
-        i === currentAbbreviationPage ? "active" : ""
-      }`;
-      li.innerHTML = `<a class="page-link" href="#" onclick="changeAbbreviationPage(${i})">${i}</a>`;
-      paginationControls.appendChild(li);
-    }
-  }
-
-  // CHANGE PAGE FUNCTION FOR ABBREVIATIONS
-  function changeAbbreviationPage(page) {
-    currentAbbreviationPage = page; // Update the current page
-    createAbbreviationsTable(allAbbreviationsData); // Re-render the table for the new page
-    updateAbbreviationPaginationControls(allAbbreviationsData.length); // Update pagination controls
-  }
-
-  // RECEIPT
-
-  // GENERATE RECEIPT
-  function generateReceipt(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          // Set the iframe source to the preview URL
-          document.getElementById("receiptPreviewIframe").src = urls.previewUrl;
-          // Set the download button's href to the download URL
-          document.getElementById("downloadReceiptBtn").href = urls.downloadUrl;
-          // Show the preview modal
-          $("#receiptPreviewModal").modal("show");
-        } else {
-          alert("Error: Unable to generate the receipt. Please try again.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error generating receipt:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-        alert("Error generating receipt. Please try again.");
-      })
-      .generateReceipt(recId); // Call the Google Apps Script function
-  }
-
-  //HOUSE WAY BILL
-
-  function generateHouseWayBill(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          document.getElementById("houseWaybillPreviewIframe").src =
-            urls.previewUrl;
-          document.getElementById("downloadHouseWaybillBtn").href =
-            urls.downloadUrl;
-          $("#houseWaybillPreviewModal").modal("show");
-        } else {
-          alert("Error: Unable to generate the House Waybill.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error generating House Waybill:", error);
-        $("#spinnerModal").modal("hide");
-        alert("Error generating House Waybill. Please try again.");
-      })
-      .generateHouseWaybill(recId); // Call Google Apps Script function
-  }
-
-  // MANIFEST
-
-  function generateManifest(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          // Set the iframe source to the preview URL
-          document.getElementById("manifestPreviewIframe").src =
-            urls.previewUrl;
-          // Set the download button's href to the download URL
-          document.getElementById("downloadManifestBtn").href =
-            urls.downloadUrl;
-          //Set the download for excel
-          document.getElementById("downloadExcelManifestBtn").href =
-            urls.xlsDownloadUrl;
-          // Show the preview modal
-          $("#manifestPreviewModal").modal("show");
-        } else {
-          alert("Error: Unable to generate the manifest. Please try again.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error generating manifest:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-        alert("Error generating manifest. Please try again.");
-      })
-      .generateManifestList(recId); // Call the Google Apps Script function
-  }
-
-  function downloadExcelManifest() {
-    const excelUrl = document.getElementById("downloadExcelManifestBtn").href;
-    if (excelUrl) {
-      window.open(excelUrl, "_blank");
-    } else {
-      alert(
-        "Excel download link not available. Please generate the manifest first."
-      );
-    }
-  }
-
-  // LOADING LIST
-
-  function generateLoadingList(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner while generating
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        if (
-          urls &&
-          urls.previewUrl &&
-          urls.downloadUrl &&
-          urls.xlsDownloadUrl
-        ) {
-          // Set the iframe source to the preview URL
-          document.getElementById("loadingListPreviewIframe").src =
-            urls.previewUrl;
-
-          // Set the PDF download button's href
-          document.getElementById("downloadLoadingListBtn").href =
-            urls.downloadUrl;
-
-          // Set the Excel download button's href
-          document.getElementById("downloadExcelLoadingListBtn").href =
-            urls.xlsDownloadUrl;
-
-          // Show the preview modal
-          $("#loadingListPreviewModal").modal("show");
-        } else {
-          alert(
-            "Error: Unable to generate the loading list. Please try again."
-          );
-        }
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error generating loading list:", error);
-        $("#spinnerModal").modal("hide");
-        alert("Error generating Loading List. Please try again.");
-      })
-      .generateLoadingList(recId);
-  }
-
-  // Add this function to handle Excel download button click
-  function downloadExcelLoadingList() {
-    const excelUrl = document.getElementById(
-      "downloadExcelLoadingListBtn"
-    ).href;
-    if (excelUrl) {
-      window.open(excelUrl, "_blank");
-    } else {
-      alert(
-        "Excel download link not available. Please generate the loading list first."
-      );
-    }
-  }
-
-  // ITEM LIST COUNT
-
-  function generateItemListCount(recId) {
-    $("#spinnerModal").modal("show"); // Show spinner while generating the receipt
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          // Set the iframe source to the preview URL
-          document.getElementById("itemListPreviewIframe").src =
-            urls.previewUrl;
-          // Set the download button's href to the download URL
-          document.getElementById("downloadItemListBtn").href =
-            urls.downloadUrl;
-          // Show the preview modal
-          $("#itemListPreviewModal").modal("show");
-        } else {
-          alert("Error: Unable to generate the item List. Please try again.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        console.error("Error generating item list:", error); // Debugging line
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-        alert("Error generating Item List. Please try again.");
-      })
-      .generateItemList(recId); // Call the Google Apps Script function
-  }
-
-  // Report
-
-  // Enable/disable date fields based on container selection
-  document
-    .getElementById("containerSelectReport")
-    .addEventListener("change", function () {
-      const fromDate = document.getElementById("fromDate");
-      const toDate = document.getElementById("toDate");
-      if (this.value === "") {
-        fromDate.disabled = false;
-        toDate.disabled = false;
+      if (i === 0) {
+        row = [rowIndex++, billNo, totalPiecesForBill, totalWeightForBill];
+        totalPieces += totalPiecesForBill;
+        totalWeight += totalWeightForBill;
       } else {
-        fromDate.disabled = true;
-        toDate.disabled = true;
+        row = ["", "", "", ""];
+      }
+
+      // Add items to row
+      chunk.forEach((item) => {
+        row.push(`${position} ${item}`);
+        position++;
+      });
+
+      // Fill remaining columns if needed
+      while (row.length < 24) row.push("");
+
+      loadingList.push(row);
+    }
+  });
+
+  // Create new spreadsheet
+  const folder = DriveApp.getFolderById("1TmbOGmOxcnfo5aiP6g7O50FmdznAEwhH");
+  const timestamp = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "yyyyMMdd-HHmmss"
+  );
+  const newSS = ss.copy(`LoadingList_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
+
+  // Remove other sheets
+  newSS.getSheets().forEach((sheet) => {
+    if (sheet.getName() !== "Loading List") newSS.deleteSheet(sheet);
+  });
+
+  const sheet = newSS.getSheetByName("Loading List");
+
+  // Replace placeholders
+  const dateStr = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "dd/MM/yyyy"
+  );
+  sheet
+    .getDataRange()
+    .createTextFinder("{{ContainerNo}}")
+    .replaceAllWith(containerNo);
+  sheet.getDataRange().createTextFinder("{{DATE}}").replaceAllWith(dateStr);
+
+  // Write data with formatting
+  const startRow = 9;
+  const numCols = 24;
+
+  if (loadingList.length > 0) {
+    // Write data
+    sheet
+      .getRange(startRow, 1, loadingList.length, numCols)
+      .setValues(loadingList)
+      .setFontSize(12)
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle")
+      .setWrap(true);
+
+    // Set optimized column widths (in pixels)
+    const columnWidths = {
+      1: 30, // SR NO (Column A)
+      2: 100, // Bill No (Column B)
+      3: 70, // Pieces (Column C)
+      4: 70, // Weight (Column D)
+      5: 60, // Column E (reduced width)
+      14: 60, // Column N (reduced width)
+      19: 60, // Column S (reduced width)
+    };
+
+    // Apply specific column widths
+    Object.entries(columnWidths).forEach(([col, width]) => {
+      sheet.setColumnWidth(Number(col), width);
+    });
+
+    // Auto-resize other columns (excluding the ones we manually set)
+    const excludedCols = new Set(Object.keys(columnWidths).map(Number));
+    for (let col = 1; col <= numCols; col++) {
+      if (!excludedCols.has(col)) {
+        sheet.autoResizeColumn(col);
+      }
+    }
+
+    // Add TOTAL row
+    const totalRow = startRow + loadingList.length;
+    sheet.getRange(totalRow, 1, 1, 2).merge();
+    sheet
+      .getRange(totalRow, 1)
+      .setValue("TOTAL")
+      .setFontWeight("bold")
+      .setFontSize(14)
+      .setHorizontalAlignment("center");
+
+    sheet
+      .getRange(totalRow, 3)
+      .setValue(totalPieces)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+
+    sheet
+      .getRange(totalRow, 4)
+      .setValue(totalWeight)
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+
+    // Auto-resize rows
+    sheet.autoResizeRows(startRow, loadingList.length + 2);
+  }
+
+  // Remove excess rows
+  const lastUsedRow = sheet.getLastRow();
+  const maxRows = sheet.getMaxRows();
+  if (lastUsedRow < maxRows) {
+    sheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
+  }
+
+  // Generate PDF (Landscape)
+  const pdfUrl =
+    `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&` +
+    `size=A4&` +
+    `portrait=false&` +
+    `fitw=true&` +
+    `top_margin=0.25&` +
+    `bottom_margin=0.25&` +
+    `left_margin=0.25&` +
+    `right_margin=0.25&` +
+    `sheetnames=false&` +
+    `printtitle=false&` +
+    `gridlines=false&` +
+    `range=A1:${sheet.getLastColumn()}${sheet.getLastRow()}`;
+
+  const token = ScriptApp.getOAuthToken();
+  const pdfResponse = UrlFetchApp.fetch(pdfUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const pdfBlob = pdfResponse
+    .getBlob()
+    .setName(`LoadingList_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = folder.createFile(pdfBlob);
+
+  // Generate XLS file
+  const xlsUrl = `https://docs.google.com/spreadsheets/d/${newSSId}/export?format=xlsx`;
+  const xlsResponse = UrlFetchApp.fetch(xlsUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const xlsBlob = xlsResponse
+    .getBlob()
+    .setName(`LoadingList_${containerNo}_${timestamp}.xlsx`);
+  const xlsFile = folder.createFile(xlsBlob);
+
+  // Clean up
+  DriveApp.getFileById(newSSId).setTrashed(true);
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+  xlsFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
+    xlsDownloadUrl: `https://drive.google.com/uc?id=${xlsFile.getId()}&export=download`,
+  };
+}
+
+//ITEM LIST COUNT
+
+function generateItemList(recId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const itemsSheet = ss.getSheetByName(ITEM_DATA_SHEET);
+  const templateSheet = ss.getSheetByName("Item List");
+
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const itemsData = itemsSheet.getDataRange().getValues();
+
+  let containerNo = null;
+  for (let i = 1; i < clientBillData.length; i++) {
+    if (clientBillData[i][0] === recId) {
+      containerNo = clientBillData[i][8];
+      break;
+    }
+  }
+  if (!containerNo)
+    throw new Error("No Container No found for the provided RecId.");
+
+  const bills = clientBillData.filter((row) => row[8] === containerNo);
+  if (bills.length === 0) throw new Error("No bills found for the container.");
+
+  let itemCounts = {};
+  let totalPieces = 0;
+  let totalItemCounts = {};
+
+  bills.forEach((bill) => {
+    const billNo = bill[1];
+    const totalPiecesForBill = bill[9];
+    totalPieces += totalPiecesForBill;
+
+    if (!itemCounts[billNo])
+      itemCounts[billNo] = { totalPieces: totalPiecesForBill };
+
+    for (let i = 1; i < itemsData.length; i++) {
+      if (itemsData[i][3] === billNo) {
+        const itemType = itemsData[i][1];
+        itemCounts[billNo][itemType] = (itemCounts[billNo][itemType] || 0) + 1;
+        totalItemCounts[itemType] = (totalItemCounts[itemType] || 0) + 1;
+      }
+    }
+  });
+
+  const folderId = "1l1n66G2MPgEmlFB5iHN7ZUbijgbx7k8y";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newSS = ss.copy(`ItemList_${containerNo}_${timestamp}`);
+  const newSSId = newSS.getId();
+  const sheet = newSS.getSheetByName("Item List");
+
+  // Remove all other sheets
+  newSS.getSheets().forEach((s) => {
+    if (s.getName() !== "Item List") newSS.deleteSheet(s);
+  });
+
+  // Replace placeholders
+  sheet
+    .createTextFinder("{{containerNo}}")
+    .matchCase(false)
+    .replaceAllWith(containerNo);
+  sheet
+    .createTextFinder("{{date}}")
+    .matchCase(false)
+    .replaceAllWith(new Date().toLocaleDateString());
+
+  // Table generation
+  const itemTypes = Object.keys(totalItemCounts);
+  const headers = ["HWB NO", "TTL PCS", ...itemTypes];
+  sheet
+    .getRange(7, 1, 1, headers.length)
+    .setValues([headers])
+    .setFontSize(14)
+    .setFontWeight("bold");
+
+  const startRow = 9;
+  const data = [];
+  Object.entries(itemCounts).forEach(([billNo, counts]) => {
+    const row = [billNo, counts.totalPieces];
+    itemTypes.forEach((type) => row.push(counts[type] || ""));
+    data.push(row);
+  });
+
+  if (data.length > 0) {
+    sheet
+      .getRange(startRow, 1, data.length, headers.length)
+      .setValues(data)
+      .setFontSize(13);
+
+    const totalRowIdx = startRow + data.length;
+    const totalRow = ["TOTAL", totalPieces];
+    itemTypes.forEach((type) => totalRow.push(totalItemCounts[type] || ""));
+    sheet
+      .getRange(totalRowIdx, 1, 1, headers.length)
+      .setValues([totalRow])
+      .setFontSize(13)
+      .setFontWeight("bold");
+
+    sheet
+      .getRange(startRow, 1, data.length + 1, headers.length)
+      .setVerticalAlignment("middle")
+      .setHorizontalAlignment("center")
+      .setWrap(true);
+  }
+
+  // Delete extra rows to avoid white space
+  const lastRow = sheet.getLastRow();
+  const maxRows = sheet.getMaxRows();
+  if (lastRow < maxRows) sheet.deleteRows(lastRow + 1, maxRows - lastRow);
+
+  // Export the sheet to PDF with custom margins (top=0.2in, left=0.2in, right=0.2in)
+  const exportUrl =
+    `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&portrait=true&sheetnames=false&printtitle=false&pagenumbers=false&` +
+    `gridlines=false&fzr=false&top_margin=0.2&bottom_margin=0.2&left_margin=0.2&right_margin=0.2&` +
+    `gid=${sheet.getSheetId()}`;
+
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const blob = response
+    .getBlob()
+    .setName(`ItemList_${containerNo}_${timestamp}.pdf`);
+  const pdfFile = DriveApp.getFolderById(folderId).createFile(blob);
+  DriveApp.getFileById(newSSId).setTrashed(true);
+
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
+  };
+}
+
+// Generate report
+function generateReport({ reportType, container, fromDate, toDate }) {
+  const clientBillSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(CLIENT_BILL_SHEET);
+  const expensesSheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(EXPENSES_SHEET);
+
+  // Fetch client bill data
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const expensesData = expensesSheet.getDataRange().getValues();
+
+  // Filter data based on container or date range
+  let filteredClientBills = [];
+  let filteredExpenses = [];
+
+  if (container) {
+    // Filter by container
+    filteredClientBills = clientBillData.filter((row) => row[8] === container); // Container No is in column I
+    filteredExpenses = expensesData.filter((row) => row[1] === container); // Container No is in column B
+  } else {
+    // Filter by date range
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    filteredClientBills = clientBillData.filter((row) => {
+      const date = new Date(row[19]); // Date is in column T
+      return date >= from && date <= to;
+    });
+
+    filteredExpenses = expensesData.filter((row) => {
+      const date = new Date(row[5]); // Date is in column F
+      return date >= from && date <= to;
+    });
+  }
+
+  // Calculate totals
+  const totalIncome = filteredClientBills.reduce(
+    (sum, row) => sum + parseFloat(row[16] || 0),
+    0
+  ); // Total Charges is in column Q
+  const totalExpenses = filteredExpenses.reduce(
+    (sum, row) => sum + parseFloat(row[4] || 0),
+    0
+  ); // Amount is in column E
+  const profitLoss = totalIncome - totalExpenses;
+
+  // Generate the report document
+  const templateId = REPORT_TEMPLATE_ID;
+  const folderId = REPORT_FOLDER_ID;
+  const templateDoc = DriveApp.getFileById(templateId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const newDoc = templateDoc.makeCopy(
+    `Report_${container || "All"}_${timestamp}`,
+    DriveApp.getFolderById(folderId)
+  );
+  const newDocId = newDoc.getId();
+  const doc = DocumentApp.openById(newDocId);
+  const body = doc.getBody();
+
+  // Clear the template body (remove placeholders)
+  body.clear();
+
+  // Add the title (centered and blue)
+  const title = body.appendParagraph("Eastern Joury Est - Report");
+  title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  title.setForegroundColor("#1a73e8"); // Blue color
+
+  // Add container info or date range (right-aligned)
+  const containerInfo = container
+    ? `Container: ${container}`
+    : `Date Range: ${fromDate} to ${toDate}`;
+  const infoParagraph = body.appendParagraph(containerInfo);
+  infoParagraph.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+
+  // Add totals and other details (left-aligned)
+  const totalsParagraph = body.appendParagraph(
+    `Total Income: ${totalIncome.toFixed(2)}\n` +
+      `Total Expenses: ${totalExpenses.toFixed(2)}`
+  );
+  totalsParagraph.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+
+  // Add profit or loss (green for profit, red for loss)
+  const profitLossParagraph = body.appendParagraph(
+    profitLoss >= 0
+      ? `Profit: ${profitLoss.toFixed(2)}`
+      : `Loss: ${Math.abs(profitLoss).toFixed(2)}`
+  );
+  profitLossParagraph.setForegroundColor(
+    profitLoss >= 0 ? "#0f9d58" : "#db4437"
+  ); // Green for profit, red for loss
+  profitLossParagraph.setBold(true);
+
+  // Add a section for income (client bills) if report type is "All" or "Income"
+  if (reportType === "all" || reportType === "income") {
+    if (filteredClientBills.length > 0) {
+      body
+        .appendParagraph("Income (Client Bills)")
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      // Create a table for client bills
+      const clientBillTable = body.appendTable();
+      const headerRow = clientBillTable.appendTableRow();
+      headerRow
+        .appendTableCell("Bill No")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Shipper Name")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Tel No")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Total Weight")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Total Amount")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+
+      filteredClientBills.forEach((row) => {
+        const dataRow = clientBillTable.appendTableRow();
+        dataRow.appendTableCell(row[1]).setForegroundColor("#000000"); // Bill No (black)
+        dataRow.appendTableCell(row[2]).setForegroundColor("#000000"); // Shipper Name (black)
+        dataRow.appendTableCell(row[3]).setForegroundColor("#000000"); // Tel No (black)
+        dataRow.appendTableCell(row[10]).setForegroundColor("#000000"); // Total Weight (black)
+        dataRow.appendTableCell(row[16]).setForegroundColor("#000000"); // Total Charges (black)
+      });
+
+      // Add total income
+      body
+        .appendParagraph(`Total Income: ${totalIncome.toFixed(2)}`)
+        .setBold(true);
+    } else {
+      body
+        .appendParagraph("No income data found for the selected criteria.")
+        .setItalic(true);
+    }
+  }
+
+  // Add a section for expenses if report type is "All" or "Expense"
+  if (reportType === "all" || reportType === "expense") {
+    if (filteredExpenses.length > 0) {
+      body
+        .appendParagraph("Expenses")
+        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
+
+      // Create a table for expenses
+      const expenseTable = body.appendTable();
+      const headerRow = expenseTable.appendTableRow();
+      headerRow
+        .appendTableCell("Container")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Type")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Description")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+      headerRow
+        .appendTableCell("Amount")
+        .setBackgroundColor("#1a73e8")
+        .setForegroundColor("#ffffff");
+
+      filteredExpenses.forEach((row) => {
+        const dataRow = expenseTable.appendTableRow();
+        dataRow.appendTableCell(row[1]).setForegroundColor("#000000"); // Container (black)
+        dataRow.appendTableCell(row[2]).setForegroundColor("#000000"); // Type (black)
+        dataRow.appendTableCell(row[3]).setForegroundColor("#000000"); // Description (black)
+        dataRow.appendTableCell(row[4]).setForegroundColor("#000000"); // Amount (black)
+      });
+
+      // Add total expenses
+      body
+        .appendParagraph(`Total Expenses: ${totalExpenses.toFixed(2)}`)
+        .setBold(true);
+    } else {
+      body
+        .appendParagraph("No expense data found for the selected criteria.")
+        .setItalic(true);
+    }
+  }
+
+  // Save and close the document
+  doc.saveAndClose();
+
+  // Export as PDF
+  const pdfBlob = newDoc.getAs(MimeType.PDF);
+  const folder = DriveApp.getFolderById(folderId);
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newDocId).setTrashed(true);
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  // Return preview and download URLs
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${pdfFile.getId()}`,
+  };
+}
+
+function generateContainerSummary(params) {
+  const { container, fromDate, toDate } = params;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const clientBillSheet = ss.getSheetByName(CLIENT_BILL_SHEET);
+  const summaryTemplateSheet = ss.getSheetByName("Container Summary");
+
+  if (!summaryTemplateSheet) {
+    throw new Error("Container Summary template sheet not found");
+  }
+
+  // Get all data including headers
+  const clientBillData = clientBillSheet.getDataRange().getValues();
+  const headers = clientBillData[0];
+  console.log("Headers:", headers);
+
+  // Filter bills (skip header row)
+  let bills = [];
+  let headerText = "";
+
+  if (container) {
+    bills = clientBillData
+      .slice(1)
+      .filter(
+        (row) =>
+          row[8] && row[8].toString().trim() === container.toString().trim()
+      );
+    headerText = `CONTAINER NO: ${container}`;
+    console.log(`Found ${bills.length} bills for container ${container}`);
+  } else {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+
+    bills = clientBillData.slice(1).filter((row) => {
+      try {
+        const billDate = row[19]
+          ? new Date(row[19])
+          : row[20]
+          ? new Date(row[20])
+          : null;
+        return billDate && billDate >= from && billDate <= to;
+      } catch (e) {
+        console.warn("Date error:", e);
+        return false;
+      }
+    });
+    headerText = `DATE RANGE: ${formatDateForDisplay(
+      fromDate
+    )} TO ${formatDateForDisplay(toDate)}`;
+    console.log(`Found ${bills.length} bills for date range`);
+  }
+
+  if (bills.length === 0) {
+    throw new Error(`No matching bills found`);
+  }
+
+  // CREATE NEW SPREADSHEET
+  const folder = DriveApp.getFolderById("1Mevmd81eoXttjgPMHKthOrI29hue0ng6");
+  const timestamp = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    "yyyyMMdd-HHmmss"
+  );
+  const newSSName = `Container_Summary_${
+    container || "DATERANGE"
+  }_${timestamp}`;
+  const newSS = SpreadsheetApp.create(newSSName);
+  const newSSId = newSS.getId();
+
+  // COPY TEMPLATE
+  const copiedSheet = summaryTemplateSheet.copyTo(newSS);
+  copiedSheet.setName("Container Summary");
+  newSS.deleteSheet(newSS.getSheets()[0]); // Remove default sheet
+
+  // GET COPIED SHEET
+  const summarySheet = newSS.getSheetByName("Container Summary");
+
+  // REPLACE PLACEHOLDER
+  summarySheet
+    .getDataRange()
+    .createTextFinder("{{Placeholder}}")
+    .replaceAllWith(headerText);
+
+  // PREPARE DATA
+  const summaryData = [];
+  let totals = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // For pieces, kgs, charges, etc.
+
+  bills.forEach((bill, index) => {
+    const rowData = [
+      index + 1, // SR NO
+      bill[8], // CONTAINER NO
+      bill[1], // HWB NO
+      bill[9], // TOTAL PCS
+      bill[10], // TOTAL KG'S
+      bill[16], // TOTAL CHARGES
+      bill[14], // BILL CHARGE
+      bill[21], // BAREL CHG (adjust if needed)
+      bill[16], // TOTAL CHARGE (duplicate)
+      bill[15], // DISCOUNT AMOUNT
+      bill[16], // TOTAL AMOUNT
+      bill[17], // PAID AMOUNT
+      bill[18], // DUE AMOUNT
+      bill[2], // CLIENT NAME
+    ];
+
+    summaryData.push(rowData);
+
+    // Update totals
+    totals[0] += bill[9] || 0; // PCS
+    totals[1] += bill[10] || 0; // KGS
+    totals[2] += bill[16] || 0; // CHARGES
+    totals[3] += bill[14] || 0; // BILL CHARGE
+    totals[4] += 0; // BAREL CHG
+    totals[5] += bill[16] || 0; // TOTAL
+    totals[6] += bill[15] || 0; // DISCOUNT
+    totals[7] += bill[16] || 0; // TOTAL
+    totals[8] += bill[17] || 0; // PAID
+    totals[9] += bill[18] || 0; // DUE
+  });
+
+  // WRITE DATA TO SHEET (STARTING AT ROW 9)
+  if (summaryData.length > 0) {
+    const startRow = 9; // Data starts at row 9
+    const numCols = summaryData[0].length;
+
+    // Clear any existing data below row 8
+    if (summarySheet.getLastRow() >= startRow) {
+      summarySheet
+        .getRange(
+          startRow,
+          1,
+          summarySheet.getLastRow() - startRow + 1,
+          numCols
+        )
+        .clearContent();
+    }
+
+    // Write new data starting at row 9
+    summarySheet
+      .getRange(startRow, 1, summaryData.length, numCols)
+      .setValues(summaryData);
+
+    // Add totals row
+    const totalsRow = startRow + summaryData.length;
+    summarySheet
+      .getRange(totalsRow, 1)
+      .setValue("TOTAL")
+      .setFontWeight("bold")
+      .setFontSize(12); // Increased font size
+
+    // Set totals values with formatting
+    const totalsColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; // Columns to format
+    totalsColumns.forEach((col, idx) => {
+      if (idx < totals.length) {
+        summarySheet
+          .getRange(totalsRow, col)
+          .setValue(totals[idx])
+          .setFontWeight("bold")
+          .setFontSize(12) // Increased font size
+          .setHorizontalAlignment("center");
       }
     });
 
-  // Generate report
-  function generateReport() {
-    const reportType = document.getElementById("reportType").value;
-    const container = document.getElementById("containerSelectReport").value;
-    const fromDate = document.getElementById("fromDate").value;
-    const toDate = document.getElementById("toDate").value;
+    // Format totals row
+    summarySheet
+      .getRange(totalsRow, 1, 1, numCols)
+      .setFontWeight("bold")
+      .setBackground("#f2f2f2");
 
-    if (!container && (!fromDate || !toDate)) {
-      alert("Please select a container or specify a date range.");
-      return;
+    // Remove all empty rows below data
+    const maxRows = summarySheet.getMaxRows();
+    const lastUsedRow = summarySheet.getLastRow();
+    if (lastUsedRow < maxRows) {
+      summarySheet.deleteRows(lastUsedRow + 1, maxRows - lastUsedRow);
     }
 
-    // Clear the existing preview
-    const previewSection = document.getElementById("previewSection");
-    const reportPreviewIframe = document.getElementById("reportPreviewIframe");
-    const downloadReportBtn = document.getElementById("downloadReportBtn");
-
-    previewSection.style.display = "none"; // Hide the preview section
-    reportPreviewIframe.src = ""; // Clear the iframe source
-    downloadReportBtn.href = ""; // Clear the download link
-
-    // Show spinner while generating the report
-    $("#spinnerModal").modal("show");
-
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          // Set the iframe source to the preview URL
-          reportPreviewIframe.src = urls.previewUrl;
-          // Set the download button's href to the download URL
-          downloadReportBtn.href = urls.downloadUrl;
-          // Show the preview section
-          previewSection.style.display = "block";
-        } else {
-          alert("Error generating report. Please try again.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-        console.error("Error generating report:", error);
-        alert("Error generating report. Please try again.");
-      })
-      .generateReport({ reportType, container, fromDate, toDate });
-  }
-
-  function generateContainerSummary() {
-    const container = document.getElementById("containerSelectReport").value;
-    const fromDate = document.getElementById("fromDate").value;
-    const toDate = document.getElementById("toDate").value;
-
-    if (!container && (!fromDate || !toDate)) {
-      alert("Please select a container or specify a date range.");
-      return;
+    // Auto-resize columns
+    for (let i = 1; i <= numCols; i++) {
+      //summarySheet.autoResizeColumn(i);
     }
-
-    // Clear the existing preview
-    const previewSection = document.getElementById("previewSection");
-    const reportPreviewIframe = document.getElementById("reportPreviewIframe");
-    const downloadReportBtn = document.getElementById("downloadReportBtn");
-
-    previewSection.style.display = "none"; // Hide the preview section
-    reportPreviewIframe.src = ""; // Clear the iframe source
-    downloadReportBtn.href = ""; // Clear the download link
-
-    // Show spinner while generating the report
-    $("#spinnerModal").modal("show");
-
-    google.script.run
-      .withSuccessHandler(function (urls) {
-        $("#spinnerModal").modal("hide"); // Hide spinner
-
-        if (urls && urls.previewUrl && urls.downloadUrl) {
-          // Set the iframe source to the preview URL
-          reportPreviewIframe.src = urls.previewUrl;
-          // Set the download button's href to the download URL
-          downloadReportBtn.href = urls.downloadUrl;
-          // Show the preview section
-          previewSection.style.display = "block";
-        } else {
-          alert("Error generating report. Please try again.");
-        }
-      })
-      .withFailureHandler(function (error) {
-        $("#spinnerModal").modal("hide"); // Hide spinner on error
-        console.error("Error generating report:", error);
-        alert("Error generating report. Please try again.");
-      })
-      .generateContainerSummary({ container, fromDate, toDate });
   }
 
-  //PRINT REPORT
+  // GENERATE PDF WITH PROPER SETTINGS
+  const lastRow = summarySheet.getLastRow();
+  const exportUrl =
+    `https://docs.google.com/spreadsheets/d/${newSSId}/export?` +
+    `format=pdf&` +
+    `size=A4&` +
+    `portrait=true&` +
+    `fitw=true&` +
+    `top_margin=0.2&` +
+    `bottom_margin=0.4&` +
+    `left_margin=0.2&` +
+    `right_margin=0.2&` +
+    `sheetnames=false&` +
+    `printtitle=false&` +
+    `gridlines=false&` +
+    `range=A1:M${lastRow}`; // Explicitly include all rows
 
-  function printIframe(iframeId) {
-    const iframe = document.getElementById(iframeId);
-
-    // 1. Open the iframe URL in a new tab
-    const printWindow = window.open(iframe.src, "_blank");
-
-    // 2. Add a print button to the new window
-    printWindow.onload = function () {
-      // Create print button
-      const printBtn = printWindow.document.createElement("button");
-      printBtn.textContent = "Print Document";
-      printBtn.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 10px 20px;
-      background: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      z-index: 9999;
-    `;
-
-      // Add print functionality
-      printBtn.onclick = function () {
-        printWindow.print();
-      };
-
-      // Create close button
-      const closeBtn = printWindow.document.createElement("button");
-      closeBtn.textContent = "Close";
-      closeBtn.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 120px;
-      padding: 10px 20px;
-      background: #f44336;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      z-index: 9999;
-    `;
-      closeBtn.onclick = function () {
-        printWindow.close();
-      };
-
-      // Add buttons to the document
-      printWindow.document.body.appendChild(closeBtn);
-      printWindow.document.body.appendChild(printBtn);
-
-      // Optional: Try to auto-print
-      setTimeout(() => {
-        try {
-          printWindow.print();
-        } catch (e) {
-          console.log("Auto-print failed, using manual button");
-        }
-      }, 1000);
-    };
-  }
-
-  //LOAD LOGS PAGE
-
-  function loadLogPage() {
-    // Hide all tab contents
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabContents.forEach((content) => {
-      content.style.display = "none";
+  let pdfBlob;
+  try {
+    const response = UrlFetchApp.fetch(exportUrl, {
+      headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
+      muteHttpExceptions: true,
     });
 
-    // Show the Abbreviations tab content
-    document.getElementById("logContent").style.display = "block";
-
-    // Deactivate all nav links
-    const navLinks = document.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.classList.remove("active");
-    });
-
-    // Activate the Abbreviations nav link
-    document.getElementById("logBtn").classList.add("active");
-  }
-
-  function fetchLogs() {
-    google.script.run.withSuccessHandler(updateLogsTable).getLogs();
-  }
-
-  function updateLogsTable(logs) {
-    const tbody = document
-      .getElementById("logsTable")
-      .getElementsByTagName("tbody")[0];
-    tbody.innerHTML = ""; // Clear existing rows
-
-    if (logs && Array.isArray(logs)) {
-      logs.forEach((log) => {
-        const row = tbody.insertRow();
-        row.insertCell().textContent = log[0]; // Timestamp
-        row.insertCell().textContent = log[1]; // Username
-        row.insertCell().textContent = log[2]; // Event
-        row.insertCell().textContent = log[3]; // Details
-      });
-    } else {
-      console.error("No logs found or logs is not an array:", logs);
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`PDF generation failed: ${response.getContentText()}`);
     }
+
+    pdfBlob = response.getBlob().setName(`${newSSName}.pdf`);
+  } catch (e) {
+    console.error("PDF generation error:", e);
+    throw new Error("Failed to generate PDF. Please try again.");
   }
-</script>
+
+  const pdfFile = folder.createFile(pdfBlob);
+  DriveApp.getFileById(newSSId).setTrashed(true);
+  pdfFile.setSharing(
+    DriveApp.Access.ANYONE_WITH_LINK,
+    DriveApp.Permission.VIEW
+  );
+
+  return {
+    previewUrl: `https://drive.google.com/file/d/${pdfFile.getId()}/preview`,
+    downloadUrl: `https://drive.google.com/uc?id=${pdfFile.getId()}&export=download`,
+  };
+}
+
+function formatDateForDisplay(dateString) {
+  return Utilities.formatDate(
+    new Date(dateString),
+    Session.getScriptTimeZone(),
+    "dd-MMM-yyyy"
+  );
+}
+
+//LOGS
+
+function getLogs() {
+  const sheet =
+    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOGS_SHEET_UPDATE);
+  const data = sheet.getDataRange().getValues(); // Fetch all rows
+  return data.slice(1); // Skip the header row
+}
+
+/*-------------------GENERAL-------------------------*/
+
+// INCLUDE HTML PARTS (JS, CSS, OTHER HTML FILES)
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function numberToWords(num) {
+  if (num === 0) return "ZERO";
+
+  // Split into whole and decimal parts
+  const parts = num.toString().split(".");
+  let whole = parseInt(parts[0]);
+  let decimal =
+    parts.length > 1 ? parseInt(parts[1].padEnd(2, "0").substring(0, 2)) : 0;
+
+  const belowTwenty = [
+    "ONE",
+    "TWO",
+    "THREE",
+    "FOUR",
+    "FIVE",
+    "SIX",
+    "SEVEN",
+    "EIGHT",
+    "NINE",
+    "TEN",
+    "ELEVEN",
+    "TWELVE",
+    "THIRTEEN",
+    "FOURTEEN",
+    "FIFTEEN",
+    "SIXTEEN",
+    "SEVENTEEN",
+    "EIGHTEEN",
+    "NINETEEN",
+  ];
+  const tens = [
+    "",
+    "",
+    "TWENTY",
+    "THIRTY",
+    "FORTY",
+    "FIFTY",
+    "SIXTY",
+    "SEVENTY",
+    "EIGHTY",
+    "NINETY",
+  ];
+  const thousands = ["", "THOUSAND", "MILLION", "BILLION"];
+
+  function helper(n) {
+    if (n === 0) return "";
+    if (n < 20) return belowTwenty[n - 1];
+    if (n < 100) {
+      return (
+        tens[Math.floor(n / 10)] +
+        (n % 10 === 0 ? "" : "-" + belowTwenty[(n % 10) - 1])
+      );
+    }
+    if (n < 1000) {
+      return (
+        belowTwenty[Math.floor(n / 100) - 1] +
+        " HUNDRED" +
+        (n % 100 === 0 ? "" : " AND " + helper(n % 100))
+      );
+    }
+    for (let i = 0; i < thousands.length; i++) {
+      const unit = 1000 ** (i + 1);
+      if (n < unit) {
+        return (
+          helper(Math.floor(n / 1000 ** i)) +
+          " " +
+          thousands[i] +
+          (n % 1000 ** i === 0 ? "" : " " + helper(n % 1000 ** i))
+        );
+      }
+    }
+    return "";
+  }
+
+  let wholeText = helper(whole) || "ZERO";
+  let decimalText = helper(decimal);
+
+  if (decimal > 0) {
+    return wholeText + " POINT " + decimalText;
+  }
+
+  return wholeText;
+}
