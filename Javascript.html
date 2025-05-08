@@ -1,6 +1,9 @@
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+  crossorigin="anonymous"
+></script>
 <script>
   // Function to handle tab switching
   function switchTab(event, tabId) {
@@ -498,115 +501,116 @@
 
     // Update UI and counters
     itemCounter++;
-    updateChargeDetails(itemWeight,true);
+    updateChargeDetails(itemWeight, true);
     typeDropdown.value = "";
     document.getElementById("itemWeight").value = "";
   }
 
-function editItem(button) {
-  const row = button.closest("tr");
-  const cells = row.cells;
-  currentEditItemId = row.getAttribute("data-item-number") || null;
-  currentEditRow = row; // Store actual row as backup
+  function editItem(button) {
+    const row = button.closest("tr");
+    const cells = row.cells;
+    currentEditItemId = row.getAttribute("data-item-number") || null;
+    currentEditRow = row; // Store actual row as backup
 
-  const type = cells[1].textContent;
-  const weight = cells[2].textContent.replace(" KG", "");
+    const type = cells[1].textContent;
+    const weight = cells[2].textContent.replace(" KG", "");
 
-  const typeDropdown = document.getElementById("type");
-  const index = Array.from(typeDropdown.options).findIndex(
-    (option) => option.value === type
-  );
-  if (index !== -1) typeDropdown.selectedIndex = index;
-  document.getElementById("itemWeight").value = weight;
+    const typeDropdown = document.getElementById("type");
+    const index = Array.from(typeDropdown.options).findIndex(
+      (option) => option.value === type
+    );
+    if (index !== -1) typeDropdown.selectedIndex = index;
+    document.getElementById("itemWeight").value = weight;
 
-  const actionButton = document.querySelector('button[onclick="addItem()"]');
-  actionButton.textContent = "Update";
-  actionButton.classList.remove("btn-success");
-  actionButton.classList.add("btn-primary");
-  actionButton.onclick = updateItem;
-}
-
-function updateItem() {
-  const typeDropdown = document.getElementById("type");
-  const newType = typeDropdown.value;
-  const newWeight = parseFloat(document.getElementById("itemWeight").value);
-  const billNo = document.getElementById("billNo").value;
-
-  if (!newType || isNaN(newWeight)) {
-    alert("Please fill in both Type and Item Weight.");
-    return;
+    const actionButton = document.querySelector('button[onclick="addItem()"]');
+    actionButton.textContent = "Update";
+    actionButton.classList.remove("btn-success");
+    actionButton.classList.add("btn-primary");
+    actionButton.onclick = updateItem;
   }
 
-  // Try to get the row via ID first, fallback to saved row
-  let row = document.querySelector(`tr[data-item-number="${currentEditItemId}"]`);
-  if (!row && currentEditRow) {
-    row = currentEditRow;
+  function updateItem() {
+    const typeDropdown = document.getElementById("type");
+    const newType = typeDropdown.value;
+    const newWeight = parseFloat(document.getElementById("itemWeight").value);
+    const billNo = document.getElementById("billNo").value;
+
+    if (!newType || isNaN(newWeight)) {
+      alert("Please fill in both Type and Item Weight.");
+      return;
+    }
+
+    // Try to get the row via ID first, fallback to saved row
+    let row = document.querySelector(
+      `tr[data-item-number="${currentEditItemId}"]`
+    );
+    if (!row && currentEditRow) {
+      row = currentEditRow;
+    }
+
+    if (!row) {
+      alert("Could not find the item row for update.");
+      return;
+    }
+
+    const oldWeight = parseFloat(row.cells[2].textContent.replace(" KG", ""));
+    row.cells[1].textContent = newType;
+    row.cells[2].textContent = newWeight + " KG";
+
+    // Update in Sheets
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Item updated.");
+        resetItemForm();
+        updateChargeDetails(newWeight - oldWeight, false);
+      })
+      .withFailureHandler((error) => {
+        console.error("Error updating item:", error);
+      })
+      .updateItem({
+        billNo,
+        itemNumber: currentEditItemId ?? row.cells[0].textContent,
+        type: newType,
+        weight: newWeight,
+      });
   }
-
-  if (!row) {
-    alert("Could not find the item row for update.");
-    return;
-  }
-
-  const oldWeight = parseFloat(row.cells[2].textContent.replace(" KG", ""));
-  row.cells[1].textContent = newType;
-  row.cells[2].textContent = newWeight + " KG";
-
-  // Update in Sheets
-  google.script.run
-    .withSuccessHandler(() => {
-      console.log("Item updated.");
-      resetItemForm();
-      updateChargeDetails(newWeight - oldWeight,false);
-    })
-    .withFailureHandler((error) => {
-      console.error("Error updating item:", error);
-    })
-    .updateItem({
-      billNo,
-      itemNumber: currentEditItemId ?? row.cells[0].textContent,
-      type: newType,
-      weight: newWeight,
-    });
-}
 
   // Remove Item
   function removeItem(button) {
-  const itemRow = button.parentElement.parentElement;
-  const itemWeight = parseFloat(
-    itemRow.querySelector("td:nth-child(3)").textContent.replace(" KG", "")
-  );
+    const itemRow = button.parentElement.parentElement;
+    const itemWeight = parseFloat(
+      itemRow.querySelector("td:nth-child(3)").textContent.replace(" KG", "")
+    );
 
-  // Determine item number
-  let itemNumber = itemRow.getAttribute("data-item-number");
-  if (!itemNumber) {
-    itemNumber = itemRow.cells[0].textContent.trim();
+    // Determine item number
+    let itemNumber = itemRow.getAttribute("data-item-number");
+    if (!itemNumber) {
+      itemNumber = itemRow.cells[0].textContent.trim();
+    }
+
+    // Remove row from UI
+    itemRow.remove();
+
+    // Delete from Google Sheets
+    const billNo = document.getElementById("billNo").value;
+    google.script.run
+      .withSuccessHandler(() => {
+        console.log("Item removed successfully.");
+      })
+      .withFailureHandler((error) => {
+        console.error("Error removing item:", error);
+      })
+      .deleteItem(billNo, itemNumber);
+
+    // Update charges
+    updateChargeDetails(-itemWeight, true);
+
+    // Hide table if empty
+    const itemList = document.getElementById("itemList");
+    if (!itemList.hasChildNodes()) {
+      document.getElementById("itemListContainer").style.display = "none";
+    }
   }
-
-  // Remove row from UI
-  itemRow.remove();
-
-  // Delete from Google Sheets
-  const billNo = document.getElementById("billNo").value;
-  google.script.run
-    .withSuccessHandler(() => {
-      console.log("Item removed successfully.");
-    })
-    .withFailureHandler((error) => {
-      console.error("Error removing item:", error);
-    })
-    .deleteItem(billNo, itemNumber);
-
-  // Update charges
-  updateChargeDetails(-itemWeight, true);
-
-  // Hide table if empty
-  const itemList = document.getElementById("itemList");
-  if (!itemList.hasChildNodes()) {
-    document.getElementById("itemListContainer").style.display = "none";
-  }
-}
-
 
   // Reset form after add/edit
   function resetItemForm() {
@@ -636,36 +640,36 @@ function updateItem() {
 
   // Adjusted updateChargeDetails function
   function updateChargeDetails(weightChange, isNewItem = false) {
-  const totalPieces = document.getElementById("totalPieces");
-  const actualWeight = document.getElementById("actualWeight");
-  const chargeableWeight = document.getElementById("chargeableWeight");
+    const totalPieces = document.getElementById("totalPieces");
+    const actualWeight = document.getElementById("actualWeight");
+    const chargeableWeight = document.getElementById("chargeableWeight");
 
-  // Update total pieces only if it's a new item
-  if (isNewItem) {
-    totalPieces.value = Math.max(
+    // Update total pieces only if it's a new item
+    if (isNewItem) {
+      totalPieces.value = Math.max(
+        0,
+        parseInt(totalPieces.value || "0") + (weightChange > 0 ? 1 : -1)
+      );
+    }
+
+    // Update actual weight
+    actualWeight.value = Math.max(
       0,
-      parseInt(totalPieces.value || "0") + (weightChange>0?1:-1)
+      parseFloat(actualWeight.value || "0") + weightChange
     );
+
+    // Update chargeable weight
+    const discountWeight = parseFloat(
+      document.getElementById("discountWeight").value || "0"
+    );
+    chargeableWeight.value = Math.max(
+      0,
+      parseFloat(actualWeight.value) - discountWeight
+    );
+
+    // Update bill charge
+    calculateBillCharge();
   }
-
-  // Update actual weight
-  actualWeight.value = Math.max(
-    0,
-    parseFloat(actualWeight.value || "0") + weightChange
-  );
-
-  // Update chargeable weight
-  const discountWeight = parseFloat(
-    document.getElementById("discountWeight").value || "0"
-  );
-  chargeableWeight.value = Math.max(
-    0,
-    parseFloat(actualWeight.value) - discountWeight
-  );
-
-  // Update bill charge
-  calculateBillCharge();
-}
 
   // Calculate bill charge
   function calculateBillCharge() {
@@ -695,11 +699,10 @@ function updateItem() {
     });
   }
 
-  // Function to calculate all fields based on input logic
+  //calculate balance
   function calculateOutstandingBalance() {
     validateInputs(); // Ensure inputs are valid
 
-    // Get required fields
     const totalPieces = parseFloat(
       document.getElementById("totalPieces").value || "0"
     );
@@ -716,43 +719,34 @@ function updateItem() {
       document.getElementById("discountCharge").value || "0"
     );
 
-    // Calculate chargeable weight
     const chargeableWeight = Math.max(0, actualWeight - discountWeight);
     document.getElementById("chargeableWeight").value = chargeableWeight;
 
-    // Calculate bill charge
-    const billCharge = 100 + chargeableWeight * ratePerKg - discountCharge; // SAR 100 base charge
-
-    // Calculate total charges
+    const billCharge = 100 + chargeableWeight * ratePerKg - discountCharge;
     const totalCharges = billCharge;
     document.getElementById("totalCharges").value = totalCharges.toFixed(2);
 
-    // Get and process paidAmount
-    let paidAmount = parseFloat(
-      document.getElementById("paidAmount").value || "0"
-    );
+    const paidInput = document.getElementById("paidAmount");
+    const outstandingInput = document.getElementById("outstandingBalance");
 
-    // Ensure paid amount doesn't exceed total charges
-    if (paidAmount > totalCharges) {
-      paidAmount = totalCharges;
-      document.getElementById("paidAmount").value = paidAmount.toFixed(2);
-      alert("Paid amount cannot exceed total charges");
+    let paidAmount = parseFloat(paidInput.value);
+
+    if (isNaN(paidAmount) || paidAmount === 0) {
+      // Default: unpaid
+      paidAmount = 0;
+      paidInput.value = "0.00";
+      outstandingInput.value = totalCharges.toFixed(2);
+    } else {
+      // User has entered some amount, validate and update outstanding
+      if (paidAmount > totalCharges) {
+        paidAmount = totalCharges;
+        paidInput.value = paidAmount.toFixed(2);
+        alert("Paid amount cannot exceed total charges");
+      }
+
+      const outstanding = Math.max(0, totalCharges - paidAmount);
+      outstandingInput.value = outstanding.toFixed(2);
     }
-
-    // Set paid amount to total charges if it's empty or 0
-    if (!document.getElementById("paidAmount").value) {
-        document.getElementById("paidAmount").value = totalCharges.toFixed(2);
-    }
-
-    // Calculate outstanding balance
-    const outstandingBalance = Math.max(
-      0, // Ensure the outstanding balance is at least 0
-      totalCharges - document.getElementById("paidAmount").value || "0"
-    );
-
-    // Set outstanding balance value
-    document.getElementById("outstandingBalance").value =
-      outstandingBalance.toFixed(2);
   }
 
   /* Trigger calculations on relevant input changes
